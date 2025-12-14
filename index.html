@@ -2,68 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" href="/favicon.ico">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Palms Estate - Luxury Rentals</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#E65100',
-          }
-        }
-      }
-    }
-  </script>
 </head>
-<body class="bg-white text-gray-900">
-  <!-- Hero -->
-  <section class="relative h-screen bg-gradient-to-br from-primary to-primary-900 text-white flex items-center justify-center">
-    <div class="text-center px-6 max-w-4xl">
-      <h1 class="text-6xl md:text-8xl font-bold mb-8">Palms Estate</h1>
-      <p class="text-3xl md:text-5xl mb-12">Luxury Rentals Redefined</p>
-      <a href="#properties" class="bg-white text-primary px-16 py-6 rounded-full text-2xl font-bold hover:bg-gray-100 transition">
-        View Rentals
-      </a>
-    </div>
-  </section>
-
-  <!-- Properties -->
-  <section id="properties" class="py-20 bg-gray-50">
-    <div class="max-w-7xl mx-auto px-6">
-      <h2 class="text-5xl font-bold text-center text-primary mb-16">Featured Rentals</h2>
-      <div class="grid md:grid-cols-3 gap-8">
-        <div class="bg-white rounded-xl shadow-xl overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800" alt="Villa" class="w-full h-64 object-cover">
-          <div class="p-8">
-            <h3 class="text-2xl font-bold">Oceanfront Villa</h3>
-            <p class="text-3xl font-bold text-primary mt-2">$8,500/month</p>
-            <p class="text-gray-600 mt-2">Miami Beach</p>
-          </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-xl overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800" alt="Mansion" class="w-full h-64 object-cover">
-          <div class="p-8">
-            <h3 class="text-2xl font-bold">Beachfront Mansion</h3>
-            <p class="text-3xl font-bold text-primary mt-2">$15,000/month</p>
-            <p class="text-gray-600 mt-2">Malibu</p>
-          </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-xl overflow-hidden">
-          <img src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800" alt="Penthouse" class="w-full h-64 object-cover">
-          <div class="p-8">
-            <h3 class="text-2xl font-bold">City Penthouse</h3>
-            <p class="text-3xl font-bold text-primary mt-2">$6,200/month</p>
-            <p class="text-gray-600 mt-2">New York</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <footer class="bg-primary text-white py-12 text-center">
-    <p class="text-xl">&copy; 2025 Palms Estate. All rights reserved.</p>
-  </footer>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
