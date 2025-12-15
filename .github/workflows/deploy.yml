@@ -3,6 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -21,8 +22,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install
-        run: npm install
+      - name: Install dependencies
+        run: npm install  # Use install instead of ci to fix permission
 
       - name: Build
         run: npm run build
@@ -36,5 +37,5 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy
+      - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
