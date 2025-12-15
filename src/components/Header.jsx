@@ -6,6 +6,10 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
         <Link to="/" className="text-3xl font-bold text-primary">Palms Estate</Link>
         <nav className="hidden md:flex gap-10 text-lg">
+          <Link to="/" className="hover:text-orange-700 transition">Home</Link>
+          <Link to="/properties" className="hover:text-orange-700 transition">Properties</Link>
+          <Link to="/about" className="hover:text-orange-700 transition">About Us</Link>
+          <Link to="/login" className="hover:text-orange-700 transition">Login</Link>
           <Link to="/" className="hover:text-primary-dark transition">Home</Link>
           <Link to="/properties" className="hover:text-primary-dark transition">Properties</Link>
           <Link to="/about" className="hover:text-primary-dark transition">About Us</Link>
