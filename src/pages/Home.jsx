@@ -5,12 +5,12 @@ export default function Home() {
     <>
       {/* Hero with luxury villa background */}
       <section className="relative h-screen bg-cover bg-center flex items-center justify-center" style={{backgroundImage: "url('https://thumbs.dreamstime.com/b/modern-luxury-beachfront-villa-curved-glass-architecture-pool-sunset-surrounded-palm-trees-ocean-view-stunning-376395239.jpg')"}}>
-        <div className="absolute inset-0 bg-black opacity-50"></div>
+        <div className="absolute inset-0 bg-black opacity-60"></div>
         <div className="relative text-center px-6 max-w-5xl text-white">
           <h1 className="text-7xl md:text-9xl font-extrabold mb-8 drop-shadow-2xl">Palms Estate</h1>
-          <p className="text-4xl md:text-6xl font-light mb-12 drop-shadow-2xl">Luxury Rentals Redefined</p>
+          <p className="text-4xl md:text-6xl font-light mb-12 drop-shadow-2xl">Exclusive Luxury Residences | Elevated Living Experiences</p>
           <Link to="/properties" className="bg-white text-primary px-20 py-8 rounded-full text-3xl font-bold hover:bg-gray-100 transition shadow-2xl">
-            Explore Rentals
+            Discover Exclusive Rentals
           </Link>
         </div>
       </section>
@@ -18,11 +18,10 @@ export default function Home() {
       {/* Featured Rentals with real luxury images */}
       <section className="py-32 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-6xl font-bold text-center text-primary mb-20">Featured Luxury Rentals</h2>
+          <h2 className="text-6xl font-bold text-center text-primary mb-20">Curated Luxury Residences</h2>
           <div className="grid md:grid-cols-3 gap-16">
-            {/* Oceanfront Villa Interior */}
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden hover:shadow-3xl hover:-translate-y-4 transition duration-300 group relative">
-              <img src="https://thumbs.dreamstime.com/b/luxury-living-room-interior-white-couch-seascape-view-nice-41128456.jpg" alt="Oceanfront Villa Interior" className="w-full h-96 object-cover group-hover:scale-110 transition duration-500" />
+              <img src="https://hgtvhome.sndimg.com/content/dam/images/hgtv/fullset/2017/6/15/0/FOD17_Christopher-Brandon_Beach-Project_4.jpg.rend.hgtvcom.1280.960.85.suffix/1497546216989.webp" alt="Oceanfront Villa Interior" className="w-full h-96 object-cover group-hover:scale-110 transition duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex items-end">
                 <div className="p-8 text-white">
                   <h3 className="text-4xl font-bold">Oceanfront Villa</h3>
@@ -32,9 +31,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Beachfront Mansion Exterior */}
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden hover:shadow-3xl hover:-translate-y-4 transition duration-300 group relative">
-              <img src="https://thumbs.dreamstime.com/b/outdoor-luxury-sunset-over-infinity-pool-swimming-summer-beachfront-hotel-resort-tropical-landscape-beautiful-tranquil-beach-377406152.jpg" alt="Beachfront Mansion" className="w-full h-96 object-cover group-hover:scale-110 transition duration-500" />
+              <img src="https://thumbs.dreamstime.com/b/outdoor-luxury-sunset-over-infinity-pool-swimming-summer-beachfront-hotel-resort-tropical-landscape-beautiful-tranquil-beach-377406152.jpg" alt="Beachfront Mansion Exterior" className="w-full h-96 object-cover group-hover:scale-110 transition duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex items-end">
                 <div className="p-8 text-white">
                   <h3 className="text-4xl font-bold">Beachfront Mansion</h3>
@@ -44,9 +42,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* City Penthouse */}
             <div className="bg-white rounded-3xl shadow-2xl overflow-hidden hover:shadow-3xl hover:-translate-y-4 transition duration-300 group relative">
-              <img src="https://thumbs.dreamstime.com/b/luxurious-penthouse-living-room-fireplace-stunning-city-skyline-views-floor-to-ceiling-windows-sunset-modern-387379280.jpg" alt="City Penthouse" className="w-full h-96 object-cover group-hover:scale-110 transition duration-500" />
+              <img src="https://thumbs.dreamstime.com/b/luxurious-modern-penthouse-living-room-night-stunning-city-skyline-view-floor-to-ceiling-windows-cozy-interior-359471346.jpg" alt="City Penthouse Night View" className="w-full h-96 object-cover group-hover:scale-110 transition duration-500" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex items-end">
                 <div className="p-8 text-white">
                   <h3 className="text-4xl font-bold">City Penthouse</h3>
