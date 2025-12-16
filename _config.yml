@@ -1,0 +1,5 @@
+title: Palms Estate
+description: Luxury Rentals Redefined
+theme: minima
+plugins:
+  - jekyll-feed

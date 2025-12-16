@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ page.title }} | Palms Estate</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            orange: {
+              600: '#D84315',
+              800: '#E65100',
+            }
+          }
+        }
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  {{ content }}
+</body>
+</html>
