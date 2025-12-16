@@ -1,10 +1,10 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,jsx}'],
+  content: ['./index.html', './src/**/*.{js,jsx,tsx,ts}'],
   theme: {
     extend: {
       colors: {
-        primary: '#E65100', // Deep orange
+        primary: '#E65100',
         accent: '#FF8A65',
       },
     },
