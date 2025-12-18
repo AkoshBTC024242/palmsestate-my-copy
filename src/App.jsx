@@ -3,8 +3,6 @@ import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './pages/Home';
 import Properties from './pages/Properties';
-import About from './pages/About';
-import PropertyDetails from './pages/PropertyDetails';
 
 function App() {
   return (
@@ -15,8 +13,6 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/properties" element={<Properties />} />
-            <Route path="/properties/:id" element={<PropertyDetails />} />
-            <Route path="/about" element={<About />} />
           </Routes>
         </main>
         <Footer />
@@ -24,5 +20,4 @@ function App() {
     </Router>
   );
 }
-
 export default App;
