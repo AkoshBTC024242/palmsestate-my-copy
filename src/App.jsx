@@ -12,12 +12,13 @@ import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import ApplicationForm from './pages/ApplicationForm';
 import ProtectedRoute from './components/ProtectedRoute';
+import ApplicationStatus from './components/ApplicationStatus';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-gray-50">
           <Header />
           <main className="flex-grow">
             <Routes>
@@ -30,13 +31,13 @@ function App() {
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
 
-              {/* Protected Routes - Require Authentication */}
+              {/* Protected Routes */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
               } />
-
+              
               <Route path="/property/:id/apply" element={
                 <ProtectedRoute>
                   <ApplicationForm />
@@ -45,12 +46,15 @@ function App() {
 
               {/* 404 Page */}
               <Route path="*" element={
-                <div className="min-h-[60vh] flex items-center justify-center">
-                  <div className="text-center">
-                    <h1 className="text-4xl font-serif font-bold text-gray-800 mb-4">404 - Page Not Found</h1>
-                    <p className="text-gray-600 mb-8">The page you're looking for doesn't exist.</p>
-                    <a href="/" className="bg-amber-600 text-white px-6 py-3 rounded-full font-sans font-semibold hover:bg-amber-700 transition-colors">
-                      Return Home
+                <div className="min-h-[70vh] flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
+                  <div className="text-center px-4">
+                    <div className="text-9xl font-serif font-bold text-amber-600/20 mb-6">404</div>
+                    <h1 className="text-3xl font-serif font-bold text-gray-800 mb-4">Page Not Found</h1>
+                    <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                      The page you're looking for doesn't exist or has been moved.
+                    </p>
+                    <a href="/" className="inline-flex items-center bg-gradient-to-r from-amber-600 to-orange-500 text-white px-8 py-3 rounded-full font-sans font-semibold hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                      Return to Home
                     </a>
                   </div>
                 </div>
