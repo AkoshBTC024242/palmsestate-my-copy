@@ -1,15 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogIn, UserPlus, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { 
+  Menu, X, User, ChevronDown, 
+  Home, Building, Info, Mail, LogOut
+} from 'lucide-react';
 
 function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [applicationMenuOpen, setApplicationMenuOpen] = useState(false);
   const location = useLocation();
-  const accountMenuRef = useRef(null);
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
-  // Handle scroll effect for header
+  // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 20);
@@ -21,65 +27,51 @@ function Header() {
   // Close mobile menu on route change
   useEffect(() => {
     setIsOpen(false);
-    setIsAccountMenuOpen(false);
+    setUserMenuOpen(false);
+    setApplicationMenuOpen(false);
   }, [location]);
 
-  // Close account menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (accountMenuRef.current && !accountMenuRef.current.contains(event.target)) {
-        setIsAccountMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
   const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Properties', path: '/properties' },
-    { name: 'About', path: '/about' },
-    { name: 'Contact', path: '/contact' },
+    { name: 'Home', path: '/', icon: <Home size={18} /> },
+    { name: 'Properties', path: '/properties', icon: <Building size={18} /> },
+    { name: 'About', path: '/about', icon: <Info size={18} /> },
+    { name: 'Contact', path: '/contact', icon: <Mail size={18} /> },
   ];
 
-  const isActive = (path) => {
-    if (path === '/' && location.pathname === '/') return true;
-    if (path !== '/' && location.pathname.startsWith(path)) return true;
-    return false;
-  };
+  const isActive = (path) => location.pathname === path;
 
-  const handleSignOut = () => {
-    // Will integrate with Supabase later
-    console.log('Sign out clicked');
-    setIsAccountMenuOpen(false);
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
 
   return (
-    <header 
-      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        scrolled 
-          ? 'backdrop-blur-xl bg-white/20 border-b border-white/30 shadow-2xl shadow-black/10' 
-          : 'backdrop-blur-md bg-white/10 border-b border-white/20'
-      }`}
-    >
+    <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+      scrolled 
+        ? 'bg-white shadow-lg border-b border-gray-100' 
+        : 'bg-white/95 backdrop-blur-sm border-b border-gray-100'
+    }`}>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between py-4">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link 
-            to="/" 
-            className="flex items-center space-x-3 group"
-          >
+          <Link to="/" className="flex items-center space-x-3 group">
             <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-full blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <h1 className="relative font-serif text-2xl md:text-3xl font-bold text-amber-600">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-600 to-orange-500 flex items-center justify-center">
+                <span className="text-white font-serif font-bold text-lg">PE</span>
+              </div>
+            </div>
+            <div className="hidden md:block">
+              <h1 className="font-serif text-2xl font-bold text-gray-900 leading-tight">
                 Palms Estate
               </h1>
+              <p className="text-xs text-gray-500 font-sans tracking-wider uppercase">
+                Premier Luxury Rentals
+              </p>
             </div>
-            <span className="hidden md:inline text-xs font-sans font-semibold tracking-widest text-amber-500/70 uppercase">
-              Luxury Rentals
-            </span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -88,85 +80,105 @@ function Header() {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`relative px-5 py-3 font-sans font-medium transition-all duration-300 rounded-full ${
+                className={`flex items-center space-x-2 px-5 py-3 font-sans font-medium rounded-lg transition-all duration-200 ${
                   isActive(link.path)
-                    ? 'text-white bg-gradient-to-r from-amber-600/20 to-orange-500/20'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
+                    ? 'text-amber-700 bg-amber-50'
+                    : 'text-gray-700 hover:text-amber-700 hover:bg-amber-50/50'
                 }`}
               >
-                {link.name}
-                {isActive(link.path) && (
-                  <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full"></span>
-                )}
+                {link.icon}
+                <span>{link.name}</span>
               </Link>
             ))}
 
-            {/* Account Dropdown Menu */}
-            <div className="relative ml-4" ref={accountMenuRef}>
-              <button
-                onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
-                className="group flex items-center space-x-2 bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-full font-sans font-semibold hover:shadow-2xl hover:shadow-amber-500/25 transition-all duration-300 hover:-translate-y-0.5"
-              >
-                <User size={18} />
-                <span>Account</span>
-                <ChevronDown 
-                  size={16} 
-                  className={`transition-transform duration-200 ${
-                    isAccountMenuOpen ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-
-              {/* Dropdown Content */}
-              {isAccountMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white/95 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl shadow-black/20 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="p-4 border-b border-white/20">
-                    <h3 className="font-sans font-semibold text-gray-800">Welcome to Palms Estate</h3>
-                    <p className="text-xs text-gray-600 mt-1">Sign in to access your account</p>
-                  </div>
-                  
-                  <div className="p-2">
-                    <Link
-                      to="/signup"
-                      onClick={() => setIsAccountMenuOpen(false)}
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-colors duration-200 group"
+            {/* User Menu */}
+            <div className="relative ml-4">
+              {user ? (
+                <div className="flex items-center space-x-4">
+                  {/* Applications Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setApplicationMenuOpen(!applicationMenuOpen)}
+                      className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 text-amber-700 rounded-lg font-sans font-medium hover:bg-amber-100 transition-colors"
                     >
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 group-hover:bg-amber-200 transition-colors">
-                        <UserPlus size={16} className="text-amber-600" />
+                      <span>Applications</span>
+                      <ChevronDown size={16} className={`transition-transform ${applicationMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {applicationMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50">
+                        <div className="px-4 py-3 border-b border-gray-100">
+                          <h4 className="font-sans font-semibold text-gray-800">Your Applications</h4>
+                          <p className="text-xs text-gray-500">Track your rental requests</p>
+                        </div>
+                        <ApplicationStatus />
+                        <div className="px-4 py-3 border-t border-gray-100">
+                          <Link
+                            to="/dashboard"
+                            className="block text-center text-amber-600 hover:text-amber-700 font-medium text-sm"
+                            onClick={() => setApplicationMenuOpen(false)}
+                          >
+                            View All in Dashboard →
+                          </Link>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium">Sign Up</p>
-                        <p className="text-xs text-gray-500">Create new account</p>
-                      </div>
-                    </Link>
+                    )}
+                  </div>
 
-                    <Link
-                      to="/signin"
-                      onClick={() => setIsAccountMenuOpen(false)}
-                      className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-colors duration-200 group mt-1"
+                  {/* User Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setUserMenuOpen(!userMenuOpen)}
+                      className="flex items-center space-x-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white px-5 py-2.5 rounded-lg font-sans font-semibold hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
                     >
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 group-hover:bg-amber-200 transition-colors">
-                        <LogIn size={16} className="text-amber-600" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">Sign In</p>
-                        <p className="text-xs text-gray-500">Access your account</p>
-                      </div>
-                    </Link>
-                  </div>
+                      <User size={18} />
+                      <span>Account</span>
+                      <ChevronDown size={16} className={`transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
 
-                  <div className="p-4 border-t border-white/20 bg-gradient-to-r from-amber-50/50 to-orange-50/50">
-                    <p className="text-xs text-gray-600 text-center">
-                      Need assistance?{' '}
-                      <Link 
-                        to="/contact" 
-                        className="text-amber-600 hover:text-amber-700 font-medium"
-                        onClick={() => setIsAccountMenuOpen(false)}
-                      >
-                        Contact Concierge
-                      </Link>
-                    </p>
+                    {userMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50">
+                        <div className="px-4 py-3 border-b border-gray-100">
+                          <p className="font-sans font-semibold text-gray-800">{user.email}</p>
+                          <p className="text-xs text-gray-500">Premium Member</p>
+                        </div>
+                        
+                        <div className="py-2">
+                          <Link
+                            to="/dashboard"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-colors"
+                          >
+                            <User size={18} />
+                            <span>Dashboard</span>
+                          </Link>
+                          
+                          <button
+                            onClick={handleSignOut}
+                            className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                          >
+                            <LogOut size={18} />
+                            <span>Sign Out</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-3">
+                  <Link
+                    to="/signin"
+                    className="px-5 py-2.5 text-gray-700 font-sans font-medium hover:text-amber-700 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-2.5 rounded-lg font-sans font-semibold hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+                  >
+                    Sign Up
+                  </Link>
                 </div>
               )}
             </div>
@@ -174,17 +186,25 @@ function Header() {
 
           {/* Mobile Navigation Button */}
           <div className="md:hidden flex items-center space-x-4">
-            {/* Account button for mobile (no dropdown on mobile - will be in mobile menu) */}
-            <Link
-              to="/signin"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-amber-600 to-orange-500 text-white shadow-lg"
-            >
-              <User size={18} />
-            </Link>
+            {user ? (
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-r from-amber-600 to-orange-500 text-white"
+              >
+                <User size={20} />
+              </button>
+            ) : (
+              <Link
+                to="/signin"
+                className="px-4 py-2 text-amber-600 font-sans font-medium"
+              >
+                Sign In
+              </Link>
+            )}
             
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/30 text-white"
+              className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-700"
               aria-label="Toggle menu"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -194,70 +214,69 @@ function Header() {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden animate-fade-in">
-            <div className="py-4 border-t border-white/20 backdrop-blur-xl bg-white/10 rounded-2xl my-2 shadow-2xl">
+          <div className="md:hidden">
+            <div className="bg-white rounded-xl shadow-2xl border border-gray-200 py-4 my-2">
               <div className="flex flex-col space-y-1 px-2">
                 {navLinks.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
                     onClick={() => setIsOpen(false)}
-                    className={`flex items-center justify-between px-4 py-3 rounded-xl font-sans font-medium transition-all duration-200 ${
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-sans font-medium transition-colors ${
                       isActive(link.path)
-                        ? 'bg-gradient-to-r from-amber-600/30 to-orange-500/30 text-white'
-                        : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        ? 'bg-amber-50 text-amber-700'
+                        : 'text-gray-700 hover:bg-gray-50'
                     }`}
                   >
+                    {link.icon}
                     <span>{link.name}</span>
-                    {isActive(link.path) && (
-                      <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                    )}
                   </Link>
                 ))}
 
-                {/* Mobile Authentication Links */}
-                <div className="mt-4 pt-4 border-t border-white/20">
-                  <div className="px-2 space-y-2">
-                    <h3 className="font-sans text-sm font-semibold text-amber-300 mb-2 px-2">Account</h3>
-                    
-                    <Link
-                      to="/signup"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-600/20 to-orange-500/20 text-white hover:from-amber-600/30 hover:to-orange-500/30 transition-all duration-200"
-                    >
-                      <UserPlus size={18} />
-                      <div>
-                        <p className="font-medium">Sign Up</p>
-                        <p className="text-xs text-white/70">Create new account</p>
+                {/* Mobile User Section */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  {user ? (
+                    <>
+                      <div className="px-4 mb-4">
+                        <p className="font-sans font-semibold text-gray-800">{user.email}</p>
+                        <p className="text-sm text-gray-500">Premium Member</p>
                       </div>
-                    </Link>
-
-                    <Link
-                      to="/signin"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-600/20 to-orange-500/20 text-white hover:from-amber-600/30 hover:to-orange-500/30 transition-all duration-200"
-                    >
-                      <LogIn size={18} />
-                      <div>
-                        <p className="font-medium">Sign In</p>
-                        <p className="text-xs text-white/70">Access your account</p>
-                      </div>
-                    </Link>
-                  </div>
-                  
-                  {/* Contact info moved to footer - only show minimal contact */}
-                  <div className="mt-4 pt-4 border-t border-white/20 px-4">
-                    <p className="text-xs text-white/70">
-                      For inquiries, visit{' '}
-                      <Link 
-                        to="/contact" 
-                        className="text-amber-300 hover:text-amber-200 font-medium"
+                      
+                      <Link
+                        to="/dashboard"
                         onClick={() => setIsOpen(false)}
+                        className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-amber-50 text-amber-700 font-medium"
                       >
-                        Contact page
+                        <User size={18} />
+                        <span>Dashboard</span>
                       </Link>
-                    </p>
-                  </div>
+                      
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                      >
+                        <LogOut size={18} />
+                        <span>Sign Out</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link
+                        to="/signin"
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center justify-center px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium"
+                      >
+                        Sign In
+                      </Link>
+                      <Link
+                        to="/signup"
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-lg font-semibold mt-2"
+                      >
+                        Create Account
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
