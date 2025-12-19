@@ -12,7 +12,7 @@ import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import ApplicationForm from './pages/ApplicationForm';
 import ProtectedRoute from './components/ProtectedRoute';
-import ApplicationStatus from './components/ApplicationStatus';
+import Debug from './pages/Debug'; // Add this import
 
 function App() {
   return (
@@ -30,14 +30,17 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
+              
+              {/* Debug Route (Temporary - Remove in production) */}
+              <Route path="/debug" element={<Debug />} />
 
-              {/* Protected Routes */}
+              {/* Protected Routes - Require Authentication */}
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
               } />
-              
+
               <Route path="/property/:id/apply" element={
                 <ProtectedRoute>
                   <ApplicationForm />
@@ -48,12 +51,12 @@ function App() {
               <Route path="*" element={
                 <div className="min-h-[70vh] flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
                   <div className="text-center px-4">
-                    <div className="text-9xl font-serif font-bold text-amber-600/20 mb-6">404</div>
-                    <h1 className="text-3xl font-serif font-bold text-gray-800 mb-4">Page Not Found</h1>
+                    <div className="text-9xl font-bold text-primary-600/20 mb-6">404</div>
+                    <h1 className="text-3xl font-bold text-gray-800 mb-4">Page Not Found</h1>
                     <p className="text-gray-600 mb-8 max-w-md mx-auto">
                       The page you're looking for doesn't exist or has been moved.
                     </p>
-                    <a href="/" className="inline-flex items-center bg-gradient-to-r from-amber-600 to-orange-500 text-white px-8 py-3 rounded-full font-sans font-semibold hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                    <a href="/" className="inline-flex items-center bg-gradient-to-r from-primary-600 to-orange-500 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all duration-300">
                       Return to Home
                     </a>
                   </div>
