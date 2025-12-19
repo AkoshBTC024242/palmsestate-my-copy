@@ -2,187 +2,211 @@ import { Link } from 'react-router-dom';
 import { 
   Facebook, Twitter, Instagram, Linkedin, 
   Mail, Phone, MapPin, Globe,
-  Shield, CreditCard, Home, Users
+  Shield, CreditCard, Building2, Users,
+  FileText, HelpCircle
 } from 'lucide-react';
 
 function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-gradient-to-b from-gray-900 to-gray-950 text-white">
-      {/* Main Footer */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-          {/* Brand Column */}
-          <div>
+    <footer className="bg-white border-t border-gray-200">
+      {/* Main Footer Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+          {/* Company Info */}
+          <div className="lg:col-span-2">
             <div className="flex items-center space-x-3 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
-                <span className="text-white font-serif font-bold text-xl">PE</span>
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-600 to-orange-500 flex items-center justify-center">
+                <span className="text-white font-bold">PE</span>
               </div>
               <div>
-                <h2 className="font-serif text-2xl font-bold">Palms Estate</h2>
-                <p className="text-sm text-gray-400 font-sans">Premier Luxury Rentals</p>
+                <h2 className="text-xl font-bold text-gray-900">Palms Estate</h2>
+                <p className="text-sm text-gray-600">Premium Luxury Rentals</p>
               </div>
             </div>
-            <p className="text-gray-400 mb-8 max-w-sm">
-              Redefining luxury living with unparalleled service, exclusive properties, and exceptional experiences worldwide.
+            <p className="text-gray-600 mb-6 max-w-md">
+              Providing exclusive access to the world's most prestigious residences with unparalleled service and discretion.
             </p>
             
-            {/* Trust Badges */}
+            {/* Contact Info */}
             <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <Shield className="w-5 h-5 text-amber-500" />
-                <span className="text-sm text-gray-300">SSL Secured Payments</span>
+              <div className="flex items-center">
+                <Phone className="w-4 h-4 text-gray-400 mr-3" />
+                <a href="tel:+18286239765" className="text-gray-700 hover:text-primary-600 transition-colors">
+                  +1 (828) 623-9765
+                </a>
               </div>
-              <div className="flex items-center space-x-3">
-                <CreditCard className="w-5 h-5 text-amber-500" />
-                <span className="text-sm text-gray-300">Verified Properties</span>
+              <div className="flex items-center">
+                <Mail className="w-4 h-4 text-gray-400 mr-3" />
+                <a href="mailto:admin@palmsestate.org" className="text-gray-700 hover:text-primary-600 transition-colors">
+                  admin@palmsestate.org
+                </a>
+              </div>
+              <div className="flex items-center">
+                <Globe className="w-4 h-4 text-gray-400 mr-3" />
+                <span className="text-gray-700">palmsestate.org</span>
               </div>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h3 className="font-serif text-lg font-bold mb-6 pb-2 border-b border-gray-800">Quick Links</h3>
-            <ul className="space-y-4">
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Properties</h3>
+            <ul className="space-y-3">
               <li>
-                <Link to="/properties" className="flex items-center text-gray-400 hover:text-amber-400 transition-colors">
-                  <Home className="w-4 h-4 mr-3" />
-                  Browse Properties
+                <Link to="/properties" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Browse All Properties
                 </Link>
               </li>
               <li>
-                <Link to="/dashboard" className="flex items-center text-gray-400 hover:text-amber-400 transition-colors">
-                  <Users className="w-4 h-4 mr-3" />
-                  Client Dashboard
+                <Link to="/properties?type=villa" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Villas
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="flex items-center text-gray-400 hover:text-amber-400 transition-colors">
-                  <span className="w-4 h-4 mr-3 flex items-center justify-center">ℹ️</span>
-                  About Us
+                <Link to="/properties?type=penthouse" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Penthouses
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="flex items-center text-gray-400 hover:text-amber-400 transition-colors">
-                  <Mail className="w-4 h-4 mr-3" />
-                  Contact Concierge
+                <Link to="/properties?type=estate" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Estates
+                </Link>
+              </li>
+              <li>
+                <Link to="/properties?type=chalet" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Chalets
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Contact Info */}
+          {/* Services */}
           <div>
-            <h3 className="font-serif text-lg font-bold mb-6 pb-2 border-b border-gray-800">Contact Us</h3>
-            <ul className="space-y-4">
-              <li className="flex items-start">
-                <Phone className="w-4 h-4 mt-1 mr-3 text-amber-500 flex-shrink-0" />
-                <div>
-                  <p className="text-gray-400">24/7 Concierge</p>
-                  <p className="text-gray-300 font-medium">+1 (828) 623-9765</p>
-                </div>
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Services</h3>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/services/concierge" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Concierge Services
+                </Link>
               </li>
-              <li className="flex items-start">
-                <Mail className="w-4 h-4 mt-1 mr-3 text-amber-500 flex-shrink-0" />
-                <div>
-                  <p className="text-gray-400">Email</p>
-                  <p className="text-gray-300 font-medium">admin@palmsestate.org</p>
-                </div>
+              <li>
+                <Link to="/services/property-management" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Property Management
+                </Link>
               </li>
-              <li className="flex items-start">
-                <MapPin className="w-4 h-4 mt-1 mr-3 text-amber-500 flex-shrink-0" />
-                <div>
-                  <p className="text-gray-400">Global Headquarters</p>
-                  <p className="text-gray-300 font-medium">Worldwide Service</p>
-                </div>
+              <li>
+                <Link to="/services/tour-scheduling" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Tour Scheduling
+                </Link>
+              </li>
+              <li>
+                <Link to="/services/application-process" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Application Process
+                </Link>
+              </li>
+              <li>
+                <Link to="/services/relocation" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Relocation Assistance
+                </Link>
               </li>
             </ul>
           </div>
 
-          {/* Social & Newsletter */}
+          {/* Legal & Support */}
           <div>
-            <h3 className="font-serif text-lg font-bold mb-6 pb-2 border-b border-gray-800">Connect With Us</h3>
-            
-            {/* Social Media */}
-            <div className="mb-8">
-              <p className="text-gray-400 mb-4">Follow our luxury portfolio</p>
-              <div className="flex space-x-4">
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-amber-600 transition-colors">
-                  <Instagram className="w-5 h-5" />
-                </a>
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-amber-600 transition-colors">
-                  <Twitter className="w-5 h-5" />
-                </a>
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-amber-600 transition-colors">
-                  <Facebook className="w-5 h-5" />
-                </a>
-                <a href="#" className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-amber-600 transition-colors">
-                  <Linkedin className="w-5 h-5" />
-                </a>
-              </div>
+            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider mb-4">Support</h3>
+            <ul className="space-y-3">
+              <li>
+                <Link to="/help" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  <HelpCircle className="w-4 h-4 inline mr-2" />
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/faq" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  FAQ
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="text-gray-600 hover:text-primary-600 transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Social & Newsletter */}
+        <div className="mt-12 pt-8 border-t border-gray-200">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            {/* Social Links */}
+            <div className="flex items-center space-x-4">
+              <a href="#" className="text-gray-400 hover:text-primary-600 transition-colors">
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a href="#" className="text-gray-400 hover:text-primary-600 transition-colors">
+                <Twitter className="w-5 h-5" />
+              </a>
+              <a href="#" className="text-gray-400 hover:text-primary-600 transition-colors">
+                <Instagram className="w-5 h-5" />
+              </a>
+              <a href="#" className="text-gray-400 hover:text-primary-600 transition-colors">
+                <Linkedin className="w-5 h-5" />
+              </a>
             </div>
 
-            {/* Website Badge */}
-            <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-              <div className="flex items-center justify-between mb-2">
-                <Globe className="w-5 h-5 text-amber-500" />
-                <span className="text-xs text-gray-400">Verified</span>
+            {/* Newsletter */}
+            <div className="flex-1 max-w-md">
+              <div className="flex">
+                <input
+                  type="email"
+                  placeholder="Enter your email for updates"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <button className="px-4 py-2 bg-primary-600 text-white font-medium rounded-r-lg hover:bg-primary-700 transition-colors">
+                  Subscribe
+                </button>
               </div>
-              <p className="text-sm text-gray-300">palmsestate.org</p>
-              <p className="text-xs text-gray-400 mt-1">Official Luxury Platform</p>
+              <p className="text-xs text-gray-500 mt-2">
+                Subscribe to receive updates on new properties and exclusive offers.
+              </p>
+            </div>
+
+            {/* Trust Badges */}
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <Shield className="w-5 h-5 text-green-600" />
+                <span className="text-sm text-gray-600">Secure</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <CreditCard className="w-5 h-5 text-blue-600" />
+                <span className="text-sm text-gray-600">Verified</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-800 my-12"></div>
-
-        {/* Bottom Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="mb-4 md:mb-0">
-            <p className="text-gray-400 text-sm">
+        {/* Copyright */}
+        <div className="mt-8 pt-8 border-t border-gray-200">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <p className="text-sm text-gray-500">
               © {currentYear} Palms Estate. All rights reserved.
             </p>
-          </div>
-          
-          <div className="flex space-x-6">
-            <Link to="/privacy" className="text-gray-400 hover:text-amber-400 text-sm transition-colors">
-              Privacy Policy
-            </Link>
-            <Link to="/terms" className="text-gray-400 hover:text-amber-400 text-sm transition-colors">
-              Terms of Service
-            </Link>
-            <Link to="/faq" className="text-gray-400 hover:text-amber-400 text-sm transition-colors">
-              FAQ
-            </Link>
-            <Link to="/sitemap" className="text-gray-400 hover:text-amber-400 text-sm transition-colors">
-              Sitemap
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Trust Seals */}
-      <div className="bg-gray-950 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap justify-center items-center gap-8">
-            <div className="text-center">
-              <div className="w-8 h-8 mx-auto mb-2 text-amber-500">🏆</div>
-              <p className="text-xs text-gray-400">Luxury Certified</p>
-            </div>
-            <div className="text-center">
-              <div className="w-8 h-8 mx-auto mb-2 text-amber-500">🔒</div>
-              <p className="text-xs text-gray-400">Secure Application</p>
-            </div>
-            <div className="text-center">
-              <div className="w-8 h-8 mx-auto mb-2 text-amber-500">⭐</div>
-              <p className="text-xs text-gray-400">5-Star Service</p>
-            </div>
-            <div className="text-center">
-              <div className="w-8 h-8 mx-auto mb-2 text-amber-500">🌍</div>
-              <p className="text-xs text-gray-400">Global Portfolio</p>
-            </div>
+            <p className="text-sm text-gray-500 mt-2 md:mt-0">
+              Luxury Property ID: PE-{currentYear}-001
+            </p>
           </div>
         </div>
       </div>
