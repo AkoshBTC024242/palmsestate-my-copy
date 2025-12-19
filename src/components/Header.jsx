@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { 
   Search, User, Bell, ChevronDown, Grid, 
   Home, Building2, Info, Phone, LogOut,
-  Menu, X, Calendar, FileText
+  Menu, X, Calendar, FileText, Key
 } from 'lucide-react';
 
 function Header() {
@@ -54,22 +54,26 @@ function Header() {
 
   return (
     <header className={`sticky top-0 z-50 transition-all duration-200 ${
-      isScrolled ? 'bg-white border-b border-gray-200 shadow-sm' : 'bg-white'
+      isScrolled ? 'bg-white border-b border-gray-100 shadow-sm' : 'bg-white'
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-3">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-600 to-orange-500 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">PE</span>
+          {/* Logo - Professional Design */}
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-600 to-orange-500 flex items-center justify-center shadow-md">
+                <span className="text-white font-bold text-lg">P</span>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900 tracking-tight">Palms Estate</h1>
-                <p className="text-xs text-gray-500 -mt-1">Luxury Rentals</p>
-              </div>
-            </Link>
-          </div>
+            </div>
+            <div className="hidden md:block">
+              <h1 className="text-xl font-bold text-gray-900 tracking-tight">
+                Palms<span className="text-primary-600">Estate</span>
+              </h1>
+              <p className="text-xs text-gray-500 font-medium tracking-wider">
+                EXCLUSIVE RESIDENCES
+              </p>
+            </div>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-1">
@@ -77,10 +81,10 @@ function Header() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center space-x-2 px-5 py-2.5 text-sm font-medium rounded-lg transition-colors ${
                   location.pathname === item.path
                     ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    : 'text-gray-700 hover:text-primary-700 hover:bg-gray-50'
                 }`}
               >
                 {item.icon}
@@ -90,16 +94,10 @@ function Header() {
           </nav>
 
           {/* Right Side Actions */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-4">
             {/* Search */}
             <button className="hidden md:flex items-center justify-center w-10 h-10 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
               <Search size={20} />
-            </button>
-
-            {/* Notifications */}
-            <button className="hidden md:flex relative items-center justify-center w-10 h-10 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
 
             {/* User Menu */}
@@ -108,13 +106,13 @@ function Header() {
                 <>
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center space-x-3 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                    className="flex items-center space-x-3 px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
                   >
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-orange-400 flex items-center justify-center">
                       <User size={16} className="text-white" />
                     </div>
                     <div className="hidden md:block text-left">
-                      <p className="text-sm font-medium text-gray-900">My Account</p>
+                      <p className="text-sm font-medium text-gray-900">Account</p>
                       <p className="text-xs text-gray-500">Dashboard</p>
                     </div>
                     <ChevronDown size={16} className={`text-gray-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
@@ -122,7 +120,7 @@ function Header() {
 
                   {/* User Dropdown */}
                   {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg border border-gray-200 shadow-lg py-2 animate-slide-up">
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg border border-gray-200 shadow-lg py-2 z-50">
                       <div className="px-4 py-3 border-b border-gray-100">
                         <p className="font-medium text-gray-900">{user.email}</p>
                         <p className="text-sm text-gray-500">Premium Member</p>
@@ -152,18 +150,6 @@ function Header() {
                             <p className="text-sm text-gray-500">View your status</p>
                           </div>
                         </Link>
-                        
-                        <Link
-                          to="/dashboard/tours"
-                          onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
-                        >
-                          <Calendar size={18} className="text-gray-500" />
-                          <div>
-                            <p className="font-medium">Tours</p>
-                            <p className="text-sm text-gray-500">Schedule viewings</p>
-                          </div>
-                        </Link>
                       </div>
                       
                       <div className="border-t border-gray-100 pt-2">
@@ -182,15 +168,10 @@ function Header() {
                 <div className="flex items-center space-x-3">
                   <Link
                     to="/signin"
-                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                    className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-primary-600 to-orange-500 text-white text-sm font-medium rounded-lg hover:shadow-md transition-all"
                   >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/signup"
-                    className="px-4 py-2 bg-gradient-to-r from-primary-600 to-orange-500 text-white text-sm font-medium rounded-lg hover:shadow-md transition-all"
-                  >
-                    Sign Up
+                    <Key size={18} />
+                    <span>Sign In</span>
                   </Link>
                 </div>
               )}
@@ -208,63 +189,63 @@ function Header() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4 animate-fade-in">
-            <div className="space-y-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${
-                    location.pathname === item.path
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  {item.icon}
-                  <span>{item.name}</span>
-                </Link>
-              ))}
-              
-              {user ? (
-                <>
-                  <div className="px-4 py-3 border-t border-gray-200 mt-4">
-                    <p className="text-sm font-medium text-gray-900">{user.email}</p>
-                  </div>
+          <div className="md:hidden">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 py-4 my-2">
+              <div className="flex flex-col space-y-1 px-2">
+                {navItems.map((item) => (
                   <Link
-                    to="/dashboard"
+                    key={item.path}
+                    to={item.path}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50"
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                      location.pathname === item.path
+                        ? 'bg-primary-50 text-primary-700'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
                   >
-                    <Grid size={18} />
-                    <span>Dashboard</span>
+                    {item.icon}
+                    <span>{item.name}</span>
                   </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700"
-                  >
-                    <LogOut size={18} />
-                    <span>Sign Out</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link
-                    to="/signin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center px-4 py-3 border-t border-gray-200 text-gray-700 hover:bg-gray-50"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    to="/signup"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg mx-4"
-                  >
-                    Create Account
-                  </Link>
-                </>
-              )}
+                ))}
+                
+                {/* Mobile User Section */}
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  {user ? (
+                    <>
+                      <div className="px-4 mb-4">
+                        <p className="font-medium text-gray-900">{user.email}</p>
+                        <p className="text-sm text-gray-500">Premium Member</p>
+                      </div>
+                      
+                      <Link
+                        to="/dashboard"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-primary-50 text-primary-700 font-medium"
+                      >
+                        <Grid size={18} />
+                        <span>Dashboard</span>
+                      </Link>
+                      
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                      >
+                        <LogOut size={18} />
+                        <span>Sign Out</span>
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      to="/signin"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-primary-600 to-orange-500 text-white rounded-lg font-semibold mx-4"
+                    >
+                      <Key size={18} className="mr-2" />
+                      Sign In
+                    </Link>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
