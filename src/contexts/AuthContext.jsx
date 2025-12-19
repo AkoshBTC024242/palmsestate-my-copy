@@ -11,48 +11,98 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active sessions and subscriptions
-    const initializeAuth = async () => {
+    console.log('🔄 AuthProvider initializing...');
+    
+    // Function to handle auth state
+    const handleAuthState = async () => {
       try {
-        // First, check for existing session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log('🔍 Checking for existing session...');
+        
+        // Get current session
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Error getting session:', error);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('📊 Session found:', currentSession ? 'Yes' : 'No');
+        console.log('👤 User email:', currentSession?.user?.email);
+        
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-
-        // Then set up auth state change listener
+        
+        // Set up auth state listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
-            console.log('Auth state changed:', event, newSession?.user?.email);
+            console.log('🎯 Auth state changed:', event);
+            console.log('👤 New user:', newSession?.user?.email || 'No user');
+            
             setSession(newSession);
             setUser(newSession?.user ?? null);
             
-            // Store session for persistence
+            // Store in localStorage for persistence
             if (newSession) {
-              localStorage.setItem('supabase.auth.token', newSession.access_token);
+              localStorage.setItem('palmsestate-session', JSON.stringify({
+                access_token: newSession.access_token,
+                refresh_token: newSession.refresh_token,
+                expires_at: newSession.expires_at
+              }));
             } else {
-              localStorage.removeItem('supabase.auth.token');
+              localStorage.removeItem('palmsestate-session');
             }
           }
         );
-
-        // Set loading to false after a short delay to ensure state is set
+        
+        // Try to restore session from localStorage if Supabase doesn't have it
+        if (!currentSession) {
+          console.log('🔄 No Supabase session, checking localStorage...');
+          const storedSession = localStorage.getItem('palmsestate-session');
+          if (storedSession) {
+            console.log('📦 Found stored session, attempting to restore...');
+            try {
+              const sessionData = JSON.parse(storedSession);
+              const { data: { session: restoredSession }, error: restoreError } = 
+                await supabase.auth.setSession({
+                  access_token: sessionData.access_token,
+                  refresh_token: sessionData.refresh_token
+                });
+              
+              if (!restoreError && restoredSession) {
+                console.log('✅ Session restored from localStorage');
+                setSession(restoredSession);
+                setUser(restoredSession.user);
+              }
+            } catch (restoreError) {
+              console.error('❌ Failed to restore session:', restoreError);
+              localStorage.removeItem('palmsestate-session');
+            }
+          }
+        }
+        
+      } catch (error) {
+        console.error('❌ Auth initialization error:', error);
+      } finally {
+        // Small delay to ensure everything is loaded
         setTimeout(() => {
           setLoading(false);
-        }, 500);
-
-        return () => {
-          subscription.unsubscribe();
-        };
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        setLoading(false);
+          console.log('✅ AuthProvider initialized');
+        }, 300);
       }
     };
 
-    initializeAuth();
+    handleAuthState();
+
+    // Cleanup
+    return () => {
+      // Note: We don't unsubscribe here because we want the listener to persist
+    };
   }, []);
 
   const signUp = async (email, password, userData) => {
+    console.log('📝 Signing up:', email);
+    
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -63,7 +113,12 @@ export const AuthProvider = ({ children }) => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Sign up error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Sign up successful');
       
       // Create user profile
       if (data.user) {
@@ -72,51 +127,75 @@ export const AuthProvider = ({ children }) => {
           full_name: userData.full_name,
           phone: userData.phone,
           updated_at: new Date().toISOString()
-        }).select();
+        });
       }
       
       return data;
     } catch (error) {
-      console.error('Sign up error:', error);
+      console.error('❌ Sign up failed:', error);
       throw error;
     }
   };
 
   const signIn = async (email, password) => {
+    console.log('🔑 Signing in:', email);
+    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Sign in error:', error);
+        throw error;
+      }
       
-      // Store session token for persistence
+      console.log('✅ Sign in successful');
+      console.log('👤 User:', data.user?.email);
+      console.log('🔐 Session:', data.session ? 'Valid' : 'Invalid');
+      
+      // Force a session refresh
       if (data.session) {
-        localStorage.setItem('supabase.auth.token', data.session.access_token);
+        // Store in localStorage immediately
+        localStorage.setItem('palmsestate-session', JSON.stringify({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_at: data.session.expires_at
+        }));
+        
+        // Trigger auth state change
+        setSession(data.session);
+        setUser(data.user);
       }
       
       return data;
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('❌ Sign in failed:', error);
       throw error;
     }
   };
 
   const signOut = async () => {
+    console.log('🚪 Signing out...');
+    
     try {
-      // Clear local storage first
-      localStorage.removeItem('supabase.auth.token');
+      // Clear localStorage first
+      localStorage.removeItem('palmsestate-session');
       
       // Then sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear local state
+      console.log('✅ Sign out successful');
+      
+      // Clear state
       setUser(null);
       setSession(null);
+      
+      return true;
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('❌ Sign out error:', error);
       throw error;
     }
   };
@@ -127,7 +206,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     signUp,
     signIn,
-    signOut
+    signOut,
+    isAuthenticated: !!user
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
