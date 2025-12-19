@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Square, Loader } from 'lucide-react';
 import { fetchProperties } from '../lib/supabase';
-import toast from 'react-hot-toast';
 
 function Properties() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     loadProperties();
@@ -17,7 +17,8 @@ function Properties() {
       const data = await fetchProperties();
       setProperties(data);
     } catch (error) {
-      toast.error('Failed to load properties');
+      console.error('Failed to load properties:', error);
+      setError('Failed to load properties. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -27,6 +28,28 @@ function Properties() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader className="w-8 h-8 text-amber-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-serif font-bold text-gray-800 mb-2">Error Loading Properties</h3>
+          <p className="text-gray-600 mb-8">{error}</p>
+          <button
+            onClick={loadProperties}
+            className="bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl font-sans font-semibold hover:shadow-lg transition-all"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
