@@ -1,189 +1,109 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Your credentials
+const supabaseUrl = 'https://hnruxtddkfxsoulskbyr.supabase.co';
+const supabaseAnonKey = 'sb_publishable_g6SzJNCLu-LLmk3oKXWmkw_rnvEgK8U';
 
-// Validate environment variables
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables');
-  console.log('VITE_SUPABASE_URL:', supabaseUrl);
-  console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set (hidden)' : 'Missing');
-}
+console.log('🔧 Initializing Supabase client...');
+console.log('URL:', supabaseUrl);
+console.log('Key exists:', !!supabaseAnonKey);
 
-// Create Supabase client with proper configuration
+// Create Supabase client with minimal config
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false,
-    storage: window.localStorage,
-    storageKey: 'palmsestate-auth-token'
-  },
-  global: {
-    headers: {
-      'apikey': supabaseAnonKey,
-      'Authorization': `Bearer ${supabaseAnonKey}`
-    }
+    detectSessionInUrl: false
   }
 });
 
-// Debug function
+// SIMPLE test function
 export const testConnection = async () => {
   console.log('🔄 Testing Supabase connection...');
-  console.log('URL:', supabaseUrl);
   
   try {
-    // Test 1: Basic auth check
+    // Test 1: Can we connect to Supabase?
     const { data: authData, error: authError } = await supabase.auth.getSession();
-    console.log('🔐 Auth session:', authData?.session ? 'Exists' : 'None');
-    console.log('Auth error:', authError?.message || 'None');
     
-    // Test 2: Check properties table
+    // Test 2: Can we access properties table?
     const { data: properties, error: propertiesError } = await supabase
       .from('properties')
       .select('*')
-      .limit(2);
-    
-    console.log('🏠 Properties test:', propertiesError ? 'Failed' : 'Success');
-    console.log('Properties found:', properties?.length || 0);
-    
-    if (propertiesError) {
-      console.error('Properties error details:', propertiesError);
-      
-      // Try to get table structure
-      try {
-        const { data: structure, error: structureError } = await supabase
-          .from('properties')
-          .select('id')
-          .limit(1);
-        
-        console.log('Table structure test:', structureError ? 'Failed' : 'Success');
-      } catch (err) {
-        console.error('Structure test error:', err);
-      }
-    }
+      .limit(1);
     
     return {
-      success: !propertiesError,
+      success: !authError && !propertiesError,
       auth: {
         hasSession: !!authData?.session,
         error: authError?.message
       },
       database: {
         error: propertiesError?.message,
-        count: properties?.length || 0,
+        hasProperties: !propertiesError,
         sample: properties?.[0]
-      },
-      url: supabaseUrl,
-      keyPresent: !!supabaseAnonKey
+      }
     };
   } catch (error) {
-    console.error('❌ Connection test crashed:', error);
+    console.error('❌ Connection test error:', error);
     return {
       success: false,
-      error: error.message,
-      url: supabaseUrl,
-      keyPresent: !!supabaseAnonKey
+      error: error.message
     };
   }
 };
 
-// Enhanced fetchProperties with better error handling
+// SIMPLE fetch properties function
 export const fetchProperties = async () => {
-  console.log('📡 Starting properties fetch...');
+  console.log('📡 Fetching properties...');
   
   try {
-    // First, check if we can connect
-    const { data: testData, error: testError } = await supabase
-      .from('properties')
-      .select('*')
-      .limit(1);
-    
-    if (testError) {
-      console.error('❌ Initial connection failed:', testError);
-      
-      // Try alternative: maybe table name is different
-      try {
-        const { data: altData, error: altError } = await supabase
-          .from('Properties') // Try capitalized
-          .select('*')
-          .limit(1);
-        
-        if (!altError) {
-          console.log('✅ Found table "Properties" (capitalized)');
-          // Fetch all from capitalized table
-          const { data, error } = await supabase
-            .from('Properties')
-            .select('*')
-            .order('created_at', { ascending: false });
-            
-          if (error) throw error;
-          return transformProperties(data);
-        }
-      } catch (altError) {
-        console.log('No capitalized table found');
-      }
-      
-      throw testError;
-    }
-    
-    // Fetch all properties
-    const { data, error, count } = await supabase
+    const { data, error } = await supabase
       .from('properties')
       .select('*')
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error('❌ Fetch error:', error);
-      throw error;
+      console.error('❌ Database error:', error);
+      // Return empty array but log the error
+      return [];
     }
     
-    console.log(`✅ Successfully fetched ${data?.length || 0} properties`);
+    console.log(`✅ Found ${data?.length || 0} properties`);
     
+    // If no data, return sample data
     if (!data || data.length === 0) {
-      console.log('⚠️ No properties found in database. Using sample data.');
+      console.log('⚠️ No properties in database, using sample data');
       return getSampleProperties();
     }
     
-    return transformProperties(data);
+    // Transform data to match our UI
+    return data.map(property => ({
+      id: property.id,
+      title: property.title || 'Luxury Property',
+      description: property.description || 'Premium residence',
+      location: property.location || 'Prime Location',
+      price_per_week: property.price || 35000,
+      bedrooms: property.bedrooms || 3,
+      bathrooms: property.bathrooms || 3,
+      square_feet: property.sqft || 5000,
+      image_url: property.image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
+      status: property.status || 'available',
+      category: 'Premium'
+    }));
     
   } catch (error) {
-    console.error('❌ Critical error fetching properties:', error);
-    console.log('🔄 Returning sample data for development');
+    console.error('❌ Error fetching properties:', error);
     return getSampleProperties();
   }
 };
 
-// Helper function to transform properties
-const transformProperties = (data) => {
-  return data.map(property => {
-    // Debug each property
-    console.log('Property data:', property);
-    
-    return {
-      id: property.id || Math.random(),
-      title: property.title || 'Luxury Residence',
-      description: property.description || 'Premium property with exceptional features',
-      location: property.location || 'Premium Location',
-      price_per_week: property.price || property.price_per_week || 35000,
-      bedrooms: property.bedrooms || 3,
-      bathrooms: property.bathrooms || 3,
-      square_feet: property.sqft || property.square_feet || 5000,
-      image_url: property.image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
-      status: property.status || 'available',
-      category: 'Premium',
-      created_at: property.created_at || new Date().toISOString()
-    };
-  });
-};
-
-// Sample data fallback
-const getSampleProperties = () => {
+// Sample data for when database is empty or fails
+function getSampleProperties() {
   return [
     {
       id: 1,
       title: 'Oceanfront Luxury Villa',
-      description: 'Exclusive beachfront property with panoramic ocean views and private amenities.',
+      description: 'Exclusive beachfront property with panoramic ocean views',
       location: 'Maldives',
       price_per_week: 35000,
       bedrooms: 5,
@@ -195,8 +115,8 @@ const getSampleProperties = () => {
     },
     {
       id: 2,
-      title: 'Manhattan Skyline Penthouse',
-      description: 'Modern penthouse with 360° city views and premium finishes.',
+      title: 'Manhattan Penthouse',
+      description: 'Modern penthouse with 360° city views',
       location: 'New York, NY',
       price_per_week: 45000,
       bedrooms: 4,
@@ -209,7 +129,7 @@ const getSampleProperties = () => {
     {
       id: 3,
       title: 'Mediterranean Estate',
-      description: 'Lavish estate featuring vineyard, infinity pool, and guest houses.',
+      description: 'Lavish estate featuring vineyard and infinity pool',
       location: 'Saint-Tropez, France',
       price_per_week: 75000,
       bedrooms: 8,
@@ -220,4 +140,4 @@ const getSampleProperties = () => {
       category: 'Exclusive'
     }
   ];
-};
+}
