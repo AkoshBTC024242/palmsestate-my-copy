@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  Menu, X, User, ChevronDown, 
-  Home, Building, Info, Mail, LogOut
+  Search, User, Bell, ChevronDown, Grid, 
+  Home, Building2, Info, Phone, LogOut,
+  Menu, X, Calendar, FileText
 } from 'lucide-react';
 
 function Header() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [applicationMenuOpen, setApplicationMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -18,27 +19,22 @@ function Header() {
   // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
+      setIsScrolled(window.scrollY > 0);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
+  // Close user menu when clicking outside
   useEffect(() => {
-    setIsOpen(false);
-    setUserMenuOpen(false);
-    setApplicationMenuOpen(false);
-  }, [location]);
-
-  const navLinks = [
-    { name: 'Home', path: '/', icon: <Home size={18} /> },
-    { name: 'Properties', path: '/properties', icon: <Building size={18} /> },
-    { name: 'About', path: '/about', icon: <Info size={18} /> },
-    { name: 'Contact', path: '/contact', icon: <Mail size={18} /> },
-  ];
-
-  const isActive = (path) => location.pathname === path;
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -49,240 +45,230 @@ function Header() {
     }
   };
 
+  const navItems = [
+    { name: 'Home', path: '/', icon: <Home size={18} /> },
+    { name: 'Properties', path: '/properties', icon: <Building2 size={18} /> },
+    { name: 'About', path: '/about', icon: <Info size={18} /> },
+    { name: 'Contact', path: '/contact', icon: <Phone size={18} /> },
+  ];
+
   return (
-    <header className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-      scrolled 
-        ? 'bg-white shadow-lg border-b border-gray-100' 
-        : 'bg-white/95 backdrop-blur-sm border-b border-gray-100'
+    <header className={`sticky top-0 z-50 transition-all duration-200 ${
+      isScrolled ? 'bg-white border-b border-gray-200 shadow-sm' : 'bg-white'
     }`}>
-      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-600 to-orange-500 flex items-center justify-center">
-                <span className="text-white font-serif font-bold text-lg">PE</span>
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-600 to-orange-500 flex items-center justify-center">
+                <span className="text-white font-bold text-sm">PE</span>
               </div>
-            </div>
-            <div className="hidden md:block">
-              <h1 className="font-serif text-2xl font-bold text-gray-900 leading-tight">
-                Palms Estate
-              </h1>
-              <p className="text-xs text-gray-500 font-sans tracking-wider uppercase">
-                Premier Luxury Rentals
-              </p>
-            </div>
-          </Link>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 tracking-tight">Palms Estate</h1>
+                <p className="text-xs text-gray-500 -mt-1">Luxury Rentals</p>
+              </div>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
-            {navLinks.map((link) => (
+          <nav className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => (
               <Link
-                key={link.path}
-                to={link.path}
-                className={`flex items-center space-x-2 px-5 py-3 font-sans font-medium rounded-lg transition-all duration-200 ${
-                  isActive(link.path)
-                    ? 'text-amber-700 bg-amber-50'
-                    : 'text-gray-700 hover:text-amber-700 hover:bg-amber-50/50'
+                key={item.path}
+                to={item.path}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname === item.path
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
-                {link.icon}
-                <span>{link.name}</span>
+                {item.icon}
+                <span>{item.name}</span>
               </Link>
             ))}
+          </nav>
+
+          {/* Right Side Actions */}
+          <div className="flex items-center space-x-3">
+            {/* Search */}
+            <button className="hidden md:flex items-center justify-center w-10 h-10 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
+              <Search size={20} />
+            </button>
+
+            {/* Notifications */}
+            <button className="hidden md:flex relative items-center justify-center w-10 h-10 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors">
+              <Bell size={20} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
 
             {/* User Menu */}
-            <div className="relative ml-4">
+            <div className="relative" ref={userMenuRef}>
               {user ? (
-                <div className="flex items-center space-x-4">
-                  {/* Applications Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setApplicationMenuOpen(!applicationMenuOpen)}
-                      className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 text-amber-700 rounded-lg font-sans font-medium hover:bg-amber-100 transition-colors"
-                    >
-                      <span>Applications</span>
-                      <ChevronDown size={16} className={`transition-transform ${applicationMenuOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                    
-                    {applicationMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50">
-                        <div className="px-4 py-3 border-b border-gray-100">
-                          <h4 className="font-sans font-semibold text-gray-800">Your Applications</h4>
-                          <p className="text-xs text-gray-500">Track your rental requests</p>
-                        </div>
-                        <ApplicationStatus />
-                        <div className="px-4 py-3 border-t border-gray-100">
-                          <Link
-                            to="/dashboard"
-                            className="block text-center text-amber-600 hover:text-amber-700 font-medium text-sm"
-                            onClick={() => setApplicationMenuOpen(false)}
-                          >
-                            View All in Dashboard →
-                          </Link>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <>
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center space-x-3 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-orange-400 flex items-center justify-center">
+                      <User size={16} className="text-white" />
+                    </div>
+                    <div className="hidden md:block text-left">
+                      <p className="text-sm font-medium text-gray-900">My Account</p>
+                      <p className="text-xs text-gray-500">Dashboard</p>
+                    </div>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
 
                   {/* User Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setUserMenuOpen(!userMenuOpen)}
-                      className="flex items-center space-x-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white px-5 py-2.5 rounded-lg font-sans font-semibold hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-                    >
-                      <User size={18} />
-                      <span>Account</span>
-                      <ChevronDown size={16} className={`transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {userMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50">
-                        <div className="px-4 py-3 border-b border-gray-100">
-                          <p className="font-sans font-semibold text-gray-800">{user.email}</p>
-                          <p className="text-xs text-gray-500">Premium Member</p>
-                        </div>
-                        
-                        <div className="py-2">
-                          <Link
-                            to="/dashboard"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-amber-50 hover:text-amber-700 transition-colors"
-                          >
-                            <User size={18} />
-                            <span>Dashboard</span>
-                          </Link>
-                          
-                          <button
-                            onClick={handleSignOut}
-                            className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
-                          >
-                            <LogOut size={18} />
-                            <span>Sign Out</span>
-                          </button>
-                        </div>
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg border border-gray-200 shadow-lg py-2 animate-slide-up">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="font-medium text-gray-900">{user.email}</p>
+                        <p className="text-sm text-gray-500">Premium Member</p>
                       </div>
-                    )}
-                  </div>
-                </div>
+                      
+                      <div className="py-2">
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Grid size={18} className="text-gray-500" />
+                          <div>
+                            <p className="font-medium">Dashboard</p>
+                            <p className="text-sm text-gray-500">Manage your account</p>
+                          </div>
+                        </Link>
+                        
+                        <Link
+                          to="/dashboard/applications"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <FileText size={18} className="text-gray-500" />
+                          <div>
+                            <p className="font-medium">Applications</p>
+                            <p className="text-sm text-gray-500">View your status</p>
+                          </div>
+                        </Link>
+                        
+                        <Link
+                          to="/dashboard/tours"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Calendar size={18} className="text-gray-500" />
+                          <div>
+                            <p className="font-medium">Tours</p>
+                            <p className="text-sm text-gray-500">Schedule viewings</p>
+                          </div>
+                        </Link>
+                      </div>
+                      
+                      <div className="border-t border-gray-100 pt-2">
+                        <button
+                          onClick={handleSignOut}
+                          className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                        >
+                          <LogOut size={18} className="text-gray-500" />
+                          <span className="font-medium">Sign Out</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="flex items-center space-x-3">
                   <Link
                     to="/signin"
-                    className="px-5 py-2.5 text-gray-700 font-sans font-medium hover:text-amber-700 transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
                   >
                     Sign In
                   </Link>
                   <Link
                     to="/signup"
-                    className="bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-2.5 rounded-lg font-sans font-semibold hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+                    className="px-4 py-2 bg-gradient-to-r from-primary-600 to-orange-500 text-white text-sm font-medium rounded-lg hover:shadow-md transition-all"
                   >
                     Sign Up
                   </Link>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Mobile Navigation Button */}
-          <div className="md:hidden flex items-center space-x-4">
-            {user ? (
-              <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-r from-amber-600 to-orange-500 text-white"
-              >
-                <User size={20} />
-              </button>
-            ) : (
-              <Link
-                to="/signin"
-                className="px-4 py-2 text-amber-600 font-sans font-medium"
-              >
-                Sign In
-              </Link>
-            )}
-            
+            {/* Mobile Menu Button */}
             <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-700"
-              aria-label="Toggle menu"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden flex items-center justify-center w-10 h-10 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
             >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
 
         {/* Mobile Menu */}
-        {isOpen && (
-          <div className="md:hidden">
-            <div className="bg-white rounded-xl shadow-2xl border border-gray-200 py-4 my-2">
-              <div className="flex flex-col space-y-1 px-2">
-                {navLinks.map((link) => (
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 py-4 animate-fade-in">
+            <div className="space-y-1">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium ${
+                    location.pathname === item.path
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {item.icon}
+                  <span>{item.name}</span>
+                </Link>
+              ))}
+              
+              {user ? (
+                <>
+                  <div className="px-4 py-3 border-t border-gray-200 mt-4">
+                    <p className="text-sm font-medium text-gray-900">{user.email}</p>
+                  </div>
                   <Link
-                    key={link.path}
-                    to={link.path}
-                    onClick={() => setIsOpen(false)}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg font-sans font-medium transition-colors ${
-                      isActive(link.path)
-                        ? 'bg-amber-50 text-amber-700'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    to="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50"
                   >
-                    {link.icon}
-                    <span>{link.name}</span>
+                    <Grid size={18} />
+                    <span>Dashboard</span>
                   </Link>
-                ))}
-
-                {/* Mobile User Section */}
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  {user ? (
-                    <>
-                      <div className="px-4 mb-4">
-                        <p className="font-sans font-semibold text-gray-800">{user.email}</p>
-                        <p className="text-sm text-gray-500">Premium Member</p>
-                      </div>
-                      
-                      <Link
-                        to="/dashboard"
-                        onClick={() => setIsOpen(false)}
-                        className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-amber-50 text-amber-700 font-medium"
-                      >
-                        <User size={18} />
-                        <span>Dashboard</span>
-                      </Link>
-                      
-                      <button
-                        onClick={handleSignOut}
-                        className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
-                      >
-                        <LogOut size={18} />
-                        <span>Sign Out</span>
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <Link
-                        to="/signin"
-                        onClick={() => setIsOpen(false)}
-                        className="flex items-center justify-center px-4 py-3 text-gray-700 hover:bg-gray-50 font-medium"
-                      >
-                        Sign In
-                      </Link>
-                      <Link
-                        to="/signup"
-                        onClick={() => setIsOpen(false)}
-                        className="flex items-center justify-center px-4 py-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-lg font-semibold mt-2"
-                      >
-                        Create Account
-                      </Link>
-                    </>
-                  )}
-                </div>
-              </div>
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <LogOut size={18} />
+                    <span>Sign Out</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/signin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center px-4 py-3 border-t border-gray-200 text-gray-700 hover:bg-gray-50"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/signup"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg mx-4"
+                  >
+                    Create Account
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}
-      </nav>
+      </div>
     </header>
   );
 }
