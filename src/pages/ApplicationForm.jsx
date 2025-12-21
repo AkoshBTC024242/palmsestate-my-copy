@@ -24,25 +24,25 @@ function ApplicationForm() {
     notes: '',
     agreeTerms: false,
     employmentStatus: '',
-    monthlyIncome: '', // CHANGED FROM annualIncome
+    monthlyIncome: '',
     occupants: '1',
     hasPets: false,
-    petDetails: ''
+    petDetails: '',
+    applicationType: 'rental'
   });
   
-  const [step, setStep] = useState(1); // 1 = Application details, 2 = Payment, 3 = Success
+  const [step, setStep] = useState(1);
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   
-  const APPLICATION_FEE = 5000; // $50 in cents
+  const APPLICATION_FEE = 5000;
 
   useEffect(() => {
     fetchProperty();
   }, [id]);
 
   useEffect(() => {
-    // Pre-fill user data if available
     if (user && !formData.fullName) {
       const userFullName = user.user_metadata?.full_name || '';
       setFormData(prev => ({
@@ -123,7 +123,7 @@ function ApplicationForm() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    setError(''); // Clear errors on input change
+    setError('');
   };
 
   const validateStep1 = () => {
@@ -143,8 +143,8 @@ function ApplicationForm() {
       setError('Please select employment status');
       return false;
     }
-    if (!formData.monthlyIncome || Number(formData.monthlyIncome) < 0) { // CHANGED FROM annualIncome
-      setError('Please enter a valid monthly income'); // Updated error message
+    if (!formData.monthlyIncome || Number(formData.monthlyIncome) < 0) {
+      setError('Please enter a valid monthly income');
       return false;
     }
     if (!formData.agreeTerms) {
@@ -181,14 +181,15 @@ function ApplicationForm() {
             email: formData.email,
             phone: formData.phone,
             employment_status: formData.employmentStatus,
-            monthly_income: parseInt(formData.monthlyIncome.replace(/,/g, '')) || 0, // CHANGED FROM annual_income
+            monthly_income: parseInt(formData.monthlyIncome.replace(/,/g, '')) || 0,
             occupants: parseInt(formData.occupants),
             has_pets: formData.hasPets,
             pet_details: formData.petDetails,
             preferred_tour_date: formData.preferredDate || null,
             notes: formData.notes,
+            application_type: formData.applicationType,
             status: 'payment_pending',
-            application_fee: 50, // $50
+            application_fee: 50,
             created_at: new Date().toISOString()
           }
         ])
@@ -265,7 +266,7 @@ function ApplicationForm() {
       }
 
       setPaymentComplete(true);
-      setStep(3); // Success step
+      setStep(3);
       
       // Clear stored application ID
       localStorage.removeItem('currentApplicationId');
@@ -279,7 +280,7 @@ function ApplicationForm() {
   };
 
   const handlePaymentCancel = () => {
-    setStep(1); // Go back to application details
+    setStep(1);
     setError('Payment was cancelled. You can try again.');
   };
 
@@ -508,15 +509,15 @@ function ApplicationForm() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Monthly Income ($) * {/* CHANGED FROM Annual Income */}
+                        Monthly Income ($) *
                       </label>
                       <input
                         type="number"
-                        name="monthlyIncome" // CHANGED FROM annualIncome
+                        name="monthlyIncome"
                         required
                         min="0"
                         step="100"
-                        value={formData.monthlyIncome} // CHANGED FROM annualIncome
+                        value={formData.monthlyIncome}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                         placeholder="3000"
@@ -779,8 +780,9 @@ function ApplicationForm() {
               </div>
 
               <div className="space-y-4">
+                {/* FIXED: Changed from /dashboard/applications to /dashboard */}
                 <Link
-                  to="/dashboard/applications"
+                  to="/dashboard"
                   className="block w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl text-center hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
                 >
                   View Application Status
