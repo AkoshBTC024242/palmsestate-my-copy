@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   MapPin, Bed, Bath, Square, Calendar, 
   CheckCircle, ArrowLeft,
   Wifi, Car, Coffee, Dumbbell, Waves, Tv,
-  Shield, Wind, Thermometer, Droplets, CreditCard
+  Shield, Wind, Thermometer, Droplets, CreditCard,
+  Lock, Users, DollarSign, Home
 } from 'lucide-react';
 
 // Mock data matching Home.jsx properties
@@ -98,6 +100,7 @@ const mockProperties = [
 function PropertyDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -112,8 +115,12 @@ function PropertyDetails() {
     return () => clearTimeout(timer);
   }, [id]);
 
-  // FIXED: Updated to use /properties/:id/apply instead of /property/:id/apply
+  // UPDATED: Use /properties/:id/apply instead of /property/:id/apply
   const handleApplyForRental = () => {
+    if (!user) {
+      navigate('/signin');
+      return;
+    }
     navigate(`/properties/${id}/apply`);
   };
 
@@ -239,7 +246,7 @@ function PropertyDetails() {
                 Apply for Rental
               </button>
               <p className="text-xs text-gray-500 mt-2">
-                Click to start your application
+                {user ? 'Click to start your application' : 'Sign in to start your application'}
               </p>
             </div>
           </div>
@@ -406,15 +413,17 @@ function PropertyDetails() {
               <div className="space-y-4">
                 <button
                   onClick={handleApplyForRental}
-                  className="w-full bg-white text-amber-700 font-sans font-semibold py-3 px-6 rounded-xl hover:bg-amber-50 transition-colors"
+                  className="w-full bg-white text-amber-700 font-sans font-semibold py-3 px-6 rounded-xl hover:bg-amber-50 transition-colors flex items-center justify-center"
                 >
-                  Apply Now
+                  <Users className="w-5 h-5 mr-2" />
+                  {user ? 'Apply Now' : 'Sign In to Apply'}
                 </button>
                 
                 <button
                   onClick={() => navigate('/contact')}
-                  className="w-full bg-transparent border-2 border-white text-white font-sans font-semibold py-3 px-6 rounded-xl hover:bg-white/10 transition-colors"
+                  className="w-full bg-transparent border-2 border-white text-white font-sans font-semibold py-3 px-6 rounded-xl hover:bg-white/10 transition-colors flex items-center justify-center"
                 >
+                  <Home className="w-5 h-5 mr-2" />
                   Request More Information
                 </button>
               </div>
