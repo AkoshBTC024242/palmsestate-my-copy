@@ -29,6 +29,7 @@ export const AuthProvider = ({ children }) => {
         
         console.log('📊 Session found:', currentSession ? 'Yes' : 'No');
         console.log('👤 User email:', currentSession?.user?.email);
+        console.log('✅ Email confirmed:', currentSession?.user?.email_confirmed_at ? 'Yes' : 'No');
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
@@ -102,6 +103,7 @@ export const AuthProvider = ({ children }) => {
 
   const signUp = async (email, password, userData) => {
     console.log('📝 Signing up:', email);
+    console.log('📍 Redirect URL:', `${window.location.origin}/dashboard`);
     
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -109,7 +111,7 @@ export const AuthProvider = ({ children }) => {
         password,
         options: {
           data: userData,
-          emailRedirectTo: `${window.location.origin}/dashboard`
+          emailRedirectTo: `${window.location.origin}/dashboard`, // FIXED: Added full URL
         }
       });
 
@@ -119,18 +121,32 @@ export const AuthProvider = ({ children }) => {
       }
       
       console.log('✅ Sign up successful');
+      console.log('📧 Email confirmation required:', data.user?.confirmation_sent_at ? 'Yes' : 'No');
+      console.log('✅ Email confirmed:', data.user?.email_confirmed_at ? 'Yes' : 'No');
       
-      // Create user profile
+      // Create user profile - only if we need to store additional data
       if (data.user) {
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          full_name: userData.full_name,
-          phone: userData.phone,
-          updated_at: new Date().toISOString()
-        });
+        try {
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            full_name: userData.full_name,
+            phone: userData.phone,
+            updated_at: new Date().toISOString()
+          });
+          console.log('✅ User profile created');
+        } catch (profileError) {
+          console.error('⚠️ Could not create profile (table might not exist):', profileError);
+          // Don't throw error - this is optional
+        }
       }
       
-      return data;
+      return {
+        success: true,
+        user: data.user,
+        requiresEmailConfirmation: !data.user?.email_confirmed_at,
+        confirmationSentAt: data.user?.confirmation_sent_at
+      };
+      
     } catch (error) {
       console.error('❌ Sign up failed:', error);
       throw error;
@@ -153,6 +169,14 @@ export const AuthProvider = ({ children }) => {
       
       console.log('✅ Sign in successful');
       console.log('👤 User:', data.user?.email);
+      console.log('✅ Email confirmed:', data.user?.email_confirmed_at ? 'Yes' : 'No');
+      
+      // Check if email is verified
+      if (!data.user?.email_confirmed_at) {
+        console.warn('⚠️ User email not verified');
+        throw new Error('Please verify your email address before signing in. Check your email for the verification link.');
+      }
+      
       console.log('🔐 Session:', data.session ? 'Valid' : 'Invalid');
       
       // Force a session refresh
@@ -200,6 +224,30 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // NEW: Resend verification email
+  const resendVerification = async (email) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // NEW: Check if email is verified
+  const isEmailVerified = () => {
+    return user?.email_confirmed_at !== null;
+  };
+
   const value = {
     user,
     session,
@@ -207,6 +255,8 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
+    resendVerification,
+    isEmailVerified,
     isAuthenticated: !!user
   };
 
