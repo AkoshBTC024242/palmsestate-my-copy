@@ -6,7 +6,7 @@ import { sendApplicationConfirmation } from '../lib/emailService';
 import PaymentForm from '../components/PaymentForm';
 import { 
   Calendar, User, Mail, Phone, FileText, ArrowLeft, 
-  CreditCard, CheckCircle, Home, Shield, Clock
+  CreditCard, CheckCircle, Home, Shield, Clock, Building, DollarSign, Users, Dog
 } from 'lucide-react';
 
 function ApplicationForm() {
@@ -164,6 +164,12 @@ function ApplicationForm() {
     setSubmitting(true);
     
     try {
+      console.log('Submitting application data:', {
+        property_id: id,
+        user_id: user?.id,
+        ...formData
+      });
+
       // Create application record in database
       const { data: application, error: appError } = await supabase
         .from('applications')
@@ -175,8 +181,8 @@ function ApplicationForm() {
             email: formData.email,
             phone: formData.phone,
             employment_status: formData.employmentStatus,
-            annual_income: formData.annualIncome,
-            occupants: formData.occupants,
+            annual_income: parseInt(formData.annualIncome.replace(/,/g, '')) || 0,
+            occupants: parseInt(formData.occupants),
             has_pets: formData.hasPets,
             pet_details: formData.petDetails,
             preferred_tour_date: formData.preferredDate || null,
@@ -189,17 +195,23 @@ function ApplicationForm() {
         .select()
         .single();
 
-      if (appError) throw appError;
+      console.log('Database response:', { application, appError });
+
+      if (appError) {
+        console.error('Database error details:', appError);
+        throw appError;
+      }
 
       // Store application ID for payment processing
       localStorage.setItem('currentApplicationId', application.id);
+      console.log('Application created successfully:', application.id);
       
       // Move to payment step
       setStep(2);
 
     } catch (error) {
-      console.error('Application submission error:', error);
-      setError('Failed to submit application. Please try again.');
+      console.error('Full application error:', error);
+      setError(`Failed to submit application: ${error.message}. Please try again or contact support.`);
     } finally {
       setSubmitting(false);
     }
@@ -223,6 +235,7 @@ function ApplicationForm() {
         .update({
           status: 'under_review',
           payment_id: paymentData.paymentMethodId,
+          stripe_payment_id: paymentData.paymentIntentId,
           payment_status: 'completed',
           paid_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -245,7 +258,9 @@ function ApplicationForm() {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
-          })
+          }),
+          paymentId: paymentData.paymentIntentId,
+          paymentAmount: `$${(paymentData.amount / 100).toFixed(2)}`
         });
       }
 
@@ -257,7 +272,7 @@ function ApplicationForm() {
 
     } catch (error) {
       console.error('Payment processing error:', error);
-      setError('Payment processed but failed to update application. Please contact support.');
+      setError('Payment processed but failed to update application. Please contact support with payment ID: ' + paymentData.paymentIntentId);
     } finally {
       setSubmitting(false);
     }
@@ -270,7 +285,7 @@ function ApplicationForm() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
         <div className="text-center">
           <div className="w-12 h-12 mx-auto mb-4 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin"></div>
           <p className="text-gray-600">Loading application form...</p>
@@ -281,7 +296,7 @@ function ApplicationForm() {
 
   if (!property) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -303,7 +318,7 @@ function ApplicationForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8 md:py-12">
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 py-8 md:py-12">
       <div className="max-w-4xl mx-auto px-4">
         {/* Progress Steps */}
         <div className="mb-8 md:mb-12">
@@ -363,22 +378,33 @@ function ApplicationForm() {
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-red-700 text-sm">{error}</p>
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <p className="text-red-700 text-sm">{error}</p>
+            </div>
           </div>
         )}
 
         {/* Step 1: Application Form */}
         {step === 1 && (
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
             {/* Property Summary */}
             <div className="bg-gradient-to-r from-amber-600 to-orange-500 p-6 text-white">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div className="mb-4 md:mb-0">
-                  <h2 className="text-xl font-serif font-bold mb-1">{property.title}</h2>
+                  <div className="flex items-center mb-2">
+                    <Building className="w-5 h-5 mr-2" />
+                    <h2 className="text-xl font-serif font-bold">{property.title}</h2>
+                  </div>
                   <p className="opacity-90">{property.location}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold">${property.price_per_week?.toLocaleString()}/week</p>
+                  <div className="flex items-center justify-end">
+                    <DollarSign className="w-5 h-5 mr-1" />
+                    <p className="text-2xl font-bold">${property.price_per_week?.toLocaleString()}/week</p>
+                  </div>
                   <p className="text-sm opacity-90">Security deposit: ${(property.price_per_week * 2)?.toLocaleString()}</p>
                 </div>
               </div>
@@ -416,7 +442,7 @@ function ApplicationForm() {
                         required
                         value={formData.fullName}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                         placeholder="John Smith"
                       />
                     </div>
@@ -432,7 +458,7 @@ function ApplicationForm() {
                         required
                         value={formData.email}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                         placeholder="john@example.com"
                       />
                     </div>
@@ -449,7 +475,7 @@ function ApplicationForm() {
                       required
                       value={formData.phone}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                       placeholder="+1 (555) 123-4567"
                     />
                   </div>
@@ -469,7 +495,7 @@ function ApplicationForm() {
                         required
                         value={formData.employmentStatus}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       >
                         <option value="">Select status</option>
                         <option value="employed">Employed</option>
@@ -489,11 +515,13 @@ function ApplicationForm() {
                         name="annualIncome"
                         required
                         min="0"
+                        step="1000"
                         value={formData.annualIncome}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                         placeholder="75000"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Enter numbers only (no commas or dollar signs)</p>
                     </div>
                   </div>
                 </div>
@@ -505,6 +533,7 @@ function ApplicationForm() {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <Users className="w-4 h-4 inline mr-2" />
                         Number of Occupants *
                       </label>
                       <select
@@ -512,7 +541,7 @@ function ApplicationForm() {
                         required
                         value={formData.occupants}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       >
                         <option value="1">1</option>
                         <option value="2">2</option>
@@ -532,7 +561,7 @@ function ApplicationForm() {
                         name="preferredDate"
                         value={formData.preferredDate}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                         min={new Date().toISOString().split('T')[0]}
                       />
                     </div>
@@ -546,9 +575,10 @@ function ApplicationForm() {
                         name="hasPets"
                         checked={formData.hasPets}
                         onChange={handleInputChange}
-                        className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                        className="w-4 h-4 text-amber-600 bg-white border-gray-300 rounded focus:ring-amber-500"
                       />
-                      <label htmlFor="hasPets" className="ml-2 text-sm text-gray-700">
+                      <label htmlFor="hasPets" className="ml-2 text-sm text-gray-700 flex items-center">
+                        <Dog className="w-4 h-4 mr-1" />
                         I have pets
                       </label>
                     </div>
@@ -563,7 +593,7 @@ function ApplicationForm() {
                         name="petDetails"
                         value={formData.petDetails}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                         rows="2"
                         placeholder="Please describe your pets (type, breed, size, etc.)"
                       />
@@ -581,7 +611,7 @@ function ApplicationForm() {
                     name="notes"
                     value={formData.notes}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
                     rows="4"
                     placeholder="Any special requirements, questions, or additional information..."
                   />
@@ -596,7 +626,7 @@ function ApplicationForm() {
                       name="agreeTerms"
                       checked={formData.agreeTerms}
                       onChange={handleInputChange}
-                      className="mt-1 mr-3 w-4 h-4 text-amber-600 rounded focus:ring-amber-500 flex-shrink-0"
+                      className="mt-1 mr-3 w-4 h-4 text-amber-600 bg-white border-gray-300 rounded focus:ring-amber-500 flex-shrink-0"
                     />
                     <label htmlFor="agreeTerms" className="text-sm text-gray-600">
                       <span className="font-semibold text-gray-800">Terms & Conditions:</span> I agree to pay the $50 non-refundable application fee and understand that this does not guarantee approval. I authorize Palms Estate to conduct background, credit, and reference checks as part of the application process. I certify that all information provided is true and accurate.
@@ -641,7 +671,7 @@ function ApplicationForm() {
 
         {/* Step 2: Payment */}
         {step === 2 && (
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-500 p-6 text-white">
               <div className="flex items-center">
                 <CreditCard className="w-6 h-6 mr-3" />
@@ -682,6 +712,7 @@ function ApplicationForm() {
                 amount={APPLICATION_FEE}
                 onSuccess={handlePaymentSuccess}
                 onCancel={handlePaymentCancel}
+                propertyTitle={property.title}
               />
 
               <div className="mt-8 pt-8 border-t border-gray-200">
@@ -696,7 +727,7 @@ function ApplicationForm() {
 
         {/* Step 3: Success */}
         {step === 3 && (
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
             <div className="bg-gradient-to-r from-green-600 to-emerald-500 p-8 text-white text-center">
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                 <CheckCircle className="w-10 h-10 text-white" />
