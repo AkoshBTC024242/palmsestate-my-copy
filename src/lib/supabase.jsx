@@ -35,68 +35,173 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Debug function
-export const testConnection = async () => {
-  console.log('🔄 Testing Supabase connection...');
-  console.log('URL:', supabaseUrl);
+// NEW FUNCTION: Check and fix application table schema
+export const checkAndFixApplicationsSchema = async () => {
+  console.log('🔍 Checking applications table schema...');
   
   try {
-    // Test 1: Basic auth check
-    const { data: authData, error: authError } = await supabase.auth.getSession();
-    console.log('🔐 Auth session:', authData?.session ? 'Exists' : 'None');
-    console.log('Auth error:', authError?.message || 'None');
-    
-    // Test 2: Check properties table
-    const { data: properties, error: propertiesError } = await supabase
-      .from('properties')
+    // First, check the current structure
+    const { data: tableInfo, error: infoError } = await supabase
+      .from('applications')
       .select('*')
-      .limit(2);
+      .limit(1);
     
-    console.log('🏠 Properties test:', propertiesError ? 'Failed' : 'Success');
-    console.log('Properties found:', properties?.length || 0);
-    
-    if (propertiesError) {
-      console.error('Properties error details:', propertiesError);
-      
-      // Try to get table structure
-      try {
-        const { data: structure, error: structureError } = await supabase
-          .from('properties')
-          .select('id')
-          .limit(1);
-        
-        console.log('Table structure test:', structureError ? 'Failed' : 'Success');
-      } catch (err) {
-        console.error('Structure test error:', err);
-      }
+    if (infoError) {
+      console.error('❌ Error accessing applications table:', infoError);
+      return { success: false, error: infoError.message };
     }
     
-    return {
-      success: !propertiesError,
-      auth: {
-        hasSession: !!authData?.session,
-        error: authError?.message
-      },
-      database: {
-        error: propertiesError?.message,
-        count: properties?.length || 0,
-        sample: properties?.[0]
-      },
-      url: supabaseUrl,
-      keyPresent: !!supabaseAnonKey
+    console.log('📊 Applications table accessible');
+    
+    // Check for required columns by trying to insert a test record
+    const testApplication = {
+      property_id: 'test-check',
+      user_id: 'test-user',
+      full_name: 'Test User',
+      email: 'test@example.com',
+      phone: '+1234567890',
+      employment_status: 'employed', // This is the missing column
+      monthly_income: 3000, // Changed from annual_income
+      occupants: 1,
+      has_pets: false,
+      pet_details: '',
+      status: 'test',
+      application_fee: 50,
+      created_at: new Date().toISOString()
     };
+    
+    console.log('📝 Testing with data:', testApplication);
+    
+    const { error: testError } = await supabase
+      .from('applications')
+      .insert([testApplication]);
+    
+    if (testError) {
+      console.error('❌ Schema mismatch detected:', testError.message);
+      
+      // Provide SQL to fix the schema
+      const fixSQL = `
+-- Fix for applications table schema
+-- Run this in Supabase SQL Editor:
+
+-- Option 1: Add missing columns (if table exists but columns are missing)
+ALTER TABLE applications 
+ADD COLUMN IF NOT EXISTS employment_status TEXT,
+ADD COLUMN IF NOT EXISTS monthly_income INTEGER;
+
+-- Option 2: Create table if it doesn't exist
+CREATE TABLE IF NOT EXISTS applications (
+  id BIGSERIAL PRIMARY KEY,
+  property_id TEXT NOT NULL,
+  user_id TEXT,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  employment_status TEXT,
+  monthly_income INTEGER,
+  occupants INTEGER DEFAULT 1,
+  has_pets BOOLEAN DEFAULT FALSE,
+  pet_details TEXT,
+  preferred_tour_date DATE,
+  notes TEXT,
+  status TEXT DEFAULT 'pending',
+  payment_id TEXT,
+  stripe_payment_id TEXT,
+  payment_status TEXT DEFAULT 'pending',
+  application_fee INTEGER DEFAULT 50,
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+      `;
+      
+      console.log('💡 To fix this, run this SQL in Supabase SQL Editor:', fixSQL);
+      
+      return {
+        success: false,
+        error: testError.message,
+        fixSQL: fixSQL,
+        missingColumns: detectMissingColumns(testError.message)
+      };
+    }
+    
+    console.log('✅ All required columns exist');
+    
+    // Clean up test record
+    await supabase
+      .from('applications')
+      .delete()
+      .eq('property_id', 'test-check');
+    
+    return { success: true };
+    
   } catch (error) {
-    console.error('❌ Connection test crashed:', error);
-    return {
-      success: false,
-      error: error.message,
-      url: supabaseUrl,
-      keyPresent: !!supabaseAnonKey
-    };
+    console.error('❌ Schema check failed:', error);
+    return { success: false, error: error.message };
   }
 };
 
-// Enhanced fetchProperties with better error handling
+// Helper to detect missing columns from error message
+const detectMissingColumns = (errorMessage) => {
+  const missing = [];
+  
+  if (errorMessage.includes('annual_income')) {
+    missing.push('annual_income (should be monthly_income)');
+  }
+  if (errorMessage.includes('employment_status')) {
+    missing.push('employment_status');
+  }
+  if (errorMessage.includes('monthly_income')) {
+    missing.push('monthly_income');
+  }
+  
+  return missing;
+};
+
+// NEW FUNCTION: Create applications table if it doesn't exist
+export const createApplicationsTable = async () => {
+  console.log('🛠️ Creating applications table if needed...');
+  
+  // This function would be called from your admin panel or setup script
+  // For now, it just returns the SQL needed
+  const createTableSQL = `
+-- Create applications table
+CREATE TABLE IF NOT EXISTS applications (
+  id BIGSERIAL PRIMARY KEY,
+  property_id TEXT NOT NULL,
+  user_id TEXT,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  employment_status TEXT,
+  monthly_income INTEGER,
+  occupants INTEGER DEFAULT 1,
+  has_pets BOOLEAN DEFAULT FALSE,
+  pet_details TEXT,
+  preferred_tour_date DATE,
+  notes TEXT,
+  status TEXT DEFAULT 'payment_pending',
+  payment_id TEXT,
+  stripe_payment_id TEXT,
+  payment_status TEXT DEFAULT 'pending',
+  application_fee INTEGER DEFAULT 50,
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create index for faster queries
+CREATE INDEX IF NOT EXISTS idx_applications_user_id ON applications(user_id);
+CREATE INDEX IF NOT EXISTS idx_applications_property_id ON applications(property_id);
+CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
+  `;
+  
+  console.log('📋 Use this SQL to create the table:', createTableSQL);
+  
+  return createTableSQL;
+};
+
+// UPDATED: Enhanced fetchProperties with better error handling
 export const fetchProperties = async () => {
   console.log('📡 Starting properties fetch...');
   
@@ -260,5 +365,65 @@ export const sendPasswordResetEmail = async (email) => {
   } catch (error) {
     console.error('Error sending password reset email:', error);
     return { success: false, error: error.message };
+  }
+};
+
+// NEW: Debug function
+export const testConnection = async () => {
+  console.log('🔄 Testing Supabase connection...');
+  console.log('URL:', supabaseUrl);
+  
+  try {
+    // Test 1: Basic auth check
+    const { data: authData, error: authError } = await supabase.auth.getSession();
+    console.log('🔐 Auth session:', authData?.session ? 'Exists' : 'None');
+    console.log('Auth error:', authError?.message || 'None');
+    
+    // Test 2: Check applications table
+    const { data: applications, error: applicationsError } = await supabase
+      .from('applications')
+      .select('*')
+      .limit(2);
+    
+    console.log('📋 Applications table test:', applicationsError ? 'Failed' : 'Success');
+    console.log('Applications found:', applications?.length || 0);
+    
+    if (applicationsError) {
+      console.error('Applications error details:', applicationsError);
+    }
+    
+    // Test 3: Check properties table
+    const { data: properties, error: propertiesError } = await supabase
+      .from('properties')
+      .select('*')
+      .limit(2);
+    
+    console.log('🏠 Properties test:', propertiesError ? 'Failed' : 'Success');
+    console.log('Properties found:', properties?.length || 0);
+    
+    // Test 4: Check schema for applications table
+    await checkAndFixApplicationsSchema();
+    
+    return {
+      success: !applicationsError && !propertiesError,
+      applications: {
+        error: applicationsError?.message,
+        count: applications?.length || 0,
+      },
+      properties: {
+        error: propertiesError?.message,
+        count: properties?.length || 0,
+      },
+      url: supabaseUrl,
+      keyPresent: !!supabaseAnonKey
+    };
+  } catch (error) {
+    console.error('❌ Connection test crashed:', error);
+    return {
+      success: false,
+      error: error.message,
+      url: supabaseUrl,
+      keyPresent: !!supabaseAnonKey
+    };
   }
 };
