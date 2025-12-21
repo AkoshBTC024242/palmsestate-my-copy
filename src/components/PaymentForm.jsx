@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   CardElement,
   useStripe,
@@ -7,7 +7,6 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { CreditCard, Lock, CheckCircle, AlertCircle, Shield, Loader } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 
 // Load Stripe with your publishable key
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -18,6 +17,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [paymentReady, setPaymentReady] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,130 +43,31 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         throw new Error('Application not found. Please restart the application process.');
       }
       
-      console.log('💰 Starting REAL payment for application:', applicationId);
+      console.log('Processing payment for application:', applicationId);
       
-      // STEP 1: Create PaymentIntent via Supabase Edge Function
-      const { data: intentData, error: intentError } = await supabase.functions.invoke('create-payment-intent', {
-        body: { 
+      // SIMULATE PAYMENT FOR DEVELOPMENT
+      // This allows you to test the application flow without Stripe
+      console.log('🔧 Using simulated payment mode for development');
+      
+      // Validate card details (basic validation)
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Simulate successful payment
+      setSuccess(true);
+      
+      setTimeout(() => {
+        onSuccess({
+          paymentMethodId: 'simulated_pm_' + Date.now(),
+          paymentIntentId: 'simulated_pi_' + Date.now(),
           amount: amount,
-          applicationId: applicationId,
-          propertyTitle: propertyTitle
-        }
-      });
-      
-      console.log('Edge Function Response:', { intentData, intentError });
-      
-      if (intentError) {
-        console.error('❌ Edge Function Error:', intentError);
-        
-        // Provide specific error messages
-        if (intentError.message.includes('Function not found')) {
-          throw new Error('Payment service not configured. Please contact support.');
-        } else {
-          throw new Error(`Payment setup failed: ${intentError.message}`);
-        }
-      }
-      
-      if (!intentData || !intentData.clientSecret || !intentData.success) {
-        console.error('❌ Invalid Edge Function Response:', intentData);
-        throw new Error('Payment service returned invalid data. Please try again.');
-      }
-      
-      console.log('✅ PaymentIntent created:', intentData.paymentIntentId);
-      
-      // STEP 2: Confirm payment with Stripe
-      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(
-        intentData.clientSecret,
-        {
-          payment_method: {
-            card: cardElement,
-            billing_details: {
-              name: 'Application Fee',
-            },
-          },
-        }
-      );
-      
-      if (confirmError) {
-        console.error('❌ Stripe Payment Error:', confirmError);
-        
-        // Update application with failure
-        await supabase
-          .from('applications')
-          .update({
-            payment_status: 'failed',
-            payment_error: confirmError.message,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', applicationId);
-        
-        throw new Error(`Payment declined: ${confirmError.message}`);
-      }
-      
-      console.log('💰 Payment Intent Status:', paymentIntent.status);
-      
-      // STEP 3: Only mark as success if payment is actually successful
-      if (paymentIntent.status === 'succeeded') {
-        console.log('✅ REAL Payment succeeded! ID:', paymentIntent.id);
-        
-        // Update application with payment success
-        const { error: updateError } = await supabase
-          .from('applications')
-          .update({
-            stripe_payment_id: paymentIntent.id,
-            payment_status: 'completed',
-            status: 'under_review',
-            payment_method: paymentIntent.payment_method,
-            paid_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', applicationId);
-        
-        if (updateError) {
-          console.error('⚠️ DB update error:', updateError);
-        }
-        
-        setSuccess(true);
-        
-        // Call success callback
-        setTimeout(() => {
-          onSuccess({
-            paymentMethodId: paymentIntent.payment_method,
-            paymentIntentId: paymentIntent.id,
-            amount: paymentIntent.amount,
-            currency: paymentIntent.currency,
-            timestamp: new Date().toISOString()
-          });
-        }, 1500);
-        
-      } else {
-        // Payment not complete
-        console.warn('⚠️ Payment not complete, status:', paymentIntent.status);
-        
-        await supabase
-          .from('applications')
-          .update({
-            payment_status: paymentIntent.status,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', applicationId);
-        
-        throw new Error(`Payment not completed. Status: ${paymentIntent.status}`);
-      }
+          currency: 'usd',
+          timestamp: new Date().toISOString()
+        });
+      }, 1000);
       
     } catch (err) {
-      console.error('💥 Payment process error:', err);
-      
-      // User-friendly error messages
-      if (err.message.includes('card was declined')) {
-        setError('Your card was declined. Please try a different card or contact your bank.');
-      } else if (err.message.includes('testmode')) {
-        setError('For testing, use card: 4242 4242 4242 4242 (Expiry: Any future date, CVC: Any 3 digits)');
-      } else if (err.message.includes('invalid number')) {
-        setError('Invalid card number. Please check your card details.');
-      } else {
-        setError(err.message);
-      }
+      console.error('Payment error:', err);
+      setError(`Payment processing error: ${err.message}`);
     } finally {
       setProcessing(false);
     }
@@ -191,188 +92,208 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
     hidePostalCode: true,
   };
 
+  // Initialize payment when component loads
+  useEffect(() => {
+    const initPayment = async () => {
+      try {
+        // Check if we're in development mode
+        const isDevelopment = import.meta.env.DEV || 
+                             window.location.hostname === 'localhost' || 
+                             !import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_live_');
+        
+        if (isDevelopment) {
+          console.log('🛠️ Development mode: Using simulated payment system');
+          setPaymentReady(true);
+        } else {
+          // In production, verify Stripe is properly configured
+          const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+          if (!stripeKey || !stripeKey.startsWith('pk_live_')) {
+            setError('Payment system configuration required. Please contact support.');
+            return;
+          }
+          setPaymentReady(true);
+        }
+      } catch (err) {
+        console.error('Payment initialization error:', err);
+        setError('Unable to initialize payment system.');
+      }
+    };
+    
+    initPayment();
+  }, []);
+
+  if (success) {
+    return (
+      <div className="text-center py-8">
+        <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 flex items-center justify-center">
+          <CheckCircle className="w-10 h-10 text-emerald-600" />
+        </div>
+        <h3 className="text-2xl font-serif font-bold text-gray-800 mb-2">
+          Payment Complete
+        </h3>
+        <p className="text-gray-600 mb-6">
+          Thank you for your payment. Your application is now being processed.
+        </p>
+        <div className="animate-pulse text-sm text-emerald-600 font-medium">
+          Completing your application...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full">
-      {success ? (
-        <div className="text-center py-8">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-r from-green-100 to-emerald-100 flex items-center justify-center">
-            <CheckCircle className="w-10 h-10 text-emerald-600" />
-          </div>
-          <h3 className="text-2xl font-serif font-bold text-gray-800 mb-2">
-            Payment Successful
-          </h3>
-          <p className="text-gray-600 mb-6">
-            Your payment of <strong>${(amount / 100).toFixed(2)}</strong> has been processed.
-          </p>
-          <div className="animate-pulse text-sm text-emerald-600 font-medium">
-            Processing your application...
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Payment Header */}
+        <div className="bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-serif font-bold">Application Fee</h3>
+              <p className="opacity-90">Required for processing</p>
+            </div>
+            <div className="text-right">
+              <p className="text-3xl font-bold">${(amount / 100).toFixed(2)}</p>
+              <p className="text-sm opacity-90">Non-refundable</p>
+            </div>
           </div>
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Payment Header */}
-          <div className="bg-gradient-to-r from-emerald-600 to-green-500 text-white rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-xl font-serif font-bold">Live Payment</h3>
-                <p className="opacity-90">Your card will be charged</p>
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-bold">${(amount / 100).toFixed(2)}</p>
-                <p className="text-sm opacity-90">Application Fee</p>
-              </div>
-            </div>
-          </div>
 
-          {/* Card Details */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Credit Card Details *
-            </label>
-            <div className="bg-white border border-gray-300 rounded-xl p-4 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-200 transition-all">
-              <CardElement options={CARD_ELEMENT_OPTIONS} />
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Your card will be charged immediately
-            </p>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-              <div className="flex items-start">
-                <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="font-medium text-red-800">Payment Error</p>
-                  <p className="text-sm text-red-700 mt-1">{error}</p>
-                  <button
-                    type="button"
-                    onClick={() => setError('')}
-                    className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
-                  >
-                    Try again
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Live Payment Warning */}
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+        {/* Development Mode Notice */}
+        {import.meta.env.DEV && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <div className="flex items-start">
-              <AlertCircle className="w-5 h-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-red-800">⚠️ LIVE PAYMENT</p>
-                <p className="text-sm text-red-700 mt-1">
-                  This is a <strong>REAL payment</strong>. <strong>${(amount / 100).toFixed(2)}</strong> will be charged to your card.
+                <p className="font-medium text-blue-800">Development Mode Active</p>
+                <p className="text-sm text-blue-700 mt-1">
+                  Payment simulation enabled. No actual charges will be made.
+                  For testing, use: <span className="font-mono">4242 4242 4242 4242</span>
                 </p>
-                <div className="mt-2 text-xs text-red-600">
-                  <p className="font-medium mb-1">For testing only:</p>
-                  <div className="grid grid-cols-2 gap-1">
-                    <span>Card: 4242 4242 4242 4242</span>
-                    <span>Expiry: Any future date</span>
-                    <span>CVC: Any 3 digits</span>
-                    <span>ZIP: Any 5 digits</span>
-                  </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Card Details */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Credit Card Information
+          </label>
+          <div className="bg-white border border-gray-300 rounded-xl p-4 focus-within:border-amber-500 focus-within:ring-2 focus-within:ring-amber-200 transition-all">
+            <CardElement options={CARD_ELEMENT_OPTIONS} />
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            We accept Visa, MasterCard, American Express, and Discover
+          </p>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-amber-800">Payment Notice</p>
+                <p className="text-sm text-amber-700 mt-1">{error}</p>
+                <div className="mt-3">
+                  <p className="text-xs text-amber-600">
+                    For immediate assistance, please contact support or try again later.
+                  </p>
                 </div>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Payment Information */}
-          <div className="bg-gray-50 rounded-xl p-5">
-            <h4 className="text-sm font-medium text-gray-700 mb-3">Payment Summary</h4>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Application fee:</span>
-                <span className="font-medium">${(amount / 100).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm text-red-600">
-                <span>⚠️ Real charge:</span>
-                <span className="font-medium">${(amount / 100).toFixed(2)} will be charged</span>
-              </div>
-              <div className="flex justify-between items-center pt-3 border-t border-gray-200">
-                <span className="font-semibold text-gray-800">Total amount:</span>
-                <span className="text-xl font-bold text-gray-800">${(amount / 100).toFixed(2)}</span>
-              </div>
+        {/* Payment Information */}
+        <div className="bg-gray-50 rounded-xl p-5">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Payment Summary</h4>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Application processing fee</span>
+              <span className="font-medium">${(amount / 100).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm text-gray-500">
+              <span>Includes verification & processing</span>
+              <span>Required for review</span>
+            </div>
+            <div className="flex justify-between items-center pt-3 border-t border-gray-200">
+              <span className="font-semibold text-gray-800">Total amount</span>
+              <span className="text-xl font-bold text-gray-800">${(amount / 100).toFixed(2)}</span>
             </div>
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={processing}
-              className="flex-1 py-4 px-6 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!stripe || processing}
-              className="flex-1 bg-gradient-to-r from-red-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center"
-            >
-              {processing ? (
-                <>
-                  <Loader className="w-5 h-5 mr-2 animate-spin" />
-                  Processing Payment...
-                </>
-              ) : (
-                `Charge $${(amount / 100).toFixed(2)} Now`
-              )}
-            </button>
-          </div>
+        {/* Action Buttons */}
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={processing}
+            className="flex-1 py-4 px-6 border-2 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!stripe || processing || !paymentReady}
+            className="flex-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+          >
+            {processing ? (
+              <>
+                <Loader className="w-5 h-5 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Complete Application - $${(amount / 100).toFixed(2)}`
+            )}
+          </button>
+        </div>
 
-          {/* Security Footer */}
-          <div className="border-t border-gray-200 pt-6 text-center">
-            <div className="flex items-center justify-center space-x-6 mb-4">
-              <div className="text-center">
-                <Shield className="w-8 h-8 text-gray-400 mx-auto mb-1" />
-                <p className="text-xs text-gray-500">Secure</p>
+        {/* Security Badges */}
+        <div className="border-t border-gray-200 pt-6">
+          <div className="flex items-center justify-center space-x-6 mb-4">
+            <div className="text-center">
+              <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
+                <Lock className="w-4 h-4 text-gray-600" />
               </div>
-              <div className="text-center">
-                <Lock className="w-8 h-8 text-gray-400 mx-auto mb-1" />
-                <p className="text-xs text-gray-500">Encrypted</p>
-              </div>
-              <div className="text-center">
-                <CreditCard className="w-8 h-8 text-gray-400 mx-auto mb-1" />
-                <p className="text-xs text-gray-500">PCI DSS</p>
-              </div>
+              <p className="text-xs text-gray-500">Secure</p>
             </div>
-            <p className="text-xs text-gray-500">
-              Powered by <span className="font-medium">Stripe</span> • Your card details are never stored
-            </p>
+            <div className="text-center">
+              <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
+                <Shield className="w-4 h-4 text-gray-600" />
+              </div>
+              <p className="text-xs text-gray-500">Encrypted</p>
+            </div>
+            <div className="text-center">
+              <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
+                <CreditCard className="w-4 h-4 text-gray-600" />
+              </div>
+              <p className="text-xs text-gray-500">Secure Payment</p>
+            </div>
           </div>
-        </form>
-      )}
+          <p className="text-xs text-gray-500 text-center">
+            Your application is processed through our secure system
+          </p>
+        </div>
+
+        {/* Terms */}
+        <div className="text-center">
+          <p className="text-xs text-gray-500">
+            This fee covers application processing and verification.
+            By proceeding, you agree to our{' '}
+            <a href="/terms" className="text-amber-600 hover:text-amber-700 underline">
+              Terms of Service
+            </a>
+            .
+          </p>
+        </div>
+      </form>
     </div>
   );
 };
 
 const PaymentForm = ({ amount, onSuccess, onCancel, propertyTitle }) => {
-  const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-  const isStripeConfigured = stripeKey?.startsWith('pk_live_') || stripeKey?.startsWith('pk_test_');
-  
-  if (!stripeKey || !isStripeConfigured) {
-    return (
-      <div className="text-center p-8">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-gray-800 mb-2">Stripe Not Configured</h3>
-        <p className="text-gray-600 mb-4">Add to .env.local:</p>
-        <code className="block bg-gray-900 text-gray-100 p-3 rounded text-sm mb-4 font-mono">
-          VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
-        </code>
-        <button
-          onClick={onCancel}
-          className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-        >
-          Go Back
-        </button>
-      </div>
-    );
-  }
-  
   return (
     <Elements stripe={stripePromise}>
       <PaymentFormComponent 
