@@ -10,14 +10,22 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set (hidden)' : 'Missing');
 }
 
-// Create Supabase client with proper configuration
+// Create Supabase client with proper configuration FOR EMAIL VERIFICATION
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: true, // CHANGED: Must be true for email verification
+    flowType: 'pkce', // IMPORTANT: Use PKCE for better security
     storage: window.localStorage,
-    storageKey: 'palmsestate-auth-token'
+    storageKey: 'palmsestate-auth-token',
+    // Add these settings for email verification
+    signUp: {
+      // Enable email confirmation
+      confirm: true,
+      // URL to redirect to after email confirmation
+      emailRedirectTo: 'https://palmsestate.org/dashboard', // Change to your domain
+    },
   },
   global: {
     headers: {
@@ -220,4 +228,37 @@ const getSampleProperties = () => {
       category: 'Exclusive'
     }
   ];
+};
+
+// Add these new functions for email verification
+export const resendVerificationEmail = async (email) => {
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    console.error('Error resending verification email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const sendPasswordResetEmail = async (email) => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    return { success: false, error: error.message };
+  }
 };
