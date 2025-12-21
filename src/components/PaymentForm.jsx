@@ -44,9 +44,11 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         throw new Error('Application not found. Please restart the application process.');
       }
       
-      console.log('💰 Starting REAL payment for application:', applicationId);
+      console.log('💰 Starting payment for application:', applicationId);
       
-      // STEP 1: Create REAL PaymentIntent via Supabase Edge Function
+      // STEP 1: Test Edge Function connection first
+      console.log('🔍 Testing Edge Function connection...');
+      
       const { data: intentData, error: intentError } = await supabase.functions.invoke('create-payment-intent', {
         body: { 
           amount: amount,
@@ -56,13 +58,31 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         }
       });
       
+      console.log('📦 Edge Function Response:', {
+        data: intentData,
+        error: intentError,
+        hasClientSecret: !!intentData?.clientSecret
+      });
+      
       if (intentError) {
-        console.error('❌ Edge Function Error:', intentError);
-        throw new Error(`Payment setup failed: ${intentError.message}`);
+        console.error('❌ Edge Function Error Details:', intentError);
+        
+        // Provide specific error messages
+        if (intentError.message.includes('Failed to fetch')) {
+          throw new Error('Cannot connect to payment service. Please check if Edge Function is deployed.');
+        } else if (intentError.message.includes('Function not found')) {
+          throw new Error('Payment service not configured. Please contact support.');
+        } else {
+          throw new Error(`Payment setup failed: ${intentError.message}`);
+        }
       }
       
-      if (!intentData || !intentData.clientSecret || !intentData.success) {
-        console.error('❌ Invalid Edge Function Response:', intentData);
+      if (!intentData || !intentData.clientSecret) {
+        console.error('❌ Missing clientSecret in response:', intentData);
+        
+        if (intentData?.error) {
+          throw new Error(`Payment error: ${intentData.error}`);
+        }
         throw new Error('Payment service returned invalid data. Please try again.');
       }
       
@@ -119,7 +139,6 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         
         if (updateError) {
           console.error('⚠️ DB update error:', updateError);
-          // Don't throw - payment succeeded but db update failed
         }
         
         // Wait a moment to show success
@@ -156,6 +175,12 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
     } catch (err) {
       console.error('💥 Payment process error:', err);
       setError(err.message);
+      
+      // Add retry button for certain errors
+      if (err.message.includes('Edge Function') || err.message.includes('Cannot connect')) {
+        setError(`${err.message}. Click "Try Again" or contact support.`);
+      }
+      
     } finally {
       setProcessing(false);
     }
@@ -239,13 +264,22 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
                 <div>
                   <p className="font-medium text-red-800">Payment Error</p>
                   <p className="text-sm text-red-700 mt-1">{error}</p>
-                  <button
-                    type="button"
-                    onClick={() => setError('')}
-                    className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
-                  >
-                    Try again
-                  </button>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setError('')}
+                      className="text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onCancel}
+                      className="text-sm border border-red-600 text-red-600 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
