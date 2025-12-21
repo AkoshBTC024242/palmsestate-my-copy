@@ -29,7 +29,7 @@ function App() {
               {/* Properties Listing */}
               <Route path="/properties" element={<Properties />} />
               
-              {/* Property Details - CORRECTED ROUTE */}
+              {/* Property Details */}
               <Route path="/properties/:id" element={<PropertyDetails />} />
               
               {/* Contact Page */}
@@ -51,8 +51,8 @@ function App() {
                 </ProtectedRoute>
               } />
               
-              {/* Application Form */}
-              <Route path="/property/:id/apply" element={
+              {/* Application Form - FIXED: Updated to /properties/:id/apply */}
+              <Route path="/properties/:id/apply" element={
                 <ProtectedRoute>
                   <ApplicationForm />
                 </ProtectedRoute>
