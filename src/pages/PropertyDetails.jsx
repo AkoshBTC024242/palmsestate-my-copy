@@ -1,102 +1,134 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
 import { 
   MapPin, Bed, Bath, Square, Calendar, 
-  CheckCircle, ArrowLeft, Loader,
+  CheckCircle, ArrowLeft,
   Wifi, Car, Coffee, Dumbbell, Waves, Tv,
-  Shield, Wind, Thermometer, Droplets
+  Shield, Wind, Thermometer, Droplets, CreditCard
 } from 'lucide-react';
+
+// Mock data matching Home.jsx properties
+const mockProperties = [
+  {
+    id: '1',
+    title: 'Oceanfront Villa Bianca',
+    location: 'Maldives',
+    price: 35000,
+    price_per_week: 35000,
+    sqft: 12500,
+    bedrooms: 5,
+    bathrooms: 6,
+    category: 'Exclusive',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'An architectural masterpiece nestled on a private island in the Maldives, Villa Bianca redefines oceanfront luxury. This exclusive estate features direct beach access, panoramic ocean views from every room, and unparalleled privacy for discerning guests seeking the ultimate retreat.',
+  },
+  {
+    id: '2',
+    title: 'Skyline Penthouse',
+    location: 'Manhattan, NY',
+    price: 45000,
+    price_per_week: 45000,
+    sqft: 8500,
+    bedrooms: 4,
+    bathrooms: 5,
+    category: 'Premium',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1560448075-bb485b4d6e49?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'Perched atop one of Manhattan\'s most exclusive towers, this triplex penthouse offers 360-degree views of Central Park and the Manhattan skyline. Featuring a private elevator, smart home automation, and a rooftop terrace with outdoor kitchen.',
+  },
+  {
+    id: '3',
+    title: 'Mediterranean Estate',
+    location: 'Saint-Tropez, France',
+    price: 75000,
+    price_per_week: 75000,
+    sqft: 22000,
+    bedrooms: 8,
+    bathrooms: 10,
+    category: 'Exclusive',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'A magnificent Mediterranean estate overlooking the French Riviera. This historic property features a private vineyard, infinity pool, tennis court, and staff quarters. Perfect for hosting large gatherings or enjoying a luxurious retreat.',
+  },
+  {
+    id: '4',
+    title: 'Modern Cliffside Villa',
+    location: 'Big Sur, CA',
+    price: 28000,
+    price_per_week: 28000,
+    sqft: 9800,
+    bedrooms: 6,
+    bathrooms: 7,
+    category: 'Premium',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'Architectural marvel perched on the cliffs of Big Sur. Floor-to-ceiling glass walls offer breathtaking Pacific Ocean views. Features an infinity edge pool, home theater, wine cellar, and sustainable design elements.',
+  },
+  {
+    id: '5',
+    title: 'Alpine Chalet',
+    location: 'Aspen, CO',
+    price: 32000,
+    price_per_week: 32000,
+    sqft: 13500,
+    bedrooms: 7,
+    bathrooms: 8,
+    category: 'Exclusive',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1513584684374-8bab748fbf90?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'Luxury ski-in/ski-out chalet in Aspen\'s most exclusive neighborhood. Features heated indoor pool, spa with sauna and steam room, game room with bowling alley, and private ski valet service.',
+  },
+  {
+    id: '6',
+    title: 'Urban Penthouse Loft',
+    location: 'Miami Beach, FL',
+    price: 38000,
+    price_per_week: 38000,
+    sqft: 6800,
+    bedrooms: 3,
+    bathrooms: 4,
+    category: 'Premium',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'Sophisticated penthouse loft in the heart of Miami Beach. Features 20-foot ceilings, exposed concrete beams, custom Italian kitchen, and a rooftop pool with panoramic ocean and city views.',
+  }
+];
 
 function PropertyDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchProperty();
+    // Simulate loading for better UX
+    const timer = setTimeout(() => {
+      const foundProperty = mockProperties.find(p => p.id === id);
+      setProperty(foundProperty);
+      setLoading(false);
+    }, 300);
+    
+    return () => clearTimeout(timer);
   }, [id]);
 
-  const fetchProperty = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      setProperty(data);
-    } catch (error) {
-      console.error('Error fetching property:', error);
-      setError('Property not found');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleApplyForRental = () => {
-    if (!user) {
-      // Not logged in - redirect to sign up with return path
-      navigate('/signup', { 
-        state: { 
-          message: 'Please create an account to apply for this rental',
-          redirectTo: `/property/${id}/apply`
-        } 
-      });
-    } else {
-      // Logged in - go to application form
-      navigate(`/property/${id}/apply`);
-    }
+    navigate(`/property/${id}/apply`);
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
-        <Loader className="w-8 h-8 text-amber-600 animate-spin" />
-      </div>
-    );
-  }
-
-  if (error || !property) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-serif font-bold text-gray-800 mb-2">Property Not Found</h2>
-          <p className="text-gray-600 mb-8">The property you're looking for doesn't exist.</p>
-          <Link
-            to="/properties"
-            className="inline-flex items-center bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl font-sans font-semibold hover:shadow-lg transition-all"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Properties
-          </Link>
-        </div>
-      </div>
-    );
-  }
 
   // Transform property data for display
-  const displayProperty = {
+  const displayProperty = property ? {
     ...property,
     price_per_week: property.price,
     square_feet: property.sqft,
     category: property.price > 50000 ? 'Exclusive' : 
               property.price > 35000 ? 'Premium' : 'Luxury'
-  };
+  } : null;
 
   // Amenities based on property type
   const getAmenities = () => {
+    if (!displayProperty) return [];
+    
     const baseAmenities = [
       { icon: <Wifi className="w-5 h-5" />, name: 'High-Speed WiFi' },
       { icon: <Shield className="w-5 h-5" />, name: '24/7 Security' },
@@ -110,15 +142,50 @@ function PropertyDetails() {
         { icon: <Waves className="w-5 h-5" />, name: 'Infinity Pool' },
         { icon: <Dumbbell className="w-5 h-5" />, name: 'Private Gym' },
         { icon: <Tv className="w-5 h-5" />, name: 'Home Theater' },
-        { icon: <Thermometer className="w-5 h-5" />, name: 'Smart Climate' },
+        { icon: <Thermometer className="w-5 h-5" />, name: 'Smart Climate Control' },
       ];
     }
 
     return baseAmenities;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin"></div>
+          <p className="text-gray-600">Loading property details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!property) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-serif font-bold text-gray-800 mb-2">Property Not Found</h2>
+          <p className="text-gray-600 mb-4">The property with ID "{id}" could not be found.</p>
+          <p className="text-gray-500 text-sm mb-8">Available IDs: 1-6</p>
+          <Link
+            to="/properties"
+            className="inline-flex items-center bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl font-sans font-semibold hover:shadow-lg transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Properties
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-amber-50">
+    <div className="min-h-screen bg-gradient-to-b from-white to-amber-50 pt-20">
       {/* Back Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <Link
@@ -143,14 +210,14 @@ function PropertyDetails() {
                   ? 'bg-green-100 text-green-800' 
                   : 'bg-amber-100 text-amber-800'
               }`}>
-                {property.status === 'available' ? 'Available' : 'Pending'}
+                {property.status === 'available' ? 'Available Now' : 'Pending'}
               </span>
             </div>
             <h1 className="font-serif text-4xl md:text-5xl font-bold text-gray-800 mb-3">
               {property.title}
             </h1>
             <div className="flex items-center text-gray-600">
-              <MapPin className="w-5 h-5 mr-2" />
+              <MapPin className="w-5 h-5 mr-2 text-amber-500" />
               <span className="text-lg">{property.location}</span>
             </div>
           </div>
@@ -161,6 +228,9 @@ function PropertyDetails() {
                 ${displayProperty.price_per_week?.toLocaleString()}
               </div>
               <div className="text-gray-600 font-sans">per week</div>
+              <div className="mt-2 text-sm text-gray-500">
+                Security deposit: ${(displayProperty.price_per_week * 2).toLocaleString()}
+              </div>
               <button
                 onClick={handleApplyForRental}
                 className="mt-4 w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white font-sans font-semibold py-3 px-8 rounded-xl hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
@@ -168,7 +238,7 @@ function PropertyDetails() {
                 Apply for Rental
               </button>
               <p className="text-xs text-gray-500 mt-2">
-                {user ? 'Proceed to application form' : 'Sign up required to apply'}
+                Click to start your application
               </p>
             </div>
           </div>
@@ -179,9 +249,9 @@ function PropertyDetails() {
           <div className="lg:col-span-2">
             <div className="rounded-3xl overflow-hidden shadow-2xl">
               <img
-                src={property.image_url || 'https://images.unsplash.com/photo-1613490493576-7fde63acd811'}
+                src={property.image_url}
                 alt={property.title}
-                className="w-full h-[400px] object-cover"
+                className="w-full h-[400px] md:h-[500px] object-cover"
               />
             </div>
           </div>
@@ -212,11 +282,12 @@ function PropertyDetails() {
               <h2 className="font-serif text-2xl font-bold text-gray-800 mb-4">Property Description</h2>
               <div className="prose prose-lg max-w-none">
                 <p className="text-gray-700 leading-relaxed mb-6">
-                  {property.description || 'A magnificent luxury residence offering unparalleled comfort and sophistication.'}
+                  {property.description}
                 </p>
                 <p className="text-gray-700 leading-relaxed">
-                  Experience the pinnacle of luxury living with this exquisite property. Meticulously designed with 
-                  attention to every detail, this residence offers a perfect blend of elegance, comfort, and modern convenience.
+                  This exceptional property represents the pinnacle of luxury living, featuring the finest materials, 
+                  cutting-edge technology, and unparalleled attention to detail. Perfect for those who appreciate 
+                  the very best in design, comfort, and exclusivity.
                 </p>
               </div>
             </div>
@@ -295,55 +366,40 @@ function PropertyDetails() {
                 <h3 className="font-sans font-semibold text-gray-800 mb-4">Application Process</h3>
                 <div className="space-y-4">
                   <div className="flex items-center">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
-                      user ? 'bg-green-100' : 'bg-gray-100'
-                    }`}>
-                      {user ? (
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                      ) : (
-                        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                      )}
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <span className={`${user ? 'text-green-700' : 'text-gray-500'}`}>
-                      {user ? 'Account verified' : 'Create account'}
-                    </span>
+                    <span className="text-green-700">Browse Properties</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center mr-3">
                       <Calendar className="w-4 h-4 text-amber-600" />
                     </div>
-                    <span className="text-gray-700">Submit application form</span>
+                    <span className="text-gray-700">Submit Application</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center mr-3">
                       <CreditCard className="w-4 h-4 text-amber-600" />
                     </div>
-                    <span className="text-gray-700">Pay $50 application fee</span>
+                    <span className="text-gray-700">Pay $50 Application Fee</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center mr-3">
                       <CheckCircle className="w-4 h-4 text-amber-600" />
                     </div>
-                    <span className="text-gray-700">Receive approval decision</span>
+                    <span className="text-gray-700">Receive Approval Decision</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* User Status Card */}
-            <div className={`rounded-3xl p-8 shadow-2xl ${
-              user 
-                ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
-                : 'bg-gradient-to-br from-amber-600 to-orange-500'
-            }`}>
+            <div className="rounded-3xl p-8 shadow-2xl bg-gradient-to-br from-amber-600 to-orange-500">
               <h3 className="font-serif text-2xl font-bold text-white mb-4">
-                {user ? 'Ready to Apply!' : 'Get Started'}
+                Start Your Application
               </h3>
               <p className="text-white/90 mb-6">
-                {user 
-                  ? 'Your account is ready. Complete your application to schedule a private tour.'
-                  : 'Create an account to start your rental application process.'
-                }
+                Complete your application to schedule a private tour and secure this exclusive property.
               </p>
               
               <div className="space-y-4">
@@ -351,22 +407,21 @@ function PropertyDetails() {
                   onClick={handleApplyForRental}
                   className="w-full bg-white text-amber-700 font-sans font-semibold py-3 px-6 rounded-xl hover:bg-amber-50 transition-colors"
                 >
-                  {user ? 'Continue Application' : 'Sign Up to Apply'}
+                  Apply Now
                 </button>
                 
-                {user && (
-                  <button
-                    onClick={() => navigate('/contact')}
-                    className="w-full bg-transparent border-2 border-white text-white font-sans font-semibold py-3 px-6 rounded-xl hover:bg-white/10 transition-colors"
-                  >
-                    Request More Information
-                  </button>
-                )}
+                <button
+                  onClick={() => navigate('/contact')}
+                  className="w-full bg-transparent border-2 border-white text-white font-sans font-semibold py-3 px-6 rounded-xl hover:bg-white/10 transition-colors"
+                >
+                  Request More Information
+                </button>
               </div>
               
               <div className="mt-6 pt-6 border-t border-white/30">
                 <p className="text-sm text-white/80">
                   Application fee is non-refundable and covers administrative processing.
+                  Average response time: 24-48 hours.
                 </p>
               </div>
             </div>
