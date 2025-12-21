@@ -18,6 +18,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [paymentId, setPaymentId] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,9 +44,9 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         throw new Error('Application not found. Please restart the application process.');
       }
       
-      console.log('📝 Creating PaymentIntent for application:', applicationId);
+      console.log('💰 Starting REAL payment for application:', applicationId);
       
-      // STEP 1: Create PaymentIntent via Supabase Edge Function
+      // STEP 1: Create REAL PaymentIntent via Supabase Edge Function
       const { data: intentData, error: intentError } = await supabase.functions.invoke('create-payment-intent', {
         body: { 
           amount: amount,
@@ -60,9 +61,9 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         throw new Error(`Payment setup failed: ${intentError.message}`);
       }
       
-      if (!intentData || !intentData.clientSecret) {
+      if (!intentData || !intentData.clientSecret || !intentData.success) {
         console.error('❌ Invalid Edge Function Response:', intentData);
-        throw new Error('Payment service returned invalid data');
+        throw new Error('Payment service returned invalid data. Please try again.');
       }
       
       console.log('✅ PaymentIntent created:', intentData.paymentIntentId);
@@ -77,6 +78,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
               name: 'Application Fee',
             },
           },
+          return_url: window.location.origin + '/application-success',
         }
       );
       
@@ -96,11 +98,12 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         throw new Error(`Payment failed: ${confirmError.message}`);
       }
       
-      // STEP 3: Check payment status
       console.log('💰 Payment Intent Status:', paymentIntent.status);
       
+      // STEP 3: Only mark as success if payment is actually successful
       if (paymentIntent.status === 'succeeded') {
-        console.log('✅ Payment succeeded! ID:', paymentIntent.id);
+        console.log('✅ REAL Payment succeeded! ID:', paymentIntent.id);
+        setPaymentId(paymentIntent.id);
         
         // Update application with payment success
         const { error: updateError } = await supabase
@@ -115,19 +118,25 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
           .eq('id', applicationId);
         
         if (updateError) {
-          console.error('⚠️ DB update error (payment succeeded):', updateError);
+          console.error('⚠️ DB update error:', updateError);
+          // Don't throw - payment succeeded but db update failed
         }
+        
+        // Wait a moment to show success
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
         setSuccess(true);
         
         // Call success callback
-        onSuccess({
-          paymentMethodId: paymentIntent.payment_method,
-          paymentIntentId: paymentIntent.id,
-          amount: paymentIntent.amount,
-          currency: paymentIntent.currency,
-          timestamp: new Date().toISOString()
-        });
+        setTimeout(() => {
+          onSuccess({
+            paymentMethodId: paymentIntent.payment_method,
+            paymentIntentId: paymentIntent.id,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency,
+            timestamp: new Date().toISOString()
+          });
+        }, 2000);
         
       } else {
         // Payment not complete
@@ -141,7 +150,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
           })
           .eq('id', applicationId);
         
-        throw new Error(`Payment not completed. Status: ${paymentIntent.status}`);
+        throw new Error(`Payment not completed. Status: ${paymentIntent.status}. Please contact support.`);
       }
       
     } catch (err) {
@@ -175,26 +184,31 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
     <div className="w-full">
       {success ? (
         <div className="text-center py-8">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
+            <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h3 className="text-xl font-serif font-bold text-gray-800 mb-2">
-            Payment Successful!
+          <h3 className="text-2xl font-serif font-bold text-gray-800 mb-2">
+            ✅ Payment Successful!
           </h3>
-          <p className="text-gray-600 mb-6">
-            Your card has been charged ${(amount / 100).toFixed(2)}.
+          <p className="text-gray-600 mb-4">
+            Your card has been charged <strong>${(amount / 100).toFixed(2)}</strong>.
           </p>
-          <div className="animate-pulse text-sm text-green-600">
-            Redirecting...
+          {paymentId && (
+            <p className="text-sm text-gray-500 mb-6">
+              Transaction ID: {paymentId.slice(0, 12)}...
+            </p>
+          )}
+          <div className="animate-pulse text-sm text-green-600 font-medium">
+            Processing your application...
           </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Payment Header */}
-          <div className="bg-gradient-to-r from-green-600 to-emerald-500 text-white rounded-xl p-6">
+          <div className="bg-gradient-to-r from-red-600 to-orange-500 text-white rounded-xl p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-serif font-bold">Live Payment</h3>
+                <h3 className="text-xl font-serif font-bold">REAL PAYMENT</h3>
                 <p className="opacity-90">Your card will be charged</p>
               </div>
               <div className="text-right">
@@ -209,9 +223,12 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             <label className="block text-sm font-medium text-gray-700 mb-3">
               Credit Card Details *
             </label>
-            <div className="bg-white border border-gray-300 rounded-xl p-4 focus-within:border-green-500 focus-within:ring-2 focus-within:ring-green-200 transition-all">
+            <div className="bg-white border border-gray-300 rounded-xl p-4 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-200 transition-all">
               <CardElement options={CARD_ELEMENT_OPTIONS} />
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Your card will be charged immediately
+            </p>
           </div>
 
           {/* Error Message */}
@@ -222,22 +239,29 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
                 <div>
                   <p className="font-medium text-red-800">Payment Error</p>
                   <p className="text-sm text-red-700 mt-1">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => setError('')}
+                    className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+                  >
+                    Try again
+                  </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Live Mode Warning */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+          {/* Live Payment Warning */}
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
             <div className="flex items-start">
-              <AlertCircle className="w-5 h-5 text-yellow-600 mr-3 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-yellow-800">⚠️ Live Payment Mode</p>
-                <p className="text-sm text-yellow-700 mt-1">
-                  This is a <strong>real payment</strong>. ${(amount / 100).toFixed(2)} will be charged to your card.
+                <p className="font-medium text-red-800">⚠️ LIVE PAYMENT MODE</p>
+                <p className="text-sm text-red-700 mt-1">
+                  This is a <strong>REAL payment</strong>. <strong>${(amount / 100).toFixed(2)}</strong> will be charged to your card.
                 </p>
-                <div className="mt-2 text-xs text-yellow-600">
-                  <p className="font-medium mb-1">For testing (no real charge):</p>
+                <div className="mt-2 text-xs text-red-600">
+                  <p className="font-medium mb-1">For testing (no real money):</p>
                   <div className="grid grid-cols-2 gap-1">
                     <span>Card: 4242 4242 4242 4242</span>
                     <span>Expiry: Any future date</span>
@@ -262,15 +286,15 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             <button
               type="submit"
               disabled={!stripe || processing}
-              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center"
+              className="flex-1 bg-gradient-to-r from-red-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center"
             >
               {processing ? (
                 <>
                   <Loader className="w-5 h-5 mr-2 animate-spin" />
-                  Processing...
+                  Processing Payment...
                 </>
               ) : (
-                `Pay $${(amount / 100).toFixed(2)}`
+                `Charge $${(amount / 100).toFixed(2)} Now`
               )}
             </button>
           </div>
@@ -303,16 +327,16 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
 
 const PaymentForm = ({ amount, onSuccess, onCancel, propertyTitle }) => {
   const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-  const isLiveMode = stripeKey?.startsWith('pk_live_');
+  const isStripeConfigured = stripeKey?.startsWith('pk_live_') || stripeKey?.startsWith('pk_test_');
   
-  if (!stripeKey) {
+  if (!stripeKey || !isStripeConfigured) {
     return (
       <div className="text-center p-8">
         <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-gray-800 mb-2">Stripe Not Configured</h3>
         <p className="text-gray-600 mb-4">Add to .env.local:</p>
-        <code className="block bg-gray-900 text-gray-100 p-3 rounded text-sm mb-4">
-          VITE_STRIPE_PUBLISHABLE_KEY=pk_live_your_key
+        <code className="block bg-gray-900 text-gray-100 p-3 rounded text-sm mb-4 font-mono">
+          VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_key_here
         </code>
         <button
           onClick={onCancel}
