@@ -24,7 +24,7 @@ function ApplicationForm() {
     notes: '',
     agreeTerms: false,
     employmentStatus: '',
-    annualIncome: '',
+    monthlyIncome: '', // CHANGED FROM annualIncome
     occupants: '1',
     hasPets: false,
     petDetails: ''
@@ -143,8 +143,8 @@ function ApplicationForm() {
       setError('Please select employment status');
       return false;
     }
-    if (!formData.annualIncome || Number(formData.annualIncome) < 0) {
-      setError('Please enter a valid annual income');
+    if (!formData.monthlyIncome || Number(formData.monthlyIncome) < 0) { // CHANGED FROM annualIncome
+      setError('Please enter a valid monthly income'); // Updated error message
       return false;
     }
     if (!formData.agreeTerms) {
@@ -181,7 +181,7 @@ function ApplicationForm() {
             email: formData.email,
             phone: formData.phone,
             employment_status: formData.employmentStatus,
-            annual_income: parseInt(formData.annualIncome.replace(/,/g, '')) || 0,
+            monthly_income: parseInt(formData.monthlyIncome.replace(/,/g, '')) || 0, // CHANGED FROM annual_income
             occupants: parseInt(formData.occupants),
             has_pets: formData.hasPets,
             pet_details: formData.petDetails,
@@ -508,20 +508,20 @@ function ApplicationForm() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Annual Income ($) *
+                        Monthly Income ($) * {/* CHANGED FROM Annual Income */}
                       </label>
                       <input
                         type="number"
-                        name="annualIncome"
+                        name="monthlyIncome" // CHANGED FROM annualIncome
                         required
                         min="0"
-                        step="1000"
-                        value={formData.annualIncome}
+                        step="100"
+                        value={formData.monthlyIncome} // CHANGED FROM annualIncome
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
-                        placeholder="75000"
+                        placeholder="3000"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Enter numbers only (no commas or dollar signs)</p>
+                      <p className="text-xs text-gray-500 mt-1">Enter your average monthly income</p>
                     </div>
                   </div>
                 </div>
