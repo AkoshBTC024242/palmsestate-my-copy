@@ -112,8 +112,9 @@ function PropertyDetails() {
     return () => clearTimeout(timer);
   }, [id]);
 
+  // FIXED: Updated to use /properties/:id/apply instead of /property/:id/apply
   const handleApplyForRental = () => {
-    navigate(`/property/${id}/apply`);
+    navigate(`/properties/${id}/apply`);
   };
 
   // Transform property data for display
