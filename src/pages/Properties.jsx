@@ -129,9 +129,9 @@ function Properties() {
                   </span>
                 </div>
 
-                {/* Action Button */}
+                {/* Action Button - FIXED: Changed /property/ to /properties/ */}
                 <Link
-                  to={`/property/${property.id}`}
+                  to={`/properties/${property.id}`}
                   className="block w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white font-sans font-semibold py-3 px-6 rounded-xl text-center hover:shadow-lg transition-all duration-300 mt-4"
                 >
                   View Details & Apply
