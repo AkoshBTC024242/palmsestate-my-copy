@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Mail, Lock, User, Phone, Eye, EyeOff, ChevronLeft } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Phone, Eye, EyeOff, ChevronLeft, CheckCircle, AlertCircle } from 'lucide-react';
 
 function SignUp() {
   const [formData, setFormData] = useState({
@@ -16,10 +16,12 @@ function SignUp() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const [verificationInfo, setVerificationInfo] = useState(null);
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { signUp } = useAuth();
+  const { signUp, resendVerification } = useAuth();
 
   const from = location.state?.redirectTo || '/dashboard';
   const message = location.state?.message;
@@ -48,6 +50,8 @@ function SignUp() {
     
     setIsLoading(true);
     setError('');
+    setSuccess(false);
+    setVerificationInfo(null);
     
     try {
       const userData = {
@@ -55,13 +59,29 @@ function SignUp() {
         phone: formData.phone,
       };
       
-      await signUp(formData.email, formData.password, userData);
+      const result = await signUp(formData.email, formData.password, userData);
       
-      // Show success message
-      alert('Account created successfully! Please check your email to verify your account.');
-      
-      // Redirect to the intended page or dashboard
-      navigate(from, { replace: true });
+      if (result.requiresEmailConfirmation) {
+        // Show verification message
+        setVerificationInfo({
+          email: formData.email,
+          sentAt: result.confirmationSentAt
+        });
+        setSuccess(true);
+        
+        // Clear form
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          password: '',
+          confirmPassword: '',
+        });
+      } else {
+        // Email already confirmed (unlikely but possible)
+        navigate(from, { replace: true });
+      }
       
     } catch (error) {
       console.error('Sign up error:', error);
@@ -70,6 +90,99 @@ function SignUp() {
       setIsLoading(false);
     }
   };
+
+  const handleResendVerification = async () => {
+    if (!verificationInfo?.email) return;
+    
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const result = await resendVerification(verificationInfo.email);
+      if (result.success) {
+        setSuccess(true);
+        setVerificationInfo({
+          ...verificationInfo,
+          sentAt: new Date().toISOString()
+        });
+      } else {
+        setError('Failed to resend verification email. Please try again.');
+      }
+    } catch (error) {
+      setError('Failed to resend verification email. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (success && verificationInfo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-amber-50 py-20 px-4">
+        <div className="max-w-md w-full">
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-amber-600 hover:text-amber-700 font-sans font-medium mb-8 group"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </Link>
+
+          <div className="relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-green-500 to-emerald-500 rounded-3xl blur opacity-20"></div>
+            <div className="relative bg-white/95 backdrop-blur-xl border border-white/40 rounded-2xl shadow-2xl shadow-black/10 overflow-hidden">
+              <div className="p-8">
+                <div className="flex items-center justify-center w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg">
+                  <CheckCircle className="w-10 h-10 text-white" />
+                </div>
+                
+                <h1 className="font-serif text-2xl font-bold text-center text-gray-800 mb-4">
+                  Check Your Email!
+                </h1>
+                
+                <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
+                  <p className="text-green-800 mb-4">
+                    We've sent a verification email to <strong>{verificationInfo.email}</strong>
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-green-700">Click the verification link in the email</p>
+                    </div>
+                    <div className="flex items-start">
+                      <AlertCircle className="w-5 h-5 text-amber-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-amber-700">Check your spam folder if you don't see it</p>
+                    </div>
+                    <div className="flex items-start">
+                      <CheckCircle className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm text-green-700">After verification, you can sign in to your account</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={isLoading}
+                    className="w-full bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-700 hover:to-orange-600 text-white font-sans font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? 'Sending...' : 'Resend Verification Email'}
+                  </button>
+                  
+                  <Link
+                    to="/signin"
+                    className="block text-center border-2 border-gray-300/70 hover:border-amber-500 text-gray-700 hover:text-amber-700 font-sans font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:shadow-md"
+                  >
+                    Go to Sign In
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-amber-50 py-20 px-4">
