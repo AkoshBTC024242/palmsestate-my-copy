@@ -231,8 +231,9 @@ function Home() {
                       </div>
                     </div>
                     
+                    {/* FIXED: Changed /property/ to /properties/ */}
                     <Link
-                      to={`/property/${property.id}`}
+                      to={`/properties/${property.id}`}
                       className="block w-full text-center bg-gray-50 text-gray-700 font-semibold py-3 px-6 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
                     >
                       View Details
