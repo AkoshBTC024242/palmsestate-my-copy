@@ -7,8 +7,10 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { CreditCard, Lock, CheckCircle, AlertCircle, Shield, Loader } from 'lucide-react';
+
 // Load Stripe with your publishable key
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
 const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -16,59 +18,165 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [paymentReady, setPaymentReady] = useState(false);
+  const [clientSecret, setClientSecret] = useState('');
+
+  // Fetch PaymentIntent from backend
+  useEffect(() => {
+    const createPaymentIntent = async () => {
+      try {
+        const applicationId = localStorage.getItem('currentApplicationId');
+        if (!applicationId) {
+          throw new Error('Application not found. Please restart the application process.');
+        }
+
+        console.log('Creating payment intent for application:', applicationId);
+        
+        // Call your backend to create PaymentIntent
+        const response = await fetch('/.netlify/functions/create-payment-intent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            amount: amount, // $50 = 5000 cents
+            applicationId: applicationId,
+            propertyTitle: propertyTitle
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create payment intent');
+        }
+
+        const { clientSecret } = await response.json();
+        console.log('PaymentIntent created, clientSecret received');
+        setClientSecret(clientSecret);
+        setPaymentReady(true);
+      } catch (err) {
+        console.error('Payment initialization error:', err);
+        setError(`Unable to initialize payment: ${err.message}`);
+        setPaymentReady(false);
+      }
+    };
+
+    createPaymentIntent();
+  }, [amount, propertyTitle]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-   
-    if (!stripe || !elements) {
+    
+    if (!stripe || !elements || !clientSecret) {
       setError('Payment system is not ready. Please refresh the page.');
       return;
     }
-   
+    
     setProcessing(true);
     setError('');
-   
+    
     try {
       const cardElement = elements.getElement(CardElement);
-     
+      
       if (!cardElement) {
         throw new Error('Card element not found');
       }
-     
+
       // Get application ID
       const applicationId = localStorage.getItem('currentApplicationId');
       if (!applicationId) {
         throw new Error('Application not found. Please restart the application process.');
       }
-     
+
       console.log('Processing payment for application:', applicationId);
-     
-      // SIMULATE PAYMENT FOR DEVELOPMENT
-      // This allows you to test the application flow without Stripe
-      console.log('🔧 Using simulated payment mode for development');
-     
-      // Validate card details (basic validation)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-     
-      // Simulate successful payment
-      setSuccess(true);
-     
-      setTimeout(() => {
-        onSuccess({
-          paymentMethodId: 'simulated_pm_' + Date.now(),
-          paymentIntentId: 'simulated_pi_' + Date.now(),
-          amount: amount,
-          currency: 'usd',
-          timestamp: new Date().toISOString()
-        });
-      }, 1000);
-     
+      
+      // Real Stripe payment confirmation
+      const { paymentIntent, error: stripeError } = await stripe.confirmCardPayment(
+        clientSecret,
+        {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              // Add any necessary billing details here
+              // name, email, etc.
+            },
+          },
+          return_url: window.location.origin + '/application/success',
+        }
+      );
+
+      if (stripeError) {
+        throw new Error(stripeError.message);
+      }
+
+      if (paymentIntent.status === 'succeeded') {
+        console.log('Payment succeeded:', paymentIntent.id);
+        
+        // Update application status in Supabase
+        try {
+          const updateResponse = await fetch('/.netlify/functions/update-application-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              applicationId: applicationId,
+              status: 'under_review',
+              paymentIntentId: paymentIntent.id,
+              amount: paymentIntent.amount,
+              currency: paymentIntent.currency
+            }),
+          });
+
+          if (!updateResponse.ok) {
+            console.warn('Failed to update application status, but payment was successful');
+          }
+        } catch (updateError) {
+          console.warn('Error updating application:', updateError);
+        }
+
+        // Send email confirmation
+        try {
+          await fetch('/.netlify/functions/send-confirmation-email', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              applicationId: applicationId,
+              paymentIntentId: paymentIntent.id,
+              amount: amount,
+              propertyTitle: propertyTitle
+            }),
+          });
+        } catch (emailError) {
+          console.warn('Error sending confirmation email:', emailError);
+        }
+
+        setSuccess(true);
+        
+        // Call onSuccess callback with real payment data
+        setTimeout(() => {
+          onSuccess({
+            paymentMethodId: paymentIntent.payment_method,
+            paymentIntentId: paymentIntent.id,
+            amount: paymentIntent.amount,
+            currency: paymentIntent.currency,
+            timestamp: new Date(paymentIntent.created * 1000).toISOString(),
+            status: paymentIntent.status
+          });
+        }, 1000);
+      } else {
+        throw new Error(`Payment status: ${paymentIntent.status}`);
+      }
+      
     } catch (err) {
       console.error('Payment error:', err);
-      setError(`Payment processing error: ${err.message}`);
+      setError(`Payment processing failed: ${err.message}. Please try again or contact support.`);
     } finally {
       setProcessing(false);
     }
   };
+
   const CARD_ELEMENT_OPTIONS = {
     style: {
       base: {
@@ -87,35 +195,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
     },
     hidePostalCode: true,
   };
-  // Initialize payment when component loads
-  useEffect(() => {
-    const initPayment = async () => {
-      try {
-        // Check if we're in development mode
-        const isDevelopment = import.meta.env.DEV ||
-                             window.location.hostname === 'localhost' ||
-                             !import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_live_');
-       
-        if (isDevelopment) {
-          console.log('🛠️ Development mode: Using simulated payment system');
-          setPaymentReady(true);
-        } else {
-          // In production, verify Stripe is properly configured
-          const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-          if (!stripeKey || !stripeKey.startsWith('pk_live_')) {
-            setError('Payment system configuration required. Please contact support.');
-            return;
-          }
-          setPaymentReady(true);
-        }
-      } catch (err) {
-        console.error('Payment initialization error:', err);
-        setError('Unable to initialize payment system.');
-      }
-    };
-   
-    initPayment();
-  }, []);
+
   if (success) {
     return (
       <div className="text-center py-8">
@@ -134,6 +214,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
       </div>
     );
   }
+
   return (
     <div className="w-full">
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -150,21 +231,23 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             </div>
           </div>
         </div>
+
         {/* Development Mode Notice */}
-        {import.meta.env.DEV && (
+        {(import.meta.env.DEV || !import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_live_')) && (
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
             <div className="flex items-start">
               <AlertCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
               <div>
                 <p className="font-medium text-blue-800">Development Mode Active</p>
                 <p className="text-sm text-blue-700 mt-1">
-                  Payment simulation enabled. No actual charges will be made.
-                  For testing, use: <span className="font-mono">4242 4242 4242 4242</span>
+                  Using Stripe test mode. No actual charges will be made.
+                  For testing, use test card: <span className="font-mono">4242 4242 4242 4242</span>
                 </p>
               </div>
             </div>
           </div>
         )}
+
         {/* Card Details */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -177,16 +260,17 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             We accept Visa, MasterCard, American Express, and Discover
           </p>
         </div>
+
         {/* Error Message */}
         {error && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
             <div className="flex items-start">
-              <AlertCircle className="w-5 h-5 text-amber-600 mr-3 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-red-600 mr-3 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-amber-800">Payment Notice</p>
-                <p className="text-sm text-amber-700 mt-1">{error}</p>
+                <p className="font-medium text-red-800">Payment Error</p>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
                 <div className="mt-3">
-                  <p className="text-xs text-amber-600">
+                  <p className="text-xs text-red-600">
                     For immediate assistance, please contact support or try again later.
                   </p>
                 </div>
@@ -194,6 +278,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             </div>
           </div>
         )}
+
         {/* Payment Information */}
         <div className="bg-gray-50 rounded-xl p-5">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Payment Summary</h4>
@@ -212,6 +297,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             </div>
           </div>
         </div>
+
         {/* Action Buttons */}
         <div className="flex gap-4">
           <button
@@ -224,7 +310,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
           </button>
           <button
             type="submit"
-            disabled={!stripe || processing || !paymentReady}
+            disabled={!stripe || processing || !paymentReady || !clientSecret}
             className="flex-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center"
           >
             {processing ? (
@@ -237,6 +323,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             )}
           </button>
         </div>
+
         {/* Security Badges */}
         <div className="border-t border-gray-200 pt-6">
           <div className="flex items-center justify-center space-x-6 mb-4">
@@ -260,9 +347,10 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             </div>
           </div>
           <p className="text-xs text-gray-500 text-center">
-            Your application is processed through our secure system
+            Your payment is processed through Stripe's secure system
           </p>
         </div>
+
         {/* Terms */}
         <div className="text-center">
           <p className="text-xs text-gray-500">
@@ -278,6 +366,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
     </div>
   );
 };
+
 const PaymentForm = ({ amount, onSuccess, onCancel, propertyTitle }) => {
   return (
     <Elements stripe={stripePromise}>
@@ -290,4 +379,5 @@ const PaymentForm = ({ amount, onSuccess, onCancel, propertyTitle }) => {
     </Elements>
   );
 };
+
 export default PaymentForm;
