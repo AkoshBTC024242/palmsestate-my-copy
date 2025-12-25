@@ -6,6 +6,7 @@ import {
   Elements
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { supabase } from '../lib/supabase'; // Adjust path to your supabase client
 import { CreditCard, Lock, CheckCircle, AlertCircle, Shield, Loader } from 'lucide-react';
 
 // Load Stripe with your publishable key
@@ -20,7 +21,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
   const [paymentReady, setPaymentReady] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
 
-  // Fetch PaymentIntent from backend
+  // Fetch PaymentIntent from Supabase Edge Function
   useEffect(() => {
     const createPaymentIntent = async () => {
       try {
@@ -31,27 +32,25 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
 
         console.log('Creating payment intent for application:', applicationId);
         
-        // Call your backend to create PaymentIntent
-        const response = await fetch('/.netlify/functions/create-payment-intent', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        // Call Supabase Edge Function to create PaymentIntent
+        const { data, error: funcError } = await supabase.functions.invoke('create-payment-intent', {
+          body: {
             amount: amount, // $50 = 5000 cents
             applicationId: applicationId,
             propertyTitle: propertyTitle
-          }),
+          }
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create payment intent');
+        if (funcError) {
+          throw new Error(funcError.message || 'Failed to create payment intent');
         }
 
-        const { clientSecret } = await response.json();
+        if (!data || !data.clientSecret) {
+          throw new Error('Invalid response from payment server');
+        }
+
         console.log('PaymentIntent created, clientSecret received');
-        setClientSecret(clientSecret);
+        setClientSecret(data.clientSecret);
         setPaymentReady(true);
       } catch (err) {
         console.error('Payment initialization error:', err);
@@ -96,11 +95,11 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
           payment_method: {
             card: cardElement,
             billing_details: {
-              // Add any necessary billing details here
-              // name, email, etc.
+              // You can add billing details from your application form
+              // name: applicantName,
+              // email: applicantEmail,
             },
-          },
-          return_url: window.location.origin + '/application/success',
+          }
         }
       );
 
@@ -111,42 +110,39 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
       if (paymentIntent.status === 'succeeded') {
         console.log('Payment succeeded:', paymentIntent.id);
         
-        // Update application status in Supabase
+        // Update application status in Supabase database
         try {
-          const updateResponse = await fetch('/.netlify/functions/update-application-status', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              applicationId: applicationId,
+          const { error: updateError } = await supabase
+            .from('applications')
+            .update({
               status: 'under_review',
-              paymentIntentId: paymentIntent.id,
-              amount: paymentIntent.amount,
-              currency: paymentIntent.currency
-            }),
-          });
+              payment_intent_id: paymentIntent.id,
+              payment_status: 'succeeded',
+              payment_amount: paymentIntent.amount,
+              payment_currency: paymentIntent.currency,
+              payment_completed_at: new Date().toISOString()
+            })
+            .eq('id', applicationId);
 
-          if (!updateResponse.ok) {
-            console.warn('Failed to update application status, but payment was successful');
+          if (updateError) {
+            console.warn('Failed to update application status:', updateError);
+            // Payment succeeded but DB update failed - log this for manual fix
+          } else {
+            console.log('Application status updated to under_review');
           }
         } catch (updateError) {
           console.warn('Error updating application:', updateError);
         }
 
-        // Send email confirmation
+        // Call email confirmation Edge Function
         try {
-          await fetch('/.netlify/functions/send-confirmation-email', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+          await supabase.functions.invoke('send-confirmation-email', {
+            body: {
               applicationId: applicationId,
               paymentIntentId: paymentIntent.id,
               amount: amount,
               propertyTitle: propertyTitle
-            }),
+            }
           });
         } catch (emailError) {
           console.warn('Error sending confirmation email:', emailError);
@@ -172,6 +168,22 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
     } catch (err) {
       console.error('Payment error:', err);
       setError(`Payment processing failed: ${err.message}. Please try again or contact support.`);
+      
+      // Update application with failed payment status
+      try {
+        const applicationId = localStorage.getItem('currentApplicationId');
+        if (applicationId) {
+          await supabase
+            .from('applications')
+            .update({
+              payment_status: 'failed',
+              payment_error: err.message
+            })
+            .eq('id', applicationId);
+        }
+      } catch (dbError) {
+        console.error('Error updating failed payment:', dbError);
+      }
     } finally {
       setProcessing(false);
     }
@@ -209,7 +221,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
           Thank you for your payment. Your application is now being processed.
         </p>
         <div className="animate-pulse text-sm text-emerald-600 font-medium">
-          Completing your application...
+          Redirecting to confirmation...
         </div>
       </div>
     );
@@ -238,10 +250,10 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             <div className="flex items-start">
               <AlertCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-medium text-blue-800">Development Mode Active</p>
+                <p className="font-medium text-blue-800">Test Mode Active</p>
                 <p className="text-sm text-blue-700 mt-1">
                   Using Stripe test mode. No actual charges will be made.
-                  For testing, use test card: <span className="font-mono">4242 4242 4242 4242</span>
+                  Test card: <span className="font-mono">4242 4242 4242 4242</span>
                 </p>
               </div>
             </div>
@@ -318,6 +330,8 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
                 <Loader className="w-5 h-5 mr-2 animate-spin" />
                 Processing...
               </>
+            ) : !paymentReady ? (
+              'Initializing Payment...'
             ) : (
               `Complete Application - $${(amount / 100).toFixed(2)}`
             )}
