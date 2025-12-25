@@ -73,8 +73,15 @@ function ApplicationForm() {
       if (!supabaseError && supabaseProperty) {
         setProperty(supabaseProperty);
       } else {
-        // Fallback mock (your original)
-        const mockProperties = [ /* your mock array */ ];
+        const mockProperties = [
+          {
+            id: '1',
+            title: 'Oceanfront Villa Bianca',
+            location: 'Maldives',
+            price_per_week: 35000,
+          },
+          // add your other mock properties
+        ];
         const found = mockProperties.find(p => p.id === id);
         setProperty(found || mockProperties[0]);
       }
@@ -95,19 +102,38 @@ function ApplicationForm() {
   };
 
   const validateStep1 = () => {
-    // your validation
-    return true; // simplified
+    if (!formData.fullName.trim()) return false;
+    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) return false;
+    if (!formData.phone.trim()) return false;
+    if (!formData.agreeTerms) return false;
+    return true;
   };
 
   const handleStep1Submit = async (e) => {
     e.preventDefault();
-    if (!validateStep1()) return;
+    if (!validateStep1()) {
+      setError('Please fill all required fields');
+      return;
+    }
 
     setSubmitting(true);
     try {
       const { data: application, error } = await supabase
         .from('applications')
-        .insert([ /* your insert object */ ])
+        .insert([
+          {
+            property_id: id,
+            user_id: user?.id,
+            full_name: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            notes: formData.notes,
+            preferred_tour_date: formData.preferredDate || null,
+            status: 'payment_pending',
+            application_fee: 50,
+            created_at: new Date().toISOString()
+          }
+        ])
         .select()
         .single();
 
@@ -128,29 +154,44 @@ function ApplicationForm() {
       return;
     }
 
-    const card = elements.getElement(CardElement);
+    const cardElement = elements.getElement(CardElement);
     const applicationId = localStorage.getItem('currentApplicationId');
 
     setSubmitting(true);
+    setError('');
 
     try {
       const response = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: APPLICATION_FEE, applicationId, propertyTitle: property.title }),
+        body: JSON.stringify({
+          amount: APPLICATION_FEE,
+          applicationId,
+          propertyTitle: property.title,
+        }),
       });
 
       const { clientSecret } = await response.json();
 
       const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: { card },
+        payment_method: { card: cardElement },
       });
 
       if (stripeError) throw stripeError;
 
       if (paymentIntent.status === 'succeeded') {
-        // update Supabase, send email, setStep(3)
-        // your handlePaymentSuccess logic
+        // Update Supabase
+        const { error: updateError } = await supabase
+          .from('applications')
+          .update({ status: 'under_review', payment_status: 'completed', stripe_payment_id: paymentIntent.id })
+          .eq('id', applicationId);
+
+        if (updateError) throw updateError;
+
+        // Send email
+        await sendApplicationConfirmation(formData.email, { /* your data */ });
+
+        setStep(3);
       }
     } catch (error) {
       setError(error.message);
@@ -159,10 +200,72 @@ function ApplicationForm() {
     }
   };
 
-  // ... rest of your loading, property not found, step 1 form, step 3 success
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (!property) {
+    return <div className="min-h-screen flex items-center justify-center">Property not found</div>;
+  }
 
   return (
-    // your full return JSX with step 1, step 2 with CardElement and handlePayment on button
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Progress Steps */}
+        <div className="mb-12">
+          <div className="flex justify-between">
+            <div className={`text-center ${step >= 1 ? 'text-amber-600' : 'text-gray-400'}`}>1. Details</div>
+            <div className={`text-center ${step >= 2 ? 'text-amber-600' : 'text-gray-400'}`}>2. Payment</div>
+            <div className={`text-center ${step >= 3 ? 'text-green-600' : 'text-gray-400'}`}>3. Complete</div>
+          </div>
+        </div>
+
+        {error && (
+          <div className="bg-red-50 p-4 rounded-xl mb-6">
+            <p className="text-red-700">{error}</p>
+          </div>
+        )}
+
+        {/* Step 1 */}
+        {step === 1 && (
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            {/* Your full step 1 form from original code */}
+            <form onSubmit={handleStep1Submit}>
+              {/* All your input fields, validation, submit button */}
+              <button type="submit" disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Continue to Payment'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Step 2 - Real Payment */}
+        {step === 2 && (
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <h2 className="text-2xl font-bold mb-6">Secure Payment - $50.00</h2>
+            <div className="border rounded-xl p-4 mb-6">
+              <CardElement />
+            </div>
+            <button
+              onClick={handlePayment}
+              disabled={submitting || !stripe}
+              className="w-full bg-amber-600 text-white py-4 rounded-xl"
+            >
+              {submitting ? 'Processing...' : 'Pay Application Fee'}
+            </button>
+          </div>
+        )}
+
+        {/* Step 3 */}
+        {step === 3 && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold">Application Submitted!</h2>
+            <p>We'll review and get back to you soon.</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
