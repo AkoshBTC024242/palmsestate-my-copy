@@ -6,7 +6,8 @@ import { sendApplicationConfirmation } from '../lib/emailService';
 import PaymentForm from '../components/PaymentForm';
 import { 
   Calendar, User, Mail, Phone, FileText, ArrowLeft, 
-  CreditCard, CheckCircle, Home, Shield, Clock, Building, DollarSign, Users, Dog
+  CreditCard, CheckCircle, Home, Shield, Clock, Building, 
+  DollarSign, Users, Dog, MapPin, Home as HomeIcon, Globe
 } from 'lucide-react';
 
 function ApplicationForm() {
@@ -17,9 +18,23 @@ function ApplicationForm() {
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
-    fullName: '',
+    // Personal Info
+    firstName: '',
+    lastName: '',
     email: user?.email || '',
     phone: '',
+    
+    // Billing Address
+    billingAddress: {
+      line1: '',
+      line2: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      country: 'US'
+    },
+    
+    // Application Details
     preferredDate: '',
     notes: '',
     agreeTerms: false,
@@ -43,11 +58,17 @@ function ApplicationForm() {
   }, [id]);
 
   useEffect(() => {
-    if (user && !formData.fullName) {
+    if (user && !formData.firstName) {
+      // Try to extract first/last name from full name
       const userFullName = user.user_metadata?.full_name || '';
+      const nameParts = userFullName.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
       setFormData(prev => ({
         ...prev,
-        fullName: userFullName,
+        firstName: firstName,
+        lastName: lastName,
         email: user.email || ''
       }));
     }
@@ -119,16 +140,30 @@ function ApplicationForm() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    // Handle nested billing address fields
+    if (name.startsWith('billing.')) {
+      const addressField = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        billingAddress: {
+          ...prev.billingAddress,
+          [addressField]: type === 'checkbox' ? checked : value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
     setError('');
   };
 
   const validateStep1 = () => {
-    if (!formData.fullName.trim()) {
-      setError('Full name is required');
+    // Validate personal info
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      setError('First and last name are required');
       return false;
     }
     if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
@@ -139,6 +174,26 @@ function ApplicationForm() {
       setError('Phone number is required');
       return false;
     }
+    
+    // Validate billing address
+    if (!formData.billingAddress.line1.trim()) {
+      setError('Billing address line 1 is required');
+      return false;
+    }
+    if (!formData.billingAddress.city.trim()) {
+      setError('City is required');
+      return false;
+    }
+    if (!formData.billingAddress.state.trim()) {
+      setError('State is required');
+      return false;
+    }
+    if (!formData.billingAddress.postalCode.trim()) {
+      setError('Postal code is required');
+      return false;
+    }
+    
+    // Validate other fields
     if (!formData.employmentStatus) {
       setError('Please select employment status');
       return false;
@@ -164,10 +219,21 @@ function ApplicationForm() {
     setSubmitting(true);
     
     try {
-      console.log('Submitting application data:', {
+      const fullName = `${formData.firstName} ${formData.lastName}`;
+      const customerInfo = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        fullName: fullName,
+        email: formData.email,
+        phone: formData.phone,
+        billingAddress: formData.billingAddress
+      };
+
+      console.log('Submitting application with customer data:', {
         property_id: id,
         user_id: user?.id,
-        ...formData
+        ...formData,
+        customerInfo
       });
 
       // Create application record in database
@@ -177,9 +243,12 @@ function ApplicationForm() {
           {
             property_id: id,
             user_id: user?.id,
-            full_name: formData.fullName,
+            full_name: fullName,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
             email: formData.email,
             phone: formData.phone,
+            billing_address: formData.billingAddress,
             employment_status: formData.employmentStatus,
             monthly_income: parseInt(formData.monthlyIncome.replace(/,/g, '')) || 0,
             occupants: parseInt(formData.occupants),
@@ -203,8 +272,10 @@ function ApplicationForm() {
         throw appError;
       }
 
-      // Store application ID for payment processing
+      // Store application ID AND customer info for payment processing
       localStorage.setItem('currentApplicationId', application.id);
+      localStorage.setItem('applicantData', JSON.stringify(customerInfo));
+      
       console.log('Application created successfully:', application.id);
       
       // Move to payment step
@@ -261,15 +332,17 @@ function ApplicationForm() {
             day: 'numeric'
           }),
           paymentId: paymentData.paymentIntentId,
-          paymentAmount: `$${(paymentData.amount / 100).toFixed(2)}`
+          paymentAmount: `$${(paymentData.amount / 100).toFixed(2)}`,
+          customerName: `${formData.firstName} ${formData.lastName}`
         });
       }
 
       setPaymentComplete(true);
       setStep(3);
       
-      // Clear stored application ID
+      // Clear stored data
       localStorage.removeItem('currentApplicationId');
+      localStorage.removeItem('applicantData');
 
     } catch (error) {
       console.error('Payment processing error:', error);
@@ -422,32 +495,53 @@ function ApplicationForm() {
                       This non-refundable fee covers administrative processing and background checks. 
                       You'll be redirected to secure payment after submitting this form.
                     </p>
+                    <p className="text-amber-700 text-sm mt-2">
+                      <strong>Note:</strong> Your billing address is required for fraud protection.
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <form onSubmit={handleStep1Submit} className="space-y-6">
+              <form onSubmit={handleStep1Submit} className="space-y-8">
                 {/* Personal Information */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Personal Information</h3>
                   
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <User className="w-4 h-4 inline mr-2" />
-                        Full Name *
+                        First Name *
                       </label>
                       <input
                         type="text"
-                        name="fullName"
+                        name="firstName"
                         required
-                        value={formData.fullName}
+                        value={formData.firstName}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
-                        placeholder="John Smith"
+                        placeholder="John"
                       />
                     </div>
 
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <User className="w-4 h-4 inline mr-2" />
+                        Last Name *
+                      </label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        required
+                        value={formData.lastName}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                        placeholder="Smith"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <Mail className="w-4 h-4 inline mr-2" />
@@ -463,27 +557,131 @@ function ApplicationForm() {
                         placeholder="john@example.com"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <Phone className="w-4 h-4 inline mr-2" />
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        required
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                        placeholder="+1 (555) 123-4567"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Billing Address */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Billing Address *</h3>
+                  <p className="text-sm text-gray-600 -mt-4">
+                    Required for payment verification and fraud protection
+                  </p>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-2" />
+                      Street Address *
+                    </label>
+                    <input
+                      type="text"
+                      name="billing.line1"
+                      required
+                      value={formData.billingAddress.line1}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                      placeholder="123 Main St"
+                    />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Phone className="w-4 h-4 inline mr-2" />
-                      Phone Number *
+                      Apartment, Suite, Unit (Optional)
                     </label>
                     <input
-                      type="tel"
-                      name="phone"
-                      required
-                      value={formData.phone}
+                      type="text"
+                      name="billing.line2"
+                      value={formData.billingAddress.line2}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
-                      placeholder="+1 (555) 123-4567"
+                      placeholder="Apt 4B"
                     />
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        City *
+                      </label>
+                      <input
+                        type="text"
+                        name="billing.city"
+                        required
+                        value={formData.billingAddress.city}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                        placeholder="New York"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        State *
+                      </label>
+                      <input
+                        type="text"
+                        name="billing.state"
+                        required
+                        value={formData.billingAddress.state}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                        placeholder="NY"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ZIP Code *
+                      </label>
+                      <input
+                        type="text"
+                        name="billing.postalCode"
+                        required
+                        value={formData.billingAddress.postalCode}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
+                        placeholder="10001"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <Globe className="w-4 h-4 inline mr-2" />
+                      Country *
+                    </label>
+                    <select
+                      name="billing.country"
+                      value={formData.billingAddress.country}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    >
+                      <option value="US">United States</option>
+                      <option value="CA">Canada</option>
+                      <option value="GB">United Kingdom</option>
+                      <option value="AU">Australia</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                 </div>
 
                 {/* Financial Information */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Financial Information</h3>
                   
                   <div className="grid md:grid-cols-2 gap-4">
@@ -528,7 +726,7 @@ function ApplicationForm() {
                 </div>
 
                 {/* Living Situation */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Living Situation</h3>
                   
                   <div className="grid md:grid-cols-2 gap-4">
@@ -780,7 +978,6 @@ function ApplicationForm() {
               </div>
 
               <div className="space-y-4">
-                {/* FIXED: Changed from /dashboard/applications to /dashboard */}
                 <Link
                   to="/dashboard"
                   className="block w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl text-center hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
@@ -800,7 +997,7 @@ function ApplicationForm() {
                     to="/"
                     className="block border-2 border-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-xl text-center hover:bg-gray-50 transition-colors"
                   >
-                    <Home className="w-4 h-4 inline mr-2" />
+                    <HomeIcon className="w-4 h-4 inline mr-2" />
                     Return Home
                   </Link>
                 </div>
