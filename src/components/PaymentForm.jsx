@@ -7,10 +7,7 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '../lib/supabase';
-import { 
-  CreditCard, Lock, CheckCircle, AlertCircle, Shield, Loader,
-  User, Mail, MapPin, Home as HomeIcon
-} from 'lucide-react';
+import { CreditCard, Lock, CheckCircle, AlertCircle, Shield, Loader } from 'lucide-react';
 
 // Load Stripe with your publishable key from env
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
@@ -24,7 +21,6 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
   const [paymentReady, setPaymentReady] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
   const [customerInfo, setCustomerInfo] = useState(null);
-  const [isLiveMode, setIsLiveMode] = useState(false);
 
   // Fetch PaymentIntent from Supabase Edge Function with customer data
   useEffect(() => {
@@ -55,16 +51,11 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         }
 
         setCustomerInfo(applicantData);
-        
-        // Check if we're in live mode
-        const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-        setIsLiveMode(stripeKey?.startsWith('pk_live_'));
 
         console.log('Creating payment intent for:', {
           applicationId,
           customerEmail: applicantData.email,
-          customerName: `${applicantData.firstName} ${applicantData.lastName}`,
-          isLiveMode
+          customerName: `${applicantData.firstName} ${applicantData.lastName}`
         });
 
         // Call Supabase Edge Function with customer data
@@ -91,7 +82,6 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         }
 
         console.log('PaymentIntent created successfully');
-        console.log('Test mode:', data.testMode || false);
         
         setClientSecret(data.clientSecret);
         setPaymentReady(true);
@@ -155,20 +145,8 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
                 country: customerInfo.billingAddress.country || 'US',
               },
             },
-          },
-          // Add shipping details for fraud detection
-          shipping: {
-            name: fullName,
-            address: {
-              line1: customerInfo.billingAddress.line1 || '',
-              line2: customerInfo.billingAddress.line2 || '',
-              city: customerInfo.billingAddress.city || '',
-              state: customerInfo.billingAddress.state || '',
-              postal_code: customerInfo.billingAddress.postalCode || '',
-              country: customerInfo.billingAddress.country || 'US',
-            },
-            phone: customerInfo.phone || '',
           }
+          // REMOVED shipping parameter - it was causing the secret key error
         }
       );
 
@@ -197,7 +175,6 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
 
         if (updateError) {
           console.warn('Failed to update application status:', updateError);
-          // Don't fail the payment if DB update fails, but log it
         } else {
           console.log('Application status updated to under_review');
         }
@@ -275,11 +252,6 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         <p className="text-gray-600 mb-6">
           Thank you for your payment. Your application is now being processed.
         </p>
-        {customerInfo?.email && (
-          <p className="text-sm text-gray-500 mb-4">
-            A confirmation has been sent to {customerInfo.email}
-          </p>
-        )}
         <div className="animate-pulse text-sm text-emerald-600 font-medium">
           Completing your application...
         </div>
@@ -289,43 +261,6 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
 
   return (
     <div className="w-full">
-      {/* Customer Info Summary */}
-      {customerInfo && (
-        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
-          <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-            <User className="w-4 h-4 mr-2" />
-            Billing Information
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-gray-500">Name</p>
-              <p className="font-medium">
-                {customerInfo.firstName} {customerInfo.lastName}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-500">Email</p>
-              <p className="font-medium flex items-center">
-                <Mail className="w-3 h-3 mr-1" />
-                {customerInfo.email}
-              </p>
-            </div>
-            <div className="md:col-span-2">
-              <p className="text-gray-500">Billing Address</p>
-              <p className="font-medium flex items-start">
-                <MapPin className="w-3 h-3 mr-1 mt-1 flex-shrink-0" />
-                <span>
-                  {customerInfo.billingAddress.line1}
-                  {customerInfo.billingAddress.line2 && `, ${customerInfo.billingAddress.line2}`}<br />
-                  {customerInfo.billingAddress.city}, {customerInfo.billingAddress.state} {customerInfo.billingAddress.postalCode}
-                  {customerInfo.billingAddress.country !== 'US' && `, ${customerInfo.billingAddress.country}`}
-                </span>
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Payment Header */}
         <div className="bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-xl p-6">
@@ -341,22 +276,21 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
           </div>
         </div>
 
-        {/* Live/Test Mode Indicator */}
-        <div className={`rounded-xl p-4 ${isLiveMode ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
-          <div className="flex items-start">
-            <AlertCircle className={`w-5 h-5 mr-3 mt-0.5 flex-shrink-0 ${isLiveMode ? 'text-green-600' : 'text-blue-600'}`} />
-            <div>
-              <p className={`font-medium ${isLiveMode ? 'text-green-800' : 'text-blue-800'}`}>
-                {isLiveMode ? 'LIVE PAYMENT MODE' : 'TEST MODE ACTIVE'}
-              </p>
-              <p className={`text-sm mt-1 ${isLiveMode ? 'text-green-700' : 'text-blue-700'}`}>
-                {isLiveMode 
-                  ? 'Real charges will be made to your card. For support, contact us immediately if you notice any issues.'
-                  : 'No actual charges will be made. For testing, use card: 4242 4242 4242 4242 with any future expiry and CVC.'}
-              </p>
+        {/* Development Mode Notice - Only show in development */}
+        {import.meta.env.DEV && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="flex items-start">
+              <AlertCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium text-blue-800">Development Mode Active</p>
+                <p className="text-sm text-blue-700 mt-1">
+                  Using Stripe test mode. No actual charges will be made.
+                  Test card: <span className="font-mono">4242 4242 4242 4242</span>
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Card Details */}
         <div>
@@ -426,17 +360,12 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             {processing ? (
               <>
                 <Loader className="w-5 h-5 mr-2 animate-spin" />
-                Processing Payment...
+                Processing...
               </>
             ) : !paymentReady ? (
-              <>
-                <Loader className="w-5 h-5 mr-2 animate-spin" />
-                Setting Up Payment...
-              </>
-            ) : !customerInfo ? (
-              'Missing Customer Info'
+              'Initializing Payment...'
             ) : (
-              `Pay $${(amount / 100).toFixed(2)} & Complete`
+              `Complete Application - $${(amount / 100).toFixed(2)}`
             )}
           </button>
         </div>
@@ -448,23 +377,23 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
               <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
                 <Lock className="w-4 h-4 text-gray-600" />
               </div>
-              <p className="text-xs text-gray-500">PCI DSS Compliant</p>
+              <p className="text-xs text-gray-500">Secure</p>
             </div>
             <div className="text-center">
               <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
                 <Shield className="w-4 h-4 text-gray-600" />
               </div>
-              <p className="text-xs text-gray-500">3D Secure 2</p>
+              <p className="text-xs text-gray-500">Encrypted</p>
             </div>
             <div className="text-center">
               <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
                 <CreditCard className="w-4 h-4 text-gray-600" />
               </div>
-              <p className="text-xs text-gray-500">Stripe Radar</p>
+              <p className="text-xs text-gray-500">Secure Payment</p>
             </div>
           </div>
           <p className="text-xs text-gray-500 text-center">
-            Protected by Stripe's advanced fraud detection system
+            Your payment is processed through Stripe's secure system
           </p>
         </div>
 
