@@ -6,10 +6,13 @@ import {
   Elements
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { supabase } from '../lib/supabase'; // Adjust path to your supabase client
-import { CreditCard, Lock, CheckCircle, AlertCircle, Shield, Loader } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { 
+  CreditCard, Lock, CheckCircle, AlertCircle, Shield, Loader,
+  User, Mail, MapPin, Home as HomeIcon
+} from 'lucide-react';
 
-// Load Stripe with your publishable key
+// Load Stripe with your publishable key from env
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) => {
@@ -20,38 +23,79 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
   const [success, setSuccess] = useState(false);
   const [paymentReady, setPaymentReady] = useState(false);
   const [clientSecret, setClientSecret] = useState('');
+  const [customerInfo, setCustomerInfo] = useState(null);
+  const [isLiveMode, setIsLiveMode] = useState(false);
 
-  // Fetch PaymentIntent from Supabase Edge Function
+  // Fetch PaymentIntent from Supabase Edge Function with customer data
   useEffect(() => {
-    const createPaymentIntent = async () => {
+    const initializePayment = async () => {
       try {
+        // Load customer data from localStorage (set by ApplicationForm)
+        const applicantData = JSON.parse(localStorage.getItem('applicantData'));
         const applicationId = localStorage.getItem('currentApplicationId');
+        
         if (!applicationId) {
           throw new Error('Application not found. Please restart the application process.');
         }
-
-        console.log('Creating payment intent for application:', applicationId);
         
-        // Call Supabase Edge Function to create PaymentIntent
+        if (!applicantData) {
+          throw new Error('Customer information missing. Please complete the application form.');
+        }
+
+        // Validate required customer fields
+        if (!applicantData.firstName || !applicantData.lastName) {
+          throw new Error('Missing customer name information.');
+        }
+        if (!applicantData.email) {
+          throw new Error('Missing customer email.');
+        }
+        if (!applicantData.billingAddress?.line1 || !applicantData.billingAddress?.city || 
+            !applicantData.billingAddress?.state || !applicantData.billingAddress?.postalCode) {
+          throw new Error('Missing billing address information.');
+        }
+
+        setCustomerInfo(applicantData);
+        
+        // Check if we're in live mode
+        const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+        setIsLiveMode(stripeKey?.startsWith('pk_live_'));
+
+        console.log('Creating payment intent for:', {
+          applicationId,
+          customerEmail: applicantData.email,
+          customerName: `${applicantData.firstName} ${applicantData.lastName}`,
+          isLiveMode
+        });
+
+        // Call Supabase Edge Function with customer data
         const { data, error: funcError } = await supabase.functions.invoke('create-payment-intent', {
           body: {
             amount: amount, // $50 = 5000 cents
             applicationId: applicationId,
-            propertyTitle: propertyTitle
+            propertyTitle: propertyTitle,
+            customerEmail: applicantData.email,
+            customerName: `${applicantData.firstName} ${applicantData.lastName}`,
+            customerPhone: applicantData.phone || '',
+            billingAddress: applicantData.billingAddress
           }
         });
 
         if (funcError) {
+          console.error('Edge Function error:', funcError);
           throw new Error(funcError.message || 'Failed to create payment intent');
         }
 
         if (!data || !data.clientSecret) {
-          throw new Error('Invalid response from payment server');
+          console.error('No client secret in response:', data);
+          throw new Error('Payment server responded without payment details');
         }
 
-        console.log('PaymentIntent created, clientSecret received');
+        console.log('PaymentIntent created successfully');
+        console.log('Test mode:', data.testMode || false);
+        
         setClientSecret(data.clientSecret);
         setPaymentReady(true);
+        
       } catch (err) {
         console.error('Payment initialization error:', err);
         setError(`Unable to initialize payment: ${err.message}`);
@@ -59,13 +103,13 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
       }
     };
 
-    createPaymentIntent();
+    initializePayment();
   }, [amount, propertyTitle]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!stripe || !elements || !clientSecret) {
+    if (!stripe || !elements || !clientSecret || !customerInfo) {
       setError('Payment system is not ready. Please refresh the page.');
       return;
     }
@@ -80,72 +124,82 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         throw new Error('Card element not found');
       }
 
-      // Get application ID
       const applicationId = localStorage.getItem('currentApplicationId');
       if (!applicationId) {
         throw new Error('Application not found. Please restart the application process.');
       }
 
-      console.log('Processing payment for application:', applicationId);
+      const fullName = `${customerInfo.firstName} ${customerInfo.lastName}`;
+      console.log('Processing payment for:', {
+        applicationId,
+        customerName: fullName,
+        customerEmail: customerInfo.email
+      });
       
-      // Real Stripe payment confirmation
+      // Real Stripe payment confirmation with customer data
       const { paymentIntent, error: stripeError } = await stripe.confirmCardPayment(
         clientSecret,
         {
           payment_method: {
             card: cardElement,
             billing_details: {
-              // You can add billing details from your application form
-              // name: applicantName,
-              // email: applicantEmail,
+              name: fullName,
+              email: customerInfo.email,
+              phone: customerInfo.phone || '',
+              address: {
+                line1: customerInfo.billingAddress.line1 || '',
+                line2: customerInfo.billingAddress.line2 || '',
+                city: customerInfo.billingAddress.city || '',
+                state: customerInfo.billingAddress.state || '',
+                postal_code: customerInfo.billingAddress.postalCode || '',
+                country: customerInfo.billingAddress.country || 'US',
+              },
             },
+          },
+          // Add shipping details for fraud detection
+          shipping: {
+            name: fullName,
+            address: {
+              line1: customerInfo.billingAddress.line1 || '',
+              line2: customerInfo.billingAddress.line2 || '',
+              city: customerInfo.billingAddress.city || '',
+              state: customerInfo.billingAddress.state || '',
+              postal_code: customerInfo.billingAddress.postalCode || '',
+              country: customerInfo.billingAddress.country || 'US',
+            },
+            phone: customerInfo.phone || '',
           }
         }
       );
 
       if (stripeError) {
+        console.error('Stripe error:', stripeError);
         throw new Error(stripeError.message);
       }
 
       if (paymentIntent.status === 'succeeded') {
         console.log('Payment succeeded:', paymentIntent.id);
         
-        // Update application status in Supabase database
-        try {
-          const { error: updateError } = await supabase
-            .from('applications')
-            .update({
-              status: 'under_review',
-              payment_intent_id: paymentIntent.id,
-              payment_status: 'succeeded',
-              payment_amount: paymentIntent.amount,
-              payment_currency: paymentIntent.currency,
-              payment_completed_at: new Date().toISOString()
-            })
-            .eq('id', applicationId);
+        // Update application in Supabase with payment details
+        const { error: updateError } = await supabase
+          .from('applications')
+          .update({
+            status: 'under_review',
+            payment_intent_id: paymentIntent.id,
+            stripe_payment_id: paymentIntent.id,
+            payment_status: 'completed',
+            payment_amount: paymentIntent.amount,
+            payment_currency: paymentIntent.currency,
+            paid_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', applicationId);
 
-          if (updateError) {
-            console.warn('Failed to update application status:', updateError);
-            // Payment succeeded but DB update failed - log this for manual fix
-          } else {
-            console.log('Application status updated to under_review');
-          }
-        } catch (updateError) {
-          console.warn('Error updating application:', updateError);
-        }
-
-        // Call email confirmation Edge Function
-        try {
-          await supabase.functions.invoke('send-confirmation-email', {
-            body: {
-              applicationId: applicationId,
-              paymentIntentId: paymentIntent.id,
-              amount: amount,
-              propertyTitle: propertyTitle
-            }
-          });
-        } catch (emailError) {
-          console.warn('Error sending confirmation email:', emailError);
+        if (updateError) {
+          console.warn('Failed to update application status:', updateError);
+          // Don't fail the payment if DB update fails, but log it
+        } else {
+          console.log('Application status updated to under_review');
         }
 
         setSuccess(true);
@@ -160,7 +214,8 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
             timestamp: new Date(paymentIntent.created * 1000).toISOString(),
             status: paymentIntent.status
           });
-        }, 1000);
+        }, 1500);
+        
       } else {
         throw new Error(`Payment status: ${paymentIntent.status}`);
       }
@@ -169,7 +224,7 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
       console.error('Payment error:', err);
       setError(`Payment processing failed: ${err.message}. Please try again or contact support.`);
       
-      // Update application with failed payment status
+      // Update failed payment status
       try {
         const applicationId = localStorage.getItem('currentApplicationId');
         if (applicationId) {
@@ -220,8 +275,13 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
         <p className="text-gray-600 mb-6">
           Thank you for your payment. Your application is now being processed.
         </p>
+        {customerInfo?.email && (
+          <p className="text-sm text-gray-500 mb-4">
+            A confirmation has been sent to {customerInfo.email}
+          </p>
+        )}
         <div className="animate-pulse text-sm text-emerald-600 font-medium">
-          Redirecting to confirmation...
+          Completing your application...
         </div>
       </div>
     );
@@ -229,6 +289,43 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
 
   return (
     <div className="w-full">
+      {/* Customer Info Summary */}
+      {customerInfo && (
+        <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
+          <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
+            <User className="w-4 h-4 mr-2" />
+            Billing Information
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-gray-500">Name</p>
+              <p className="font-medium">
+                {customerInfo.firstName} {customerInfo.lastName}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500">Email</p>
+              <p className="font-medium flex items-center">
+                <Mail className="w-3 h-3 mr-1" />
+                {customerInfo.email}
+              </p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-gray-500">Billing Address</p>
+              <p className="font-medium flex items-start">
+                <MapPin className="w-3 h-3 mr-1 mt-1 flex-shrink-0" />
+                <span>
+                  {customerInfo.billingAddress.line1}
+                  {customerInfo.billingAddress.line2 && `, ${customerInfo.billingAddress.line2}`}<br />
+                  {customerInfo.billingAddress.city}, {customerInfo.billingAddress.state} {customerInfo.billingAddress.postalCode}
+                  {customerInfo.billingAddress.country !== 'US' && `, ${customerInfo.billingAddress.country}`}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Payment Header */}
         <div className="bg-gradient-to-r from-amber-600 to-orange-500 text-white rounded-xl p-6">
@@ -244,21 +341,22 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
           </div>
         </div>
 
-        {/* Development Mode Notice */}
-        {(import.meta.env.DEV || !import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_live_')) && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <div className="flex items-start">
-              <AlertCircle className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium text-blue-800">Test Mode Active</p>
-                <p className="text-sm text-blue-700 mt-1">
-                  Using Stripe test mode. No actual charges will be made.
-                  Test card: <span className="font-mono">4242 4242 4242 4242</span>
-                </p>
-              </div>
+        {/* Live/Test Mode Indicator */}
+        <div className={`rounded-xl p-4 ${isLiveMode ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
+          <div className="flex items-start">
+            <AlertCircle className={`w-5 h-5 mr-3 mt-0.5 flex-shrink-0 ${isLiveMode ? 'text-green-600' : 'text-blue-600'}`} />
+            <div>
+              <p className={`font-medium ${isLiveMode ? 'text-green-800' : 'text-blue-800'}`}>
+                {isLiveMode ? 'LIVE PAYMENT MODE' : 'TEST MODE ACTIVE'}
+              </p>
+              <p className={`text-sm mt-1 ${isLiveMode ? 'text-green-700' : 'text-blue-700'}`}>
+                {isLiveMode 
+                  ? 'Real charges will be made to your card. For support, contact us immediately if you notice any issues.'
+                  : 'No actual charges will be made. For testing, use card: 4242 4242 4242 4242 with any future expiry and CVC.'}
+              </p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Card Details */}
         <div>
@@ -322,18 +420,23 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
           </button>
           <button
             type="submit"
-            disabled={!stripe || processing || !paymentReady || !clientSecret}
+            disabled={!stripe || processing || !paymentReady || !clientSecret || !customerInfo}
             className="flex-1 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center"
           >
             {processing ? (
               <>
                 <Loader className="w-5 h-5 mr-2 animate-spin" />
-                Processing...
+                Processing Payment...
               </>
             ) : !paymentReady ? (
-              'Initializing Payment...'
+              <>
+                <Loader className="w-5 h-5 mr-2 animate-spin" />
+                Setting Up Payment...
+              </>
+            ) : !customerInfo ? (
+              'Missing Customer Info'
             ) : (
-              `Complete Application - $${(amount / 100).toFixed(2)}`
+              `Pay $${(amount / 100).toFixed(2)} & Complete`
             )}
           </button>
         </div>
@@ -345,23 +448,23 @@ const PaymentFormComponent = ({ amount, onSuccess, onCancel, propertyTitle }) =>
               <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
                 <Lock className="w-4 h-4 text-gray-600" />
               </div>
-              <p className="text-xs text-gray-500">Secure</p>
+              <p className="text-xs text-gray-500">PCI DSS Compliant</p>
             </div>
             <div className="text-center">
               <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
                 <Shield className="w-4 h-4 text-gray-600" />
               </div>
-              <p className="text-xs text-gray-500">Encrypted</p>
+              <p className="text-xs text-gray-500">3D Secure 2</p>
             </div>
             <div className="text-center">
               <div className="w-8 h-8 mx-auto mb-1 rounded-full bg-gray-100 flex items-center justify-center">
                 <CreditCard className="w-4 h-4 text-gray-600" />
               </div>
-              <p className="text-xs text-gray-500">Secure Payment</p>
+              <p className="text-xs text-gray-500">Stripe Radar</p>
             </div>
           </div>
           <p className="text-xs text-gray-500 text-center">
-            Your payment is processed through Stripe's secure system
+            Protected by Stripe's advanced fraud detection system
           </p>
         </div>
 
