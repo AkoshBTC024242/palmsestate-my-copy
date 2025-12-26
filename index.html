@@ -35,14 +35,26 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <!-- Favicon -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <!-- NEW: Palm Tree Favicons -->
+    <!-- Standard Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/palm-logo.svg">
+    
+    <!-- PNG Fallbacks -->
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
     
-    <!-- Safari Pinned Tab Color -->
-    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#f97316">
+    <!-- Apple Touch Icon (White palm on Orange background) -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/palm-logo.svg">
+    
+    <!-- Android Chrome -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/palm-logo.svg">
+    <link rel="icon" type="image/png" sizes="512x512" href="/palm-logo.svg">
+    
+    <!-- Safari Pinned Tab -->
+    <link rel="mask-icon" href="/palm-logo.svg" color="#f97316">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/site.webmanifest">
     
     <title>Palms Estate | Premier Luxury Rentals</title>
     
@@ -77,14 +89,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    
-    <!-- PWA Service Worker (optional, for future) -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(console.error);
-        });
-      }
-    </script>
   </body>
 </html>
