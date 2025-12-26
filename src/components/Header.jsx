@@ -9,7 +9,7 @@ import {
   Star, Globe, CreditCard, MessageSquare,
   Lock, Eye, Users, CheckCircle,
   Settings, Heart, Bookmark, HelpCircle,
-  LogIn, UserPlus
+  LogIn, UserPlus, Building, Clock, CheckCircle2
 } from 'lucide-react';
 
 function Header() {
@@ -59,12 +59,18 @@ function Header() {
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
     } else {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
       setActivePanel('main');
     }
     return () => {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     };
   }, [mobileMenuOpen]);
 
@@ -114,13 +120,20 @@ function Header() {
     { name: 'Bookmarks', icon: <Bookmark size={18} />, action: () => navigate(user ? '/dashboard/favorites' : '/signin') },
   ];
 
+  // Stats for bottom of mobile menu
+  const menuStats = [
+    { label: 'Properties', value: '150+', icon: <Building size={16} /> },
+    { label: 'Satisfaction', value: '98%', icon: <CheckCircle2 size={16} /> },
+    { label: 'Response', value: '15m', icon: <Clock size={16} /> },
+  ];
+
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       isScrolled ? 'bg-white/95 backdrop-blur-xl border-b border-gray-100/50 shadow-lg' : 'bg-white'
     }`}>
       <div className="container-fluid">
         <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo */}
+          {/* Logo - UPDATED: Added "EXCLUSIVE RESIDENCES" for mobile */}
           <Link 
             to="/" 
             className="flex items-center space-x-3 group touch-manipulation"
@@ -149,12 +162,12 @@ function Header() {
               </svg>
             </div>
             
-            {/* Company Name */}
+            {/* Company Name - UPDATED: Show EXCLUSIVE RESIDENCES on mobile too */}
             <div>
               <h1 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight">
                 Palms<span className="text-primary-600">Estate</span>
               </h1>
-              <p className="text-xs text-gray-500 font-medium tracking-wider hidden md:block">
+              <p className="text-xs text-gray-500 font-medium tracking-wider">
                 EXCLUSIVE RESIDENCES
               </p>
             </div>
@@ -399,108 +412,96 @@ function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu - FIXED Overlapping */}
+      {/* Mobile Menu - REDESIGNED: Remove logo/stats from top, add to bottom */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40">
-          {/* Backdrop */}
+        <div className="md:hidden fixed inset-0 z-[100]"> {/* Increased z-index */}
+          {/* Backdrop with higher z-index */}
           <div 
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           />
           
-          {/* Menu Container */}
+          {/* Menu Container with higher z-index */}
           <div 
             ref={mobileMenuRef}
-            className="absolute right-0 top-0 bottom-0 w-[90vw] max-w-sm bg-gradient-to-b from-white/95 via-white/90 to-white/80 backdrop-blur-2xl shadow-2xl border-l border-white/30 overflow-hidden flex flex-col"
+            className="absolute right-0 top-0 bottom-0 w-[90vw] max-w-sm bg-gradient-to-b from-white/95 via-white/90 to-white/80 backdrop-blur-2xl shadow-2xl border-l border-white/30 overflow-hidden flex flex-col z-[110]" /* Increased z-index */
+            style={{ 
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)'
+            }}
           >
-            {/* User Header Section */}
-            <div className="pt-8 px-6 pb-6 bg-gradient-to-r from-primary-500/5 to-orange-400/5 border-b border-white/30 flex-shrink-0">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  <div className="relative">
-                    <div className="w-14 h-14 flex items-center justify-center">
-                      <svg 
-                        width="40" 
-                        height="40" 
-                        viewBox="0 0 48 48" 
-                        fill="none" 
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fill-opacity="0.9"/>
-                        <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
-                        <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
-                        <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
-                        <path d="M24 5C10 10, 2 14, 0 24C-2 20, -4 16, 24 5Z" fill="#22c55e"/>
-                        <path d="M24 5C38 10, 46 14, 48 24C50 20, 52 16, 24 5Z" fill="#16a34a"/>
-                        <circle cx="24" cy="22" r="3" fill="#c2410c"/>
-                      </svg>
-                    </div>
-                    {user && (
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-3 border-white"></div>
-                    )}
+            {/* Menu Header - SIMPLIFIED: Just close button and Menu title */}
+            <div className="pt-6 px-6 pb-4 border-b border-white/30 bg-white/30 backdrop-blur-sm flex-shrink-0">
+              <div className="flex items-center justify-between">
+                {/* Menu Title at Left */}
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 rounded-lg bg-gradient-to-br from-primary-500/10 to-orange-400/10">
+                    <Menu size={20} className="text-primary-600" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-xl font-bold text-gray-900 truncate">
-                      {user ? user.email?.split('@')[0] : 'PalmsEstate'}
-                    </h2>
-                    <p className="text-sm text-gray-600 truncate">
-                      {user ? (isAdmin ? 'Administrator' : 'Premium Member') : 'Luxury Rentals'}
-                    </p>
-                  </div>
+                  <h3 className="text-lg font-bold text-gray-900">Menu</h3>
                 </div>
+                
+                {/* Close Button at Right */}
                 <button
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-2 rounded-lg hover:bg-white/20 transition-colors touch-manipulation flex-shrink-0"
+                  className="p-2 rounded-lg hover:bg-white/30 transition-colors touch-manipulation"
                   aria-label="Close menu"
                 >
                   <X size={24} className="text-gray-600" />
                 </button>
               </div>
 
-              {/* Quick Stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white/50 backdrop-blur-sm rounded-xl p-3 text-center border border-white/30">
-                  <div className="text-lg font-bold text-primary-600">24</div>
-                  <div className="text-xs text-gray-600">Properties</div>
-                </div>
-                <div className="bg-white/50 backdrop-blur-sm rounded-xl p-3 text-center border border-white/30">
-                  <div className="text-lg font-bold text-primary-600">98%</div>
-                  <div className="text-xs text-gray-600">Satisfaction</div>
-                </div>
-                <div className="bg-white/50 backdrop-blur-sm rounded-xl p-3 text-center border border-white/30">
-                  <div className="text-lg font-bold text-primary-600">15m</div>
-                  <div className="text-xs text-gray-600">Response</div>
+              {/* User Status - Simple */}
+              <div className="mt-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-orange-400 flex items-center justify-center shadow-sm">
+                    {user ? (
+                      <User size={18} className="text-white" />
+                    ) : (
+                      <LogIn size={18} className="text-white" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">
+                      {user ? user.email?.split('@')[0] : 'Guest User'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {user ? (isAdmin ? 'Administrator' : 'Premium Member') : 'Sign in for more features'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Navigation Panels - Scrollable Area */}
             <div className="flex-1 overflow-y-auto">
-              {/* Panel Switcher */}
-              <div className="flex border-b border-white/30 bg-white/30 backdrop-blur-sm sticky top-0 z-10">
-                <button
-                  onClick={() => setActivePanel('main')}
-                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activePanel === 'main' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-600'}`}
-                >
-                  Menu
-                </button>
-                {user && (
+              {/* Panel Switcher - Only show if user is logged in or admin */}
+              {(user || isAdmin) && (
+                <div className="flex border-b border-white/30 bg-white/30 backdrop-blur-sm sticky top-0 z-10">
                   <button
-                    onClick={() => setActivePanel('user')}
-                    className={`flex-1 py-3 text-sm font-medium transition-colors ${activePanel === 'user' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-600'}`}
+                    onClick={() => setActivePanel('main')}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${activePanel === 'main' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-600'}`}
                   >
-                    Account
+                    Navigation
                   </button>
-                )}
-                {isAdmin && (
-                  <button
-                    onClick={() => setActivePanel('admin')}
-                    className={`flex-1 py-3 text-sm font-medium transition-colors ${activePanel === 'admin' ? 'text-blue-600 border-b-2 border-blue-500' : 'text-gray-600'}`}
-                  >
-                    Admin
-                  </button>
-                )}
-              </div>
+                  {user && (
+                    <button
+                      onClick={() => setActivePanel('user')}
+                      className={`flex-1 py-3 text-sm font-medium transition-colors ${activePanel === 'user' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-600'}`}
+                    >
+                      Account
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button
+                      onClick={() => setActivePanel('admin')}
+                      className={`flex-1 py-3 text-sm font-medium transition-colors ${activePanel === 'admin' ? 'text-blue-600 border-b-2 border-blue-500' : 'text-gray-600'}`}
+                    >
+                      Admin
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Main Panel */}
               {activePanel === 'main' && (
@@ -643,19 +644,69 @@ function Header() {
               )}
             </div>
 
-            {/* Bottom Actions - FIXED: No Overlap */}
+            {/* Bottom Section - MOVED STATS HERE */}
             <div className="border-t border-white/30 bg-white/80 backdrop-blur-xl p-4 mt-auto">
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-gray-500 truncate flex-1 mr-2">
-                  {user ? `Logged in as ${user.email}` : 'PalmsEstate Luxury Rentals'}
-                </div>
-                <div className="flex items-center space-x-2 flex-shrink-0">
-                  <button 
-                    onClick={() => navigate('/contact')}
-                    className="p-2 rounded-lg hover:bg-white/30 transition-colors"
+              {/* Company Logo & Name - Bottom */}
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                <div className="w-10 h-10 flex items-center justify-center">
+                  <svg 
+                    width="24" 
+                    height="24" 
+                    viewBox="0 0 48 48" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    <HelpCircle size={18} className="text-gray-600" />
-                  </button>
+                    <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fill-opacity="0.9"/>
+                    <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
+                    <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
+                    <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
+                    <path d="M24 5C10 10, 2 14, 0 24C-2 20, -4 16, 24 5Z" fill="#22c55e"/>
+                    <path d="M24 5C38 10, 46 14, 48 24C50 20, 52 16, 24 5Z" fill="#16a34a"/>
+                    <circle cx="24" cy="22" r="2" fill="#c2410c"/>
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-gray-900">PalmsEstate</p>
+                  <p className="text-xs text-gray-500">Luxury Rentals</p>
+                </div>
+              </div>
+
+              {/* Stats Grid - Bottom */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {menuStats.map((stat, index) => (
+                  <div 
+                    key={index}
+                    className="bg-white/50 backdrop-blur-sm rounded-lg p-3 text-center border border-white/30"
+                  >
+                    <div className="flex items-center justify-center mb-1">
+                      <div className="p-1 rounded bg-primary-50 text-primary-600">
+                        {stat.icon}
+                      </div>
+                    </div>
+                    <div className="text-lg font-bold text-primary-600">{stat.value}</div>
+                    <div className="text-xs text-gray-600">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* User Info - Bottom */}
+              <div className="pt-3 border-t border-white/30">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-gray-500 truncate flex-1 mr-2">
+                    {user ? `Logged in as ${user.email}` : 'Guest mode - Sign in for full access'}
+                  </div>
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <button 
+                      onClick={() => {
+                        navigate('/contact');
+                        setMobileMenuOpen(false);
+                      }}
+                      className="p-2 rounded-lg hover:bg-white/30 transition-colors"
+                      aria-label="Help"
+                    >
+                      <HelpCircle size={16} className="text-gray-600" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
