@@ -18,8 +18,11 @@ function App() {
     <Router>
       <AuthProvider>
         <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
+          {/* Header is now fixed in Header.jsx */}
           <Header />
-          <main className="flex-grow">
+          
+          {/* Main content with padding for fixed header */}
+          <main className="flex-grow pt-16 md:pt-20">
             <Routes>
               {/* ===== PUBLIC ROUTES ===== */}
               
@@ -51,7 +54,7 @@ function App() {
                 </ProtectedRoute>
               } />
               
-              {/* Application Form - FIXED: Updated to /properties/:id/apply */}
+              {/* Application Form */}
               <Route path="/properties/:id/apply" element={
                 <ProtectedRoute>
                   <ApplicationForm />
