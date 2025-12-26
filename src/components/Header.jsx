@@ -113,17 +113,50 @@ function Header() {
     }`}>
       <div className="container-fluid">
         <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo */}
+          {/* Logo - UPDATED WITH PALM TREE */}
           <Link 
             to="/" 
             className="flex items-center space-x-3 group touch-manipulation"
             onClick={() => setMobileMenuOpen(false)}
           >
             <div className="relative">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-orange-500 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
-                <span className="text-white font-bold text-lg md:text-xl">P</span>
+              {/* Palm Tree Logo Container */}
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300 border border-gray-100">
+                {/* Palm Tree SVG */}
+                <svg 
+                  width="28" 
+                  height="28" 
+                  viewBox="0 0 48 48" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="md:w-8 md:h-8"
+                >
+                  {/* Palm Tree Trunk (Orange Brown) */}
+                  <path d="M24 30L22 38L26 38L24 30Z" fill="#ea580c" />
+                  <path d="M24 16L22 30L26 30L24 16Z" fill="#f97316" />
+                  
+                  {/* Palm Leaves (Green) */}
+                  <path d="M24 10L16 14L18 20L24 10Z" fill="#22c55e" />
+                  <path d="M24 10L32 14L30 20L24 10Z" fill="#16a34a" />
+                  <path d="M24 8L14 12L12 18L24 8Z" fill="#22c55e" />
+                  <path d="M24 8L34 12L36 18L24 8Z" fill="#16a34a" />
+                  <path d="M24 6L12 10L10 16L24 6Z" fill="#22c55e" />
+                  <path d="M24 6L36 10L38 16L24 6Z" fill="#16a34a" />
+                  
+                  {/* Coconut (Dark Orange) */}
+                  <circle cx="24" cy="20" r="2" fill="#c2410c" />
+                  <circle cx="23" cy="19" r="0.5" fill="#fef3c7" />
+                  
+                  {/* Subtle Shadow */}
+                  <circle cx="25" cy="25" r="22" fill="black" fill-opacity="0.05" />
+                </svg>
               </div>
+              
+              {/* Optional: Badge for premium */}
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full border-2 border-white shadow-sm hidden md:block"></div>
             </div>
+            
+            {/* Text Logo (Desktop Only) */}
             <div className="hidden md:block">
               <h1 className="text-xl font-bold text-gray-900 tracking-tight">
                 Palms<span className="text-primary-600">Estate</span>
@@ -224,12 +257,26 @@ function Header() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-4">
                   <div className="relative">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-orange-400 flex items-center justify-center shadow-xl">
-                      {user ? (
-                        <User size={24} className="text-white" />
-                      ) : (
-                        <div className="text-white font-bold text-xl">P</div>
-                      )}
+                    <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-gray-100">
+                      <svg 
+                        width="32" 
+                        height="32" 
+                        viewBox="0 0 48 48" 
+                        fill="none" 
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path d="M24 30L22 38L26 38L24 30Z" fill="#ea580c" />
+                        <path d="M24 16L22 30L26 30L24 16Z" fill="#f97316" />
+                        <path d="M24 10L16 14L18 20L24 10Z" fill="#22c55e" />
+                        <path d="M24 10L32 14L30 20L24 10Z" fill="#16a34a" />
+                        <path d="M24 8L14 12L12 18L24 8Z" fill="#22c55e" />
+                        <path d="M24 8L34 12L36 18L24 8Z" fill="#16a34a" />
+                        <path d="M24 6L12 10L10 16L24 6Z" fill="#22c55e" />
+                        <path d="M24 6L36 10L38 16L24 6Z" fill="#16a34a" />
+                        <circle cx="24" cy="20" r="2" fill="#c2410c" />
+                        <circle cx="23" cy="19" r="0.5" fill="#fef3c7" />
+                        <circle cx="25" cy="25" r="22" fill="black" fill-opacity="0.05" />
+                      </svg>
                     </div>
                     {user && (
                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-3 border-white"></div>
