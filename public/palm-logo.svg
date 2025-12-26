@@ -1,1 +1,25 @@
-
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Circle Background -->
+  <circle cx="60" cy="60" r="54" fill="#f97316" />
+  <circle cx="60" cy="60" r="56" stroke="white" stroke-width="2" stroke-opacity="0.1" />
+  
+  <!-- Palm Tree Trunk -->
+  <path d="M60 75L55 95L65 95L60 75Z" fill="#7c2d12" />
+  <path d="M60 40L55 75L65 75L60 40Z" fill="#9a3412" />
+  
+  <!-- Palm Leaves -->
+  <path d="M60 25L40 35L45 50L60 25Z" fill="#22c55e" />
+  <path d="M60 25L80 35L75 50L60 25Z" fill="#16a34a" />
+  <path d="M60 20L35 30L30 45L60 20Z" fill="#22c55e" />
+  <path d="M60 20L85 30L90 45L60 20Z" fill="#16a34a" />
+  <path d="M60 15L30 25L25 40L60 15Z" fill="#22c55e" />
+  <path d="M60 15L90 25L95 40L60 15Z" fill="#16a34a" />
+  
+  <!-- Coconut -->
+  <circle cx="60" cy="50" r="4" fill="#7c2d12" />
+  <circle cx="58" cy="48" r="1" fill="#fef3c7" />
+  
+  <!-- Shadow Effect -->
+  <circle cx="62" cy="62" r="54" fill="black" fill-opacity="0.1" />
+</svg>
