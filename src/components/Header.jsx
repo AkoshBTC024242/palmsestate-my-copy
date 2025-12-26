@@ -2,17 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  Search, User, Bell, ChevronDown, Grid, 
+  Search, User, ChevronDown, Grid, 
   Home, Building2, Info, Phone, LogOut,
-  Menu, X, Calendar, FileText, Key,
-  Shield, Settings // Added for future admin features
+  Menu, X, FileText, Key,
+  Shield, Bell, Calendar,
+  Star, Globe, CreditCard, MessageSquare,
+  Lock, Eye, Users, CheckCircle,
+  Settings, Heart, Bookmark, HelpCircle
 } from 'lucide-react';
 
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const userMenuRef = useRef(null);
+  const [activePanel, setActivePanel] = useState('main'); // 'main', 'user', 'admin'
   const mobileMenuRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,14 +29,13 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close user menu when clicking outside
+  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setUserMenuOpen(false);
-      }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) && !event.target.closest('button[aria-label*="menu"]')) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) && 
+          !event.target.closest('button[data-menu-button]')) {
         setMobileMenuOpen(false);
+        setActivePanel('main');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -49,12 +50,16 @@ function Header() {
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
     } else {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      setActivePanel('main');
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [mobileMenuOpen]);
 
   const handleSignOut = async () => {
@@ -62,36 +67,60 @@ function Header() {
       await signOut();
       navigate('/');
       setMobileMenuOpen(false);
+      setActivePanel('main');
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
   const navItems = [
-    { name: 'Home', path: '/', icon: <Home size={18} /> },
-    { name: 'Properties', path: '/properties', icon: <Building2 size={18} /> },
-    { name: 'About', path: '/about', icon: <Info size={18} /> },
-    { name: 'Contact', path: '/contact', icon: <Phone size={18} /> },
+    { name: 'Home', path: '/', icon: <Home size={22} />, desc: 'Back to homepage' },
+    { name: 'Properties', path: '/properties', icon: <Building2 size={22} />, desc: 'Browse luxury properties' },
+    { name: 'About', path: '/about', icon: <Info size={22} />, desc: 'Learn about us' },
+    { name: 'Contact', path: '/contact', icon: <Phone size={22} />, desc: 'Get in touch' },
   ];
 
-  // Check if user is admin (you'll implement this later in AuthContext)
+  // Check if user is admin
   const isAdmin = user?.email?.includes('admin') || user?.user_metadata?.role === 'admin';
+
+  // User menu items
+  const userMenuItems = user ? [
+    { name: 'Dashboard', path: '/dashboard', icon: <Grid size={22} />, desc: 'Manage your account' },
+    { name: 'Applications', path: '/dashboard/applications', icon: <FileText size={22} />, desc: 'View your status' },
+    { name: 'Favorites', path: '/dashboard/favorites', icon: <Heart size={22} />, desc: 'Saved properties' },
+    { name: 'Messages', path: '/dashboard/messages', icon: <MessageSquare size={22} />, desc: 'Contact support' },
+    { name: 'Notifications', path: '/dashboard/notifications', icon: <Bell size={22} />, desc: 'Updates & alerts', badge: 3 },
+  ] : [];
+
+  // Admin menu items
+  const adminMenuItems = [
+    { name: 'Admin Dashboard', path: '/admin', icon: <Shield size={22} />, desc: 'Manage properties', color: 'from-blue-500 to-indigo-500' },
+    { name: 'Test Applications', path: '/admin/test', icon: <Eye size={22} />, desc: 'Test user flow', color: 'from-purple-500 to-pink-500' },
+    { name: 'Analytics', path: '/admin/analytics', icon: <Users size={22} />, desc: 'View insights', color: 'from-green-500 to-emerald-500' },
+    { name: 'Settings', path: '/admin/settings', icon: <Settings size={22} />, desc: 'Configure system', color: 'from-gray-600 to-gray-700' },
+  ];
+
+  // Quick actions for main panel
+  const quickActions = [
+    { name: 'Search', icon: <Search size={20} />, action: () => navigate('/properties?search=true') },
+    { name: 'Help', icon: <HelpCircle size={20} />, action: () => navigate('/contact') },
+    { name: 'Bookmarks', icon: <Bookmark size={20} />, action: () => navigate(user ? '/dashboard/favorites' : '/signin') },
+  ];
 
   return (
     <header className={`sticky top-0 z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-lg' : 'bg-white'
+      isScrolled ? 'bg-white/95 backdrop-blur-xl border-b border-gray-100/50 shadow-lg' : 'bg-white'
     }`}>
-      {/* UPDATED: Using container-fluid for better mobile spacing */}
       <div className="container-fluid">
         <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo - Professional Design */}
+          {/* Logo */}
           <Link 
             to="/" 
             className="flex items-center space-x-3 group touch-manipulation"
             onClick={() => setMobileMenuOpen(false)}
           >
             <div className="relative">
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-primary-600 to-orange-500 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-orange-500 flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                 <span className="text-white font-bold text-lg md:text-xl">P</span>
               </div>
             </div>
@@ -111,7 +140,7 @@ function Header() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-2 px-5 py-3 text-sm font-medium rounded-xl transition-all duration-200 luxury-hover ${
+                className={`flex items-center space-x-2 px-5 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                   location.pathname === item.path
                     ? 'bg-primary-50 text-primary-700 shadow-sm'
                     : 'text-gray-700 hover:text-primary-700 hover:bg-gray-50'
@@ -123,279 +152,328 @@ function Header() {
             ))}
           </nav>
 
-          {/* Right Side Actions */}
-          <div className="flex items-center space-x-2 md:space-x-4">
-            {/* Search - Desktop Only */}
-            <button 
-              className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors touch-manipulation"
-              aria-label="Search properties"
-            >
-              <Search size={20} />
-            </button>
+          {/* Right Side - Combined Actions */}
+          <div className="flex items-center space-x-3 md:space-x-4">
+            {/* Desktop: User Menu */}
+            {user && (
+              <div className="hidden md:block relative">
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="flex items-center space-x-3 px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors touch-manipulation group"
+                  aria-label="User dashboard"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-orange-400 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                    <User size={16} className="text-white" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-gray-900">
+                      {user.email?.split('@')[0] || 'Account'}
+                    </p>
+                    <p className="text-xs text-gray-500">{isAdmin ? 'Admin' : 'Premium'}</p>
+                  </div>
+                </button>
+              </div>
+            )}
 
-            {/* User Menu */}
-            <div className="relative" ref={userMenuRef}>
-              {user ? (
-                <>
-                  <button
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center space-x-3 px-3 md:px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-colors touch-manipulation"
-                    aria-label="User menu"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-orange-400 flex items-center justify-center shadow-sm">
-                      <User size={16} className="text-white" />
-                    </div>
-                    <div className="hidden md:block text-left">
-                      <p className="text-sm font-medium text-gray-900 truncate max-w-[120px]">
-                        {user.email?.split('@')[0] || 'Account'}
-                      </p>
-                      <p className="text-xs text-gray-500">{isAdmin ? 'Admin' : 'Premium'}</p>
-                    </div>
-                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {/* User Dropdown */}
-                  {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl border border-gray-200 shadow-xl py-2 z-50 animate-fade-in">
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <p className="font-medium text-gray-900 truncate">{user.email}</p>
-                        <p className="text-sm text-gray-500">{isAdmin ? 'Administrator' : 'Premium Member'}</p>
-                      </div>
-                      
-                      <div className="py-2">
-                        <Link
-                          to="/dashboard"
-                          onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors luxury-hover"
-                        >
-                          <Grid size={18} className="text-gray-500" />
-                          <div>
-                            <p className="font-medium">Dashboard</p>
-                            <p className="text-sm text-gray-500">Manage your account</p>
-                          </div>
-                        </Link>
-                        
-                        <Link
-                          to="/dashboard/applications"
-                          onClick={() => setUserMenuOpen(false)}
-                          className="flex items-center space-x-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors luxury-hover"
-                        >
-                          <FileText size={18} className="text-gray-500" />
-                          <div>
-                            <p className="font-medium">Applications</p>
-                            <p className="text-sm text-gray-500">View your status</p>
-                          </div>
-                        </Link>
-
-                        {/* Admin Link - Only show for admins */}
-                        {isAdmin && (
-                          <Link
-                            to="/admin"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center space-x-3 px-4 py-3 text-primary-700 hover:bg-primary-50 transition-colors luxury-hover border-t border-gray-100 mt-2 pt-2"
-                          >
-                            <Shield size={18} className="text-primary-600" />
-                            <div>
-                              <p className="font-medium">Admin Panel</p>
-                              <p className="text-sm text-primary-500">Manage properties & applications</p>
-                            </div>
-                          </Link>
-                        )}
-                      </div>
-                      
-                      <div className="border-t border-gray-100 pt-2">
-                        <button
-                          onClick={handleSignOut}
-                          className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors luxury-hover"
-                        >
-                          <LogOut size={18} className="text-gray-500" />
-                          <span className="font-medium">Sign Out</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex items-center space-x-2 md:space-x-3">
-                  <Link
-                    to="/signin"
-                    className="flex items-center space-x-2 px-4 py-2.5 bg-gradient-to-r from-primary-600 to-orange-500 text-white text-sm font-medium rounded-xl hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 touch-manipulation"
-                  >
-                    <Key size={18} />
-                    <span>Sign In</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            {/* Mobile Menu Button - IMPROVED */}
+            {/* Mobile Menu Button - Enhanced */}
             <button
+              data-menu-button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors touch-manipulation"
+              className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-orange-400 text-white shadow-lg hover:shadow-xl transition-all duration-300 touch-manipulation"
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {mobileMenuOpen ? (
+                <X size={24} className="transform transition-transform duration-300" />
+              ) : (
+                <div className="flex flex-col items-center justify-center">
+                  {user ? (
+                    <User size={20} />
+                  ) : (
+                    <Menu size={24} />
+                  )}
+                  {user && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+                  )}
+                </div>
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* NEW: Improved Mobile Menu with slide-in animation */}
-      <div 
-        ref={mobileMenuRef}
-        className={`md:hidden fixed inset-0 z-40 transition-all duration-300 ease-out ${
-          mobileMenuOpen ? 'visible' : 'invisible'
-        }`}
-      >
-        {/* Backdrop */}
-        <div 
-          className={`absolute inset-0 bg-black transition-opacity duration-300 ${
-            mobileMenuOpen ? 'opacity-50' : 'opacity-0'
-          }`}
-          onClick={() => setMobileMenuOpen(false)}
-          aria-hidden="true"
-        />
-        
-        {/* Menu Panel - Slides in from right */}
-        <div className={`absolute right-0 top-0 bottom-0 w-[85vw] max-w-sm bg-white shadow-2xl transform transition-transform duration-300 ease-out ${
-          mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}>
-          {/* Menu Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-white to-gray-50">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-orange-500 flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-lg">P</span>
-              </div>
-              <div>
-                <h1 className="font-bold text-gray-900 text-lg">PalmsEstate</h1>
-                <p className="text-xs text-gray-500 font-medium">Mobile Menu</p>
-              </div>
-            </div>
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors touch-manipulation"
-              aria-label="Close menu"
-            >
-              <X size={24} className="text-gray-500" />
-            </button>
-          </div>
+      {/* Enhanced Mobile Menu - Unified Design */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40">
+          {/* Backdrop with blur */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          />
           
-          {/* Menu Items - Scrollable area */}
-          <div className="p-4 overflow-y-auto h-[calc(100vh-120px)]">
-            <div className="space-y-2 mb-6">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 mb-2">Navigation</p>
-              {navItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center space-x-4 px-4 py-4 rounded-xl text-base font-medium transition-all duration-200 ${
-                    location.pathname === item.path
-                      ? 'bg-gradient-to-r from-primary-50 to-orange-50 text-primary-700 border-l-4 border-primary-500 shadow-sm'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className={`p-2 rounded-lg ${
-                    location.pathname === item.path ? 'bg-primary-100' : 'bg-gray-100'
-                  }`}>
-                    {item.icon}
+          {/* Menu Container */}
+          <div 
+            ref={mobileMenuRef}
+            className="absolute right-0 top-0 bottom-0 w-[90vw] max-w-sm bg-gradient-to-b from-white/95 via-white/90 to-white/80 backdrop-blur-2xl shadow-2xl border-l border-white/30 overflow-hidden"
+            style={{ 
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)'
+            }}
+          >
+            {/* User Header Section */}
+            <div className="pt-8 px-6 pb-6 bg-gradient-to-r from-primary-500/5 to-orange-400/5 border-b border-white/30">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-orange-400 flex items-center justify-center shadow-xl">
+                      {user ? (
+                        <User size={24} className="text-white" />
+                      ) : (
+                        <div className="text-white font-bold text-xl">P</div>
+                      )}
+                    </div>
+                    {user && (
+                      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-400 rounded-full border-3 border-white"></div>
+                    )}
                   </div>
-                  <span>{item.name}</span>
-                </Link>
-              ))}
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      {user ? user.email?.split('@')[0] : 'Welcome'}
+                    </h2>
+                    <p className="text-sm text-gray-600">
+                      {user ? (isAdmin ? 'Administrator' : 'Premium Member') : 'Guest User'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 rounded-lg hover:bg-white/20 transition-colors touch-manipulation"
+                  aria-label="Close menu"
+                >
+                  <X size={24} className="text-gray-600" />
+                </button>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white/50 backdrop-blur-sm rounded-xl p-3 text-center border border-white/30">
+                  <div className="text-lg font-bold text-primary-600">24</div>
+                  <div className="text-xs text-gray-600">Properties</div>
+                </div>
+                <div className="bg-white/50 backdrop-blur-sm rounded-xl p-3 text-center border border-white/30">
+                  <div className="text-lg font-bold text-primary-600">98%</div>
+                  <div className="text-xs text-gray-600">Satisfaction</div>
+                </div>
+                <div className="bg-white/50 backdrop-blur-sm rounded-xl p-3 text-center border border-white/30">
+                  <div className="text-lg font-bold text-primary-600">15m</div>
+                  <div className="text-xs text-gray-600">Response</div>
+                </div>
+              </div>
             </div>
-            
-            {/* Mobile User Section */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              {user ? (
-                <>
-                  <div className="px-4 mb-6">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-orange-400 flex items-center justify-center shadow-md">
-                        <User size={20} className="text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-900 truncate">{user.email}</p>
-                        <p className="text-sm text-gray-500">{isAdmin ? 'Administrator' : 'Premium Member'}</p>
-                      </div>
+
+            {/* Navigation Panels */}
+            <div className="h-[calc(100vh-200px)] overflow-y-auto pb-24">
+              {/* Panel Switcher */}
+              <div className="flex border-b border-white/30 bg-white/30 backdrop-blur-sm">
+                <button
+                  onClick={() => setActivePanel('main')}
+                  className={`flex-1 py-3 text-sm font-medium transition-colors ${activePanel === 'main' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-600'}`}
+                >
+                  Menu
+                </button>
+                {user && (
+                  <button
+                    onClick={() => setActivePanel('user')}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${activePanel === 'user' ? 'text-primary-600 border-b-2 border-primary-500' : 'text-gray-600'}`}
+                  >
+                    Account
+                  </button>
+                )}
+                {isAdmin && (
+                  <button
+                    onClick={() => setActivePanel('admin')}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${activePanel === 'admin' ? 'text-blue-600 border-b-2 border-blue-500' : 'text-gray-600'}`}
+                  >
+                    Admin
+                  </button>
+                )}
+              </div>
+
+              {/* Main Panel */}
+              {activePanel === 'main' && (
+                <div className="p-4 space-y-2">
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-2">Navigation</p>
+                    {navItems.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center space-x-4 px-4 py-4 rounded-2xl mb-2 transition-all duration-200 ${
+                          location.pathname === item.path
+                            ? 'bg-gradient-to-r from-primary-50 to-orange-50 text-primary-700 border-l-4 border-primary-500 shadow-sm'
+                            : 'bg-white/50 hover:bg-white/80 text-gray-700'
+                        }`}
+                      >
+                        <div className={`p-3 rounded-xl ${
+                          location.pathname === item.path ? 'bg-primary-100' : 'bg-gray-100'
+                        }`}>
+                          {item.icon}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold">{item.name}</p>
+                          <p className="text-sm text-gray-500">{item.desc}</p>
+                        </div>
+                        <ChevronDown size={18} className="text-gray-400 -rotate-90" />
+                      </Link>
+                    ))}
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-2">Quick Actions</p>
+                    <div className="grid grid-cols-3 gap-3">
+                      {quickActions.map((action) => (
+                        <button
+                          key={action.name}
+                          onClick={() => {
+                            action.action();
+                            setMobileMenuOpen(false);
+                          }}
+                          className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/50 hover:bg-white/80 transition-colors touch-manipulation"
+                        >
+                          <div className="p-3 rounded-xl bg-primary-50 text-primary-600 mb-2">
+                            {action.icon}
+                          </div>
+                          <span className="text-xs font-medium text-gray-700">{action.name}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  
-                  <div className="space-y-3">
-                    <Link
-                      to="/dashboard"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center space-x-4 px-4 py-4 rounded-xl bg-gradient-to-r from-primary-600 to-orange-500 text-white shadow-md"
-                    >
-                      <Grid size={20} />
-                      <span className="font-semibold">Dashboard</span>
-                    </Link>
 
-                    {/* Admin Link - Mobile */}
-                    {isAdmin && (
+                  {/* Auth Buttons */}
+                  {!user && (
+                    <div className="space-y-3 mt-6">
                       <Link
-                        to="/admin"
+                        to="/signin"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center space-x-4 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-500 text-white shadow-md"
+                        className="block w-full text-center bg-gradient-to-r from-primary-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
                       >
-                        <Shield size={20} />
-                        <span className="font-semibold">Admin Panel</span>
+                        Sign In
                       </Link>
-                    )}
-                    
-                    <button
-                      onClick={handleSignOut}
-                      className="flex items-center space-x-4 w-full px-4 py-4 rounded-xl text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors border border-gray-200"
+                      <Link
+                        to="/signup"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="block w-full text-center border-2 border-primary-500 text-primary-600 font-semibold py-4 px-6 rounded-2xl hover:bg-primary-50 transition-colors"
+                      >
+                        Create Account
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* User Panel */}
+              {activePanel === 'user' && user && (
+                <div className="p-4 space-y-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-2">Your Account</p>
+                  {userMenuItems.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center space-x-4 px-4 py-4 rounded-2xl mb-2 bg-white/50 hover:bg-white/80 transition-colors"
                     >
-                      <LogOut size={20} />
-                      <span className="font-medium">Sign Out</span>
+                      <div className="p-3 rounded-xl bg-primary-50 text-primary-600">
+                        {item.icon}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="font-semibold">{item.name}</p>
+                          {item.badge && (
+                            <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                              {item.badge}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">{item.desc}</p>
+                      </div>
+                      <ChevronDown size={18} className="text-gray-400 -rotate-90" />
+                    </Link>
+                  ))}
+                  
+                  {/* Sign Out */}
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center space-x-4 w-full px-4 py-4 rounded-2xl bg-white/50 hover:bg-red-50 hover:text-red-700 transition-colors mt-4"
+                  >
+                    <div className="p-3 rounded-xl bg-red-100 text-red-600">
+                      <LogOut size={22} />
+                    </div>
+                    <span className="font-semibold">Sign Out</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Admin Panel */}
+              {activePanel === 'admin' && isAdmin && (
+                <div className="p-4 space-y-2">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-2">Admin Tools</p>
+                  {adminMenuItems.map((item) => (
+                    <Link
+                      key={item.name}
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="flex items-center space-x-4 px-4 py-4 rounded-2xl mb-2 bg-gradient-to-r from-white/50 to-white/30 hover:from-white/70 hover:to-white/50 transition-all duration-300 border border-white/30"
+                    >
+                      <div className={`p-3 rounded-xl bg-gradient-to-br ${item.color} text-white`}>
+                        {item.icon}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold">{item.name}</p>
+                        <p className="text-sm text-gray-500">{item.desc}</p>
+                      </div>
+                      <ChevronDown size={18} className="text-gray-400 -rotate-90" />
+                    </Link>
+                  ))}
+                  
+                  {/* Test Mode Quick Action */}
+                  <div className="mt-6 p-4 rounded-2xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100">
+                    <div className="flex items-start space-x-3">
+                      <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+                        <Eye size={20} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-purple-700">Test Mode Active</p>
+                        <p className="text-sm text-purple-600">You can test applications without payment</p>
+                      </div>
+                    </div>
+                    <button className="mt-3 w-full py-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl text-sm font-semibold">
+                      Start Testing
                     </button>
                   </div>
-                </>
-              ) : (
-                <div className="space-y-3">
-                  <Link
-                    to="/signin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center space-x-2 px-4 py-4 bg-gradient-to-r from-primary-600 to-orange-500 text-white rounded-xl font-semibold shadow-md"
-                  >
-                    <Key size={20} />
-                    <span>Sign In</span>
-                  </Link>
-                  <Link
-                    to="/signup"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center px-4 py-4 border-2 border-primary-500 text-primary-600 rounded-xl font-semibold"
-                  >
-                    Create Premium Account
-                  </Link>
                 </div>
               )}
             </div>
 
-            {/* Quick Stats - Mobile Only */}
-            <div className="mt-8 p-4 bg-gray-50 rounded-xl">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Quick Access</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Link
-                  to="/properties?filter=featured"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-3 bg-white rounded-lg text-center hover:bg-gray-100 transition-colors"
-                >
-                  <p className="text-sm font-medium text-gray-900">Featured</p>
-                </Link>
-                <Link
-                  to="/properties?filter=luxury"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-3 bg-white rounded-lg text-center hover:bg-gray-100 transition-colors"
-                >
-                  <p className="text-sm font-medium text-gray-900">Luxury</p>
-                </Link>
+            {/* Bottom Actions */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/95 to-white/80 backdrop-blur-xl border-t border-white/30 p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-gray-500">
+                  {user ? `Logged in as ${user.email}` : 'Guest mode'}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button className="p-2 rounded-lg hover:bg-white/30 transition-colors">
+                    <Settings size={18} className="text-gray-600" />
+                  </button>
+                  <button className="p-2 rounded-lg hover:bg-white/30 transition-colors">
+                    <HelpCircle size={18} className="text-gray-600" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }
