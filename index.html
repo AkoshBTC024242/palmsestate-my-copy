@@ -2,17 +2,37 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- CRITICAL: Prevent zooming and ensure proper mobile scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
+    
+    <!-- PWA-like enhancements for iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Palms Estate">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#f97316">
+    <meta name="msapplication-TileColor" content="#f97316">
+    
+    <!-- SEO & Social -->
     <meta name="description" content="Palms Estate - Premier Luxury Rentals worldwide. Discover extraordinary villas, penthouses, and private estates.">
     <meta name="keywords" content="luxury rentals, villas, penthouses, real estate, vacation homes, exclusive properties">
     <meta property="og:title" content="Palms Estate | Premier Luxury Rentals">
     <meta property="og:description" content="Curated selection of the world's most exquisite luxury properties.">
     <meta property="og:type" content="website">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1613977257363-707ba9348227?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80">
+    <meta property="og:url" content="https://palmsestate.org">
+    <meta name="twitter:card" content="summary_large_image">
     
-    <!-- Google Fonts -->
+    <!-- Performance & Preload -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800&display=swap">
+    
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Favicon -->
@@ -21,10 +41,50 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     
+    <!-- Safari Pinned Tab Color -->
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#f97316">
+    
     <title>Palms Estate | Premier Luxury Rentals</title>
+    
+    <!-- Critical CSS for immediate mobile styling -->
+    <style>
+      /* Prevent bounce/overscroll on mobile */
+      html, body {
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
+        overflow-x: hidden;
+        width: 100%;
+        position: relative;
+      }
+      
+      /* Ensure proper tap highlighting */
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      /* Smooth scrolling */
+      html {
+        scroll-behavior: smooth;
+      }
+      
+      /* Prevent text size adjustment on orientation change */
+      body {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- PWA Service Worker (optional, for future) -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(console.error);
+        });
+      }
+    </script>
   </body>
 </html>
