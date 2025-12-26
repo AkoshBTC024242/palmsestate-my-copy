@@ -14,7 +14,7 @@ import {
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activePanel, setActivePanel] = useState('main'); // 'main', 'user', 'admin'
+  const [activePanel, setActivePanel] = useState('main');
   const mobileMenuRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -113,55 +113,42 @@ function Header() {
     }`}>
       <div className="container-fluid">
         <div className="flex items-center justify-between h-16 md:h-20">
-          {/* Logo - UPDATED WITH PALM TREE */}
+          {/* Logo - SIMPLE PALM TREE + Company Name on ALL screens */}
           <Link 
             to="/" 
             className="flex items-center space-x-3 group touch-manipulation"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <div className="relative">
-              {/* Palm Tree Logo Container */}
-              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-white flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow duration-300 border border-gray-100">
-                {/* Palm Tree SVG */}
-                <svg 
-                  width="28" 
-                  height="28" 
-                  viewBox="0 0 48 48" 
-                  fill="none" 
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="md:w-8 md:h-8"
-                >
-                  {/* Palm Tree Trunk (Orange Brown) */}
-                  <path d="M24 30L22 38L26 38L24 30Z" fill="#ea580c" />
-                  <path d="M24 16L22 30L26 30L24 16Z" fill="#f97316" />
-                  
-                  {/* Palm Leaves (Green) */}
-                  <path d="M24 10L16 14L18 20L24 10Z" fill="#22c55e" />
-                  <path d="M24 10L32 14L30 20L24 10Z" fill="#16a34a" />
-                  <path d="M24 8L14 12L12 18L24 8Z" fill="#22c55e" />
-                  <path d="M24 8L34 12L36 18L24 8Z" fill="#16a34a" />
-                  <path d="M24 6L12 10L10 16L24 6Z" fill="#22c55e" />
-                  <path d="M24 6L36 10L38 16L24 6Z" fill="#16a34a" />
-                  
-                  {/* Coconut (Dark Orange) */}
-                  <circle cx="24" cy="20" r="2" fill="#c2410c" />
-                  <circle cx="23" cy="19" r="0.5" fill="#fef3c7" />
-                  
-                  {/* Subtle Shadow */}
-                  <circle cx="25" cy="25" r="22" fill="black" fill-opacity="0.05" />
-                </svg>
-              </div>
-              
-              {/* Optional: Badge for premium */}
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full border-2 border-white shadow-sm hidden md:block"></div>
+            {/* Simple Orange Palm Tree (no background) */}
+            <div className="flex items-center justify-center">
+              <svg 
+                width="32" 
+                height="32" 
+                viewBox="0 0 48 48" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+                className="md:w-10 md:h-10"
+              >
+                {/* Curved palm tree - orange only */}
+                <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fill-opacity="0.9"/>
+                
+                <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
+                
+                <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
+                <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
+                <path d="M24 5C10 10, 2 14, 0 24C-2 20, -4 16, 24 5Z" fill="#22c55e"/>
+                <path d="M24 5C38 10, 46 14, 48 24C50 20, 52 16, 24 5Z" fill="#16a34a"/>
+                
+                <circle cx="24" cy="22" r="3" fill="#c2410c"/>
+              </svg>
             </div>
             
-            {/* Text Logo (Desktop Only) */}
-            <div className="hidden md:block">
-              <h1 className="text-xl font-bold text-gray-900 tracking-tight">
+            {/* Company Name - SHOW ON MOBILE TOO */}
+            <div>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight">
                 Palms<span className="text-primary-600">Estate</span>
               </h1>
-              <p className="text-xs text-gray-500 font-medium tracking-wider">
+              <p className="text-xs text-gray-500 font-medium tracking-wider hidden md:block">
                 EXCLUSIVE RESIDENCES
               </p>
             </div>
@@ -208,33 +195,39 @@ function Header() {
               </div>
             )}
 
-            {/* Mobile Menu Button - Enhanced */}
+            {/* Mobile Menu Button - Use User Icon or Simple Button */}
             <button
               data-menu-button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-orange-400 text-white shadow-lg hover:shadow-xl transition-all duration-300 touch-manipulation"
+              className="relative flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-primary-500 to-orange-400 text-white shadow-md hover:shadow-lg transition-all duration-300 touch-manipulation"
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
               {mobileMenuOpen ? (
                 <X size={24} className="transform transition-transform duration-300" />
+              ) : user ? (
+                <>
+                  <User size={20} />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+                </>
               ) : (
-                <div className="flex flex-col items-center justify-center">
-                  {user ? (
-                    <User size={20} />
-                  ) : (
-                    <Menu size={24} />
-                  )}
-                  {user && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
-                  )}
-                </div>
+                <svg 
+                  width="20" 
+                  height="20" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                  className="transform transition-transform"
+                >
+                  <path d="M3 12h18M3 6h18M3 18h18" />
+                </svg>
               )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Enhanced Mobile Menu - Unified Design */}
+      {/* Enhanced Mobile Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-40">
           {/* Backdrop with blur */}
@@ -257,25 +250,22 @@ function Header() {
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-4">
                   <div className="relative">
-                    <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shadow-xl border border-gray-100">
+                    {/* Simple Palm Tree in Mobile Menu */}
+                    <div className="w-14 h-14 flex items-center justify-center">
                       <svg 
-                        width="32" 
-                        height="32" 
+                        width="40" 
+                        height="40" 
                         viewBox="0 0 48 48" 
                         fill="none" 
                         xmlns="http://www.w3.org/2000/svg"
                       >
-                        <path d="M24 30L22 38L26 38L24 30Z" fill="#ea580c" />
-                        <path d="M24 16L22 30L26 30L24 16Z" fill="#f97316" />
-                        <path d="M24 10L16 14L18 20L24 10Z" fill="#22c55e" />
-                        <path d="M24 10L32 14L30 20L24 10Z" fill="#16a34a" />
-                        <path d="M24 8L14 12L12 18L24 8Z" fill="#22c55e" />
-                        <path d="M24 8L34 12L36 18L24 8Z" fill="#16a34a" />
-                        <path d="M24 6L12 10L10 16L24 6Z" fill="#22c55e" />
-                        <path d="M24 6L36 10L38 16L24 6Z" fill="#16a34a" />
-                        <circle cx="24" cy="20" r="2" fill="#c2410c" />
-                        <circle cx="23" cy="19" r="0.5" fill="#fef3c7" />
-                        <circle cx="25" cy="25" r="22" fill="black" fill-opacity="0.05" />
+                        <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fill-opacity="0.9"/>
+                        <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
+                        <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
+                        <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
+                        <path d="M24 5C10 10, 2 14, 0 24C-2 20, -4 16, 24 5Z" fill="#22c55e"/>
+                        <path d="M24 5C38 10, 46 14, 48 24C50 20, 52 16, 24 5Z" fill="#16a34a"/>
+                        <circle cx="24" cy="22" r="3" fill="#c2410c"/>
                       </svg>
                     </div>
                     {user && (
@@ -284,10 +274,10 @@ function Header() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">
-                      {user ? user.email?.split('@')[0] : 'Welcome'}
+                      {user ? user.email?.split('@')[0] : 'PalmsEstate'}
                     </h2>
                     <p className="text-sm text-gray-600">
-                      {user ? (isAdmin ? 'Administrator' : 'Premium Member') : 'Guest User'}
+                      {user ? (isAdmin ? 'Administrator' : 'Premium Member') : 'Luxury Rentals'}
                     </p>
                   </div>
                 </div>
@@ -506,7 +496,7 @@ function Header() {
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-white/95 to-white/80 backdrop-blur-xl border-t border-white/30 p-4">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-gray-500">
-                  {user ? `Logged in as ${user.email}` : 'Guest mode'}
+                  {user ? `Logged in as ${user.email}` : 'PalmsEstate Luxury Rentals'}
                 </div>
                 <div className="flex items-center space-x-2">
                   <button className="p-2 rounded-lg hover:bg-white/30 transition-colors">
