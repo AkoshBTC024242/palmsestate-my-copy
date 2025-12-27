@@ -55,12 +55,25 @@ function Header() {
     };
   }, []);
 
-  // Prevent body scroll when mobile menu is open - FIXED
+  // Prevent body scroll when mobile menu is open - FIXED with no auto-scroll
   useEffect(() => {
     if (mobileMenuOpen) {
+      // Store current scroll position
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
     } else {
+      // Restore scroll position
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
       document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     }
   }, [mobileMenuOpen]);
 
@@ -135,7 +148,7 @@ function Header() {
                 xmlns="http://www.w3.org/2000/svg"
                 className="md:w-10 md:h-10"
               >
-                <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fill-opacity="0.9"/>
+                <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fillOpacity="0.9"/>
                 <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
                 <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
                 <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
@@ -222,7 +235,7 @@ function Header() {
                           fill="none" 
                           xmlns="http://www.w3.org/2000/svg"
                         >
-                          <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fill-opacity="0.9"/>
+                          <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fillOpacity="0.9"/>
                           <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
                           <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
                           <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
@@ -390,22 +403,21 @@ function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu - FIXED: No auto-scroll, proper z-index */}
+      {/* Mobile Menu - COMPLETELY FIXED: No auto-scroll, proper z-index, smooth animation */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-[9999]"> {/* Ultra high z-index */}
           {/* Backdrop - prevents clicks behind */}
           <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
             onClick={() => {
               setMobileMenuOpen(false);
-              document.body.style.overflow = ''; // Restore scroll
             }}
           />
           
-          {/* Menu Container - FIXED: No position manipulation */}
+          {/* Menu Container - FIXED: No position manipulation, smooth slide-in */}
           <div 
             ref={mobileMenuRef}
-            className="absolute right-0 top-0 bottom-0 w-[85vw] max-w-sm bg-gradient-to-b from-white/98 via-white/95 to-white/90 backdrop-blur-2xl shadow-2xl border-l border-white/40 overflow-hidden flex flex-col"
+            className="absolute right-0 top-0 bottom-0 w-[85vw] max-w-sm bg-gradient-to-b from-white/98 via-white/95 to-white/90 backdrop-blur-2xl shadow-2xl border-l border-white/40 overflow-hidden flex flex-col transform transition-transform duration-300 ease-out translate-x-0"
             onClick={(e) => e.stopPropagation()} // Prevent backdrop click
           >
             {/* Menu Header */}
@@ -420,7 +432,7 @@ function Header() {
                       fill="none" 
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fill-opacity="0.9"/>
+                      <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fillOpacity="0.9"/>
                       <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
                       <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
                       <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
@@ -441,7 +453,6 @@ function Header() {
                 <button
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    document.body.style.overflow = '';
                   }}
                   className="p-2 rounded-xl hover:bg-white/40 transition-colors touch-manipulation"
                   aria-label="Close menu"
@@ -461,7 +472,6 @@ function Header() {
                       to={item.path}
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        document.body.style.overflow = '';
                       }}
                       className={`flex items-center space-x-4 px-4 py-5 rounded-2xl transition-all duration-300 group ${
                         location.pathname === item.path
@@ -515,7 +525,6 @@ function Header() {
                       to="/signin"
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        document.body.style.overflow = '';
                       }}
                       className="flex items-center justify-center gap-3 bg-gradient-to-r from-primary-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-2xl hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 shadow-lg"
                     >
@@ -528,7 +537,6 @@ function Header() {
                       to="/signup"
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        document.body.style.overflow = '';
                       }}
                       className="flex items-center justify-center gap-3 border-2 border-primary-500 text-primary-600 font-semibold py-4 px-6 rounded-2xl hover:bg-gradient-to-r hover:from-primary-50 hover:to-orange-50 transition-all duration-300"
                     >
@@ -552,7 +560,6 @@ function Header() {
                       to="/dashboard"
                       onClick={() => {
                         setMobileMenuOpen(false);
-                        document.body.style.overflow = '';
                       }}
                       className="flex items-center space-x-4 px-4 py-5 rounded-2xl bg-gradient-to-r from-primary-600/10 to-orange-500/10 hover:from-primary-600/20 hover:to-orange-500/20 transition-all duration-300 group"
                     >
@@ -574,7 +581,6 @@ function Header() {
                         to="/admin"
                         onClick={() => {
                           setMobileMenuOpen(false);
-                          document.body.style.overflow = '';
                         }}
                         className="flex items-center space-x-4 px-4 py-5 rounded-2xl bg-gradient-to-r from-blue-600/10 to-indigo-500/10 hover:from-blue-600/20 hover:to-indigo-500/20 transition-all duration-300 group"
                       >
@@ -595,7 +601,6 @@ function Header() {
                     <button
                       onClick={() => {
                         handleSignOut();
-                        document.body.style.overflow = '';
                       }}
                       className="flex items-center space-x-4 w-full px-4 py-5 rounded-2xl hover:bg-red-50/50 hover:text-red-700 transition-all duration-300 group mt-4"
                     >
