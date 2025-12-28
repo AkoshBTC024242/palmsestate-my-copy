@@ -18,7 +18,7 @@ function Header() {
   const desktopMenuRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin, loading: authLoading } = useAuth();
 
   // Handle scroll effect for header background
   useEffect(() => {
@@ -112,7 +112,52 @@ function Header() {
     { name: 'Contact', path: '/contact', icon: <Phone size={20} />, desc: 'Get in touch' },
   ];
 
-  const isAdmin = user?.email?.includes('admin') || user?.user_metadata?.role === 'admin';
+  // Get the actual admin status from AuthContext
+  const adminStatus = isAdmin;
+
+  // Loading state
+  if (authLoading) {
+    return (
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+        <div className="container-fluid">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-3 group">
+              <div className="flex items-center justify-center">
+                <svg 
+                  width="32" 
+                  height="32" 
+                  viewBox="0 0 48 48" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="md:w-10 md:h-10"
+                >
+                  <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fillOpacity="0.9"/>
+                  <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
+                  <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
+                  <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
+                  <path d="M24 5C10 10, 2 14, 0 24C-2 20, -4 16, 24 5Z" fill="#22c55e"/>
+                  <path d="M24 5C38 10, 46 14, 48 24C50 20, 52 16, 24 5Z" fill="#16a34a"/>
+                  <circle cx="24" cy="22" r="3" fill="#c2410c"/>
+                </svg>
+              </div>
+              
+              <div>
+                <h1 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight font-serif">
+                  Palms<span className="text-amber-600">Estate</span>
+                </h1>
+                <p className="text-xs text-gray-500 font-medium tracking-wider">
+                  EXCLUSIVE RESIDENCES
+                </p>
+              </div>
+            </Link>
+            
+            <div className="md:hidden w-12 h-12"></div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -191,7 +236,7 @@ function Header() {
                       <p className="text-sm font-medium text-gray-900">
                         {user.email?.split('@')[0] || 'Account'}
                       </p>
-                      <p className="text-xs text-gray-500">{isAdmin ? 'Admin' : 'Premium'}</p>
+                      <p className="text-xs text-gray-500">{adminStatus ? 'Admin' : 'Premium'}</p>
                     </div>
                     <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${desktopMenuOpen ? 'rotate-180' : ''}`} />
                   </>
@@ -223,13 +268,13 @@ function Header() {
                           {user ? user.email : 'Welcome to PalmsEstate'}
                         </p>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          isAdmin 
+                          adminStatus 
                             ? 'bg-blue-100 text-blue-800' 
                             : user 
                             ? 'bg-amber-100 text-amber-800' 
                             : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {isAdmin ? 'Administrator' : user ? 'Premium Member' : 'Guest'}
+                          {adminStatus ? 'Administrator' : user ? 'Premium Member' : 'Guest'}
                         </span>
                       </div>
                     </div>
@@ -267,8 +312,11 @@ function Header() {
                         {/* Dashboard Link */}
                         <Link
                           to="/dashboard"
-                          onClick={() => setDesktopMenuOpen(false)}
-                          className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-amber-50 transition-colors group/item"
+                          onClick={() => {
+                            setDesktopMenuOpen(false);
+                            navigate('/dashboard');
+                          }}
+                          className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-amber-50 transition-colors group/item cursor-pointer"
                         >
                           <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-amber-100 group-hover/item:text-amber-600 transition-colors">
                             <LayoutDashboard size={20} />
@@ -280,11 +328,14 @@ function Header() {
                         </Link>
                         
                         {/* Admin Panel Link (Only for admins) */}
-                        {isAdmin && (
+                        {adminStatus && (
                           <Link
                             to="/admin"
-                            onClick={() => setDesktopMenuOpen(false)}
-                            className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-blue-50 transition-colors group/item"
+                            onClick={() => {
+                              setDesktopMenuOpen(false);
+                              navigate('/admin');
+                            }}
+                            className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-blue-50 transition-colors group/item cursor-pointer"
                           >
                             <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-blue-100 group-hover/item:text-blue-600 transition-colors">
                               <ShieldIcon size={20} />
@@ -296,11 +347,14 @@ function Header() {
                           </Link>
                         )}
                         
-                        {/* Settings Link */}
+                        {/* Settings Link - Goes to dashboard for now */}
                         <Link
                           to="/dashboard"
-                          onClick={() => setDesktopMenuOpen(false)}
-                          className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-amber-50 transition-colors group/item"
+                          onClick={() => {
+                            setDesktopMenuOpen(false);
+                            navigate('/dashboard');
+                          }}
+                          className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-amber-50 transition-colors group/item cursor-pointer"
                         >
                           <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-amber-100 group-hover/item:text-amber-600 transition-colors">
                             <SettingsIcon size={20} />
@@ -318,15 +372,21 @@ function Header() {
                       <div className="px-5 py-4 space-y-3">
                         <Link
                           to="/signin"
-                          onClick={() => setDesktopMenuOpen(false)}
-                          className="block w-full text-center bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-3 px-6 hover:shadow-lg transition-all duration-300"
+                          onClick={() => {
+                            setDesktopMenuOpen(false);
+                            navigate('/signin');
+                          }}
+                          className="block w-full text-center bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-3 px-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
                         >
                           Sign In
                         </Link>
                         <Link
                           to="/signup"
-                          onClick={() => setDesktopMenuOpen(false)}
-                          className="block w-full text-center border-2 border-amber-500 text-amber-600 font-semibold py-3 px-6 hover:bg-amber-50 transition-colors"
+                          onClick={() => {
+                            setDesktopMenuOpen(false);
+                            navigate('/signup');
+                          }}
+                          className="block w-full text-center border-2 border-amber-500 text-amber-600 font-semibold py-3 px-6 hover:bg-amber-50 transition-colors cursor-pointer"
                         >
                           Create Account
                         </Link>
@@ -335,8 +395,11 @@ function Header() {
                     
                     {user && (
                       <button
-                        onClick={handleSignOut}
-                        className="flex items-center space-x-3 w-full px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors"
+                        onClick={() => {
+                          handleSignOut();
+                          setDesktopMenuOpen(false);
+                        }}
+                        className="flex items-center space-x-3 w-full px-5 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors cursor-pointer"
                       >
                         <div className="p-2 rounded-lg bg-red-100 text-red-600">
                           <LogOut size={18} />
@@ -410,7 +473,7 @@ function Header() {
                   {user ? user.email?.split('@')[0] : 'Welcome'}
                 </h2>
                 <p className="text-sm text-gray-600">
-                  {user ? (isAdmin ? 'Administrator' : 'Premium Member') : 'Guest'}
+                  {user ? (adminStatus ? 'Administrator' : 'Premium Member') : 'Guest'}
                 </p>
               </div>
             </div>
@@ -431,7 +494,7 @@ function Header() {
                   <Link
                     to={item.path}
                     onClick={closeMobileMenu}
-                    className={`flex items-center space-x-4 px-4 py-5 rounded-lg transition-all duration-200 ${
+                    className={`flex items-center space-x-4 px-4 py-5 rounded-lg transition-all duration-200 cursor-pointer ${
                       location.pathname === item.path
                         ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-600'
                         : 'hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/50'
@@ -477,8 +540,11 @@ function Header() {
                     {/* Dashboard Link */}
                     <Link
                       to="/dashboard"
-                      onClick={closeMobileMenu}
-                      className="flex items-center space-x-4 px-4 py-5 rounded-lg hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/50 transition-all duration-200 mb-3"
+                      onClick={() => {
+                        closeMobileMenu();
+                        navigate('/dashboard');
+                      }}
+                      className="flex items-center space-x-4 px-4 py-5 rounded-lg hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/50 transition-all duration-200 mb-3 cursor-pointer"
                     >
                       <div className="p-3 rounded-lg bg-gray-100 text-gray-700 group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
                         <LayoutDashboard size={20} />
@@ -491,11 +557,14 @@ function Header() {
                     </Link>
                     
                     {/* Admin Panel Link (Only for admins) */}
-                    {isAdmin && (
+                    {adminStatus && (
                       <Link
                         to="/admin"
-                        onClick={closeMobileMenu}
-                        className="flex items-center space-x-4 px-4 py-5 rounded-lg hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-blue-50/30 transition-all duration-200 mb-3"
+                        onClick={() => {
+                          closeMobileMenu();
+                          navigate('/admin');
+                        }}
+                        className="flex items-center space-x-4 px-4 py-5 rounded-lg hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-blue-50/30 transition-all duration-200 mb-3 cursor-pointer"
                       >
                         <div className="p-3 rounded-lg bg-gray-100 text-gray-700 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
                           <ShieldIcon size={20} />
@@ -511,8 +580,11 @@ function Header() {
                     {/* Settings Link */}
                     <Link
                       to="/dashboard"
-                      onClick={closeMobileMenu}
-                      className="flex items-center space-x-4 px-4 py-5 rounded-lg hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/50 transition-all duration-200"
+                      onClick={() => {
+                        closeMobileMenu();
+                        navigate('/dashboard');
+                      }}
+                      className="flex items-center space-x-4 px-4 py-5 rounded-lg hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/50 transition-all duration-200 cursor-pointer"
                     >
                       <div className="p-3 rounded-lg bg-gray-100 text-gray-700 group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
                         <SettingsIcon size={20} />
@@ -534,8 +606,11 @@ function Header() {
                 <div className="space-y-4 px-4">
                   <Link
                     to="/signin"
-                    onClick={closeMobileMenu}
-                    className="flex items-center justify-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-lg hover:shadow-lg transition-all duration-300"
+                    onClick={() => {
+                      closeMobileMenu();
+                      navigate('/signin');
+                    }}
+                    className="flex items-center justify-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-lg hover:shadow-lg transition-all duration-300 cursor-pointer"
                   >
                     <Key size={20} />
                     <span>Sign In</span>
@@ -543,8 +618,11 @@ function Header() {
                   
                   <Link
                     to="/signup"
-                    onClick={closeMobileMenu}
-                    className="flex items-center justify-center gap-3 border-2 border-amber-500 text-amber-600 font-semibold py-4 px-6 rounded-lg hover:bg-amber-50 transition-all duration-300"
+                    onClick={() => {
+                      closeMobileMenu();
+                      navigate('/signup');
+                    }}
+                    className="flex items-center justify-center gap-3 border-2 border-amber-500 text-amber-600 font-semibold py-4 px-6 rounded-lg hover:bg-amber-50 transition-all duration-300 cursor-pointer"
                   >
                     <UserPlus size={20} />
                     <span>Create Account</span>
@@ -557,7 +635,7 @@ function Header() {
                       handleSignOut();
                       closeMobileMenu();
                     }}
-                    className="flex items-center space-x-4 w-full px-4 py-5 rounded-lg hover:bg-red-50 hover:text-red-700 transition-all duration-300"
+                    className="flex items-center space-x-4 w-full px-4 py-5 rounded-lg hover:bg-red-50 hover:text-red-700 transition-all duration-300 cursor-pointer"
                   >
                     <div className="p-3 rounded-lg bg-red-100 text-red-600">
                       <LogOut size={20} />
