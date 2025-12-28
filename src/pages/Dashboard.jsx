@@ -303,10 +303,10 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Desktop Layout Container */}
+      {/* Desktop Layout Container - Start below header */}
       <div className="flex min-h-screen">
-        {/* Desktop Sidebar - Fixed on left */}
-        <div className="hidden lg:block w-64 fixed left-0 top-0 bottom-0 z-40">
+        {/* Desktop Sidebar - Fixed on left, below header */}
+        <div className="hidden lg:block w-64 fixed left-0 top-0 bottom-0 z-40 mt-20">
           <div className="w-full h-full bg-white/95 backdrop-blur-md border-r border-gray-100 overflow-y-auto">
             {/* Sidebar Header */}
             <div className="p-6 border-b border-gray-100">
@@ -495,84 +495,84 @@ function Dashboard() {
           </div>
         </div>
 
-        {/* Main Content Area - Adjusted for sidebar */}
-        <div className="flex-1 lg:ml-64 pt-16 lg:pt-0">
+        {/* Main Content Area - Adjusted for sidebar and header */}
+        <div className="flex-1 lg:ml-64 pt-20 lg:pt-0">
+          {/* Desktop Welcome Bar */}
+          <div className="hidden lg:block bg-white/80 backdrop-blur-sm border-b border-gray-200/50 px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="font-serif text-3xl font-bold text-gray-900">
+                  Welcome back, {userProfile?.full_name?.split(' ')[0] || 'Guest'}
+                </h1>
+                <p className="text-gray-600 mt-1">Your journey to exceptional living continues here.</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/properties"
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 shadow-md"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                  New Application
+                </Link>
+                <button className="p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <Bell className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Main Content */}
           <div className="p-4 lg:p-8">
-            {/* Welcome Section */}
-            <div className="mb-8">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-                <div>
-                  <h1 className="font-serif text-3xl lg:text-4xl font-bold text-gray-900">
-                    Welcome back, {userProfile?.full_name?.split(' ')[0] || 'Guest'}
-                  </h1>
-                  <p className="text-gray-600 mt-2">Your journey to exceptional living continues here.</p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <Link
-                    to="/properties"
-                    className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 shadow-md"
-                  >
-                    <PlusCircle className="w-5 h-5" />
-                    New Application
-                  </Link>
-                  <button className="p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
-                    <Bell className="w-5 h-5 text-gray-600" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                {[
-                  { 
-                    label: 'Total Applications', 
-                    value: stats.totalApplications, 
-                    icon: <FileText className="w-6 h-6" />,
-                    color: 'from-blue-500 to-blue-600',
-                    change: '+2'
-                  },
-                  { 
-                    label: 'Pending Review', 
-                    value: stats.pending, 
-                    icon: <Clock className="w-6 h-6" />,
-                    color: 'from-amber-500 to-orange-500',
-                    change: null
-                  },
-                  { 
-                    label: 'Approved', 
-                    value: stats.approved, 
-                    icon: <CheckCircle className="w-6 h-6" />,
-                    color: 'from-emerald-500 to-green-600',
-                    change: '+1'
-                  },
-                  { 
-                    label: 'Saved Properties', 
-                    value: stats.savedProperties, 
-                    icon: <Heart className="w-6 h-6" />,
-                    color: 'from-rose-500 to-pink-600',
-                    change: '+3'
-                  },
-                ].map((stat, index) => (
-                  <div 
-                    key={index}
-                    className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} text-white shadow-md`}>
-                        {stat.icon}
-                      </div>
-                      {stat.change && (
-                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
-                          ↑ {stat.change}
-                        </span>
-                      )}
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              {[
+                { 
+                  label: 'Total Applications', 
+                  value: stats.totalApplications, 
+                  icon: <FileText className="w-6 h-6" />,
+                  color: 'from-blue-500 to-blue-600',
+                  change: '+2'
+                },
+                { 
+                  label: 'Pending Review', 
+                  value: stats.pending, 
+                  icon: <Clock className="w-6 h-6" />,
+                  color: 'from-amber-500 to-orange-500',
+                  change: null
+                },
+                { 
+                  label: 'Approved', 
+                  value: stats.approved, 
+                  icon: <CheckCircle className="w-6 h-6" />,
+                  color: 'from-emerald-500 to-green-600',
+                  change: '+1'
+                },
+                { 
+                  label: 'Saved Properties', 
+                  value: stats.savedProperties, 
+                  icon: <Heart className="w-6 h-6" />,
+                  color: 'from-rose-500 to-pink-600',
+                  change: '+3'
+                },
+              ].map((stat, index) => (
+                <div 
+                  key={index}
+                  className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} text-white shadow-md`}>
+                      {stat.icon}
                     </div>
-                    <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
-                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                    {stat.change && (
+                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">
+                        ↑ {stat.change}
+                      </span>
+                    )}
                   </div>
-                ))}
-              </div>
+                  <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
+                  <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                </div>
+              ))}
             </div>
 
             {/* Recent Applications Section */}
