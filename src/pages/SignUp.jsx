@@ -21,7 +21,7 @@ function SignUp() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { signUp, resendVerification } = useAuth();
+  const { signUp } = useAuth();
 
   const from = location.state?.redirectTo || '/dashboard';
   const message = location.state?.message;
@@ -79,7 +79,7 @@ function SignUp() {
           confirmPassword: '',
         });
       } else {
-        // Email already confirmed (unlikely but possible)
+        // Email already confirmed
         navigate(from, { replace: true });
       }
       
@@ -98,7 +98,7 @@ function SignUp() {
     setError('');
     
     try {
-      const result = await resendVerification(verificationInfo.email);
+      const result = await useAuth().resendVerification(verificationInfo.email);
       if (result.success) {
         setSuccess(true);
         setVerificationInfo({
