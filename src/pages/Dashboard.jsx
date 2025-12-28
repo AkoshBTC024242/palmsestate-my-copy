@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { 
@@ -8,11 +8,12 @@ import {
   Calendar, CreditCard, Settings, ChevronRight, Home, Shield,
   Bell, Heart, Users, Key, Sparkles, Award, Star, TrendingUp,
   Mail, Phone, Globe, Lock, Eye, CalendarDays, Download,
-  Menu, X, Filter, Search, Check, XCircle, Zap, Trophy
+  Menu, X, Filter, Search, Check, XCircle, Zap, Trophy,
+  User, ArrowLeft
 } from 'lucide-react';
 
 function Dashboard() {
-  const { user, signOut, userProfile } = useAuth();
+  const { user, signOut, userProfile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('overview');
@@ -28,17 +29,26 @@ function Dashboard() {
     notifications: 3
   });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
-    if (user) {
+    console.log('📊 Dashboard useEffect - Auth Loading:', authLoading);
+    console.log('📊 Dashboard useEffect - User:', user);
+    
+    if (!authLoading && user) {
       loadDashboardData();
       loadSavedProperties();
       loadNotifications();
-    } else {
+    } else if (!authLoading && !user) {
+      // User is not authenticated, redirect to sign in
+      console.log('⚠️ No user found, redirecting to signin');
+      navigate('/signin');
       setLoading(false);
     }
-  }, [user]);
+  }, [user, authLoading, navigate]);
 
   const loadDashboardData = async () => {
+    console.log('📥 Loading dashboard data for user:', user?.id);
     setLoading(true);
     
     try {
@@ -52,7 +62,12 @@ function Dashboard() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (!appsError && appsData) {
+      if (appsError) {
+        console.error('❌ Error loading applications:', appsError);
+      }
+
+      if (appsData) {
+        console.log('✅ Applications loaded:', appsData.length);
         setApplications(appsData);
         
         const pending = appsData.filter(app => 
@@ -76,7 +91,7 @@ function Dashboard() {
         }));
       }
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error('❌ Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -201,6 +216,53 @@ function Dashboard() {
       console.error('Sign out error:', error);
     }
   };
+
+  // Add safety check for authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-full border-4 border-amber-100 animate-spin"></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <Sparkles className="w-8 h-8 text-amber-500 animate-pulse" />
+              </div>
+            </div>
+            <p className="mt-6 text-gray-600 font-medium">Checking authentication...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center p-8 max-w-md">
+            <Shield className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Required</h1>
+            <p className="text-gray-600 mb-6">Please sign in to access your dashboard.</p>
+            <div className="space-y-3">
+              <Link
+                to="/signin"
+                className="block w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300"
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/signup"
+                className="block w-full border-2 border-amber-500 text-amber-600 font-medium py-3 px-6 rounded-xl hover:bg-amber-50 transition-all duration-300"
+              >
+                Create Account
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
