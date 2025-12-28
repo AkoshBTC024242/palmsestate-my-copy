@@ -9,7 +9,7 @@ import {
   Bell, Heart, Users, Key, Sparkles, Award, Star, TrendingUp,
   Mail, Phone, Globe, Lock, Eye, CalendarDays, Download,
   Menu, X, Filter, Search, Check, XCircle, Zap, Trophy,
-  User, ArrowLeft
+  User, ArrowLeft, Crown
 } from 'lucide-react';
 
 function Dashboard() {
@@ -296,14 +296,14 @@ function Dashboard() {
           
           <div className="text-center">
             <h1 className="font-serif font-bold text-gray-900">Dashboard</h1>
-            <p className="text-xs text-gray-500">Premium Member</p>
+            <p className="text-xs text-gray-500">Elite Member</p>
           </div>
           
           <div className="w-10"></div>
         </div>
       </div>
 
-      {/* Desktop Layout Container - Start below header */}
+      {/* Desktop Layout Container */}
       <div className="flex min-h-screen">
         {/* Desktop Sidebar - Fixed on left, below header */}
         <div className="hidden lg:block w-64 fixed left-0 top-20 bottom-0 z-40">
@@ -320,9 +320,9 @@ function Dashboard() {
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-xs font-medium rounded-full">
-                      Premium Member
+                      Elite Member
                     </span>
-                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    <Crown className="w-3 h-3 text-yellow-500" />
                   </div>
                 </div>
               </div>
@@ -382,7 +382,7 @@ function Dashboard() {
             </div>
 
             {/* Sign Out Button - Fixed at bottom */}
-            <div className="p-4 border-t border-gray-100 mt-auto">
+            <div className="p-4 border-t border-gray-100 mt-auto pb-6">
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center justify-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
@@ -414,9 +414,9 @@ function Dashboard() {
                     </h3>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-xs font-medium rounded-full">
-                        Premium Member
+                        Elite Member
                       </span>
-                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <Crown className="w-3 h-3 text-yellow-500" />
                     </div>
                   </div>
                 </div>
@@ -823,6 +823,31 @@ function Dashboard() {
                       </a>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dashboard Footer */}
+            <div className="mt-12 pt-8 border-t border-gray-200">
+              <div className="flex flex-col md:flex-row justify-between items-center">
+                <div className="text-center md:text-left mb-4 md:mb-0">
+                  <p className="text-sm text-gray-600">
+                    © {new Date().getFullYear()} Palms Estate Dashboard
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your personal luxury property management hub
+                  </p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Link to="/contact" className="text-sm text-gray-600 hover:text-amber-600">
+                    Support
+                  </Link>
+                  <Link to="/privacy" className="text-sm text-gray-600 hover:text-amber-600">
+                    Privacy
+                  </Link>
+                  <Link to="/terms" className="text-sm text-gray-600 hover:text-amber-600">
+                    Terms
+                  </Link>
                 </div>
               </div>
             </div>
