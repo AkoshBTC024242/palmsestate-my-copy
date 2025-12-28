@@ -8,7 +8,8 @@ import {
   Filter, CheckCircle, Clock, AlertCircle, TrendingUp,
   Eye, Edit, Trash2, ChevronRight, Menu, X, 
   Calendar, CreditCard, Globe, Bell, Download,
-  Sparkles, Zap, Lock, Key, TestTube, Home
+  Sparkles, Zap, Lock, Key, TestTube, Home,
+  ArrowRight, Trophy
 } from 'lucide-react';
 
 function AdminDashboard() {
@@ -96,6 +97,15 @@ function AdminDashboard() {
     }).format(amount);
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -151,6 +161,25 @@ function AdminDashboard() {
             </div>
             <p className="mt-6 text-gray-600 font-medium">Loading admin dashboard...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Add a safety check - if user is not admin, redirect
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-white">
+        <div className="text-center p-8 max-w-md">
+          <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h1>
+          <p className="text-gray-600 mb-6">You don't have administrator privileges to access this page.</p>
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium px-6 py-3 rounded-xl hover:shadow-lg transition-all duration-300"
+          >
+            Go to User Dashboard
+          </Link>
         </div>
       </div>
     );
