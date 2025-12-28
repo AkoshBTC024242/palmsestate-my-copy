@@ -130,9 +130,6 @@ function App() {
                           href="/" 
                           className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white px-8 py-4 rounded-full font-sans font-bold hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                          </svg>
                           Return to Home
                         </a>
                         
@@ -140,35 +137,8 @@ function App() {
                           href="/properties" 
                           className="inline-flex items-center gap-3 backdrop-blur-md bg-white/10 text-gray-900 border border-gray-300 px-8 py-4 rounded-full font-sans font-bold hover:bg-white/20 transition-all duration-300"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                          </svg>
                           Browse Properties
                         </a>
-                      </div>
-                      
-                      <div className="mt-12 pt-8 border-t border-gray-200">
-                        <h3 className="font-serif text-xl font-bold text-gray-900 mb-4">Need Help?</h3>
-                        <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                          <a 
-                            href="/contact" 
-                            className="font-sans text-amber-600 hover:text-amber-700 font-medium"
-                          >
-                            Contact Support
-                          </a>
-                          <a 
-                            href="/about" 
-                            className="font-sans text-amber-600 hover:text-amber-700 font-medium"
-                          >
-                            About Palms Estate
-                          </a>
-                          <a 
-                            href="/properties" 
-                            className="font-sans text-amber-600 hover:text-amber-700 font-medium"
-                          >
-                            View All Properties
-                          </a>
-                        </div>
                       </div>
                     </div>
                   </div>
