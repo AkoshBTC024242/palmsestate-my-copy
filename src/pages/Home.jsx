@@ -84,48 +84,48 @@ function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* ===== PREMIUM HERO SECTION ===== */}
+      {/* ===== PREMIUM HERO SECTION - FIXED FOR READABILITY ===== */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Full-screen luxury villa background - High resolution */}
+        {/* Full-screen luxury villa background with DARK OVERLAY */}
         <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-900/20 via-gray-900/10 to-transparent z-10" />
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-900/80 via-gray-900/60 to-gray-900/40 z-10" />
           <img
             src="https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=3000&q=80"
             alt="Luxury Villa Sunset"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover brightness-[0.85]"
             loading="eager"
             onLoad={() => setHeroLoaded(true)}
           />
         </div>
 
-        {/* Hero Content - Centered and Elegant */}
-        <div className="container-fluid relative z-20">
+        {/* Hero Content with BETTER CONTRAST */}
+        <div className="container-fluid relative z-20 px-4">
           <div className={`max-w-4xl mx-auto text-center transition-all duration-1000 ${
             heroLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
           }`}>
             {/* Subtle Tagline */}
             <div className="mb-8">
-              <span className="text-sm tracking-[0.3em] uppercase text-white/80 font-medium">
+              <span className="text-sm tracking-[0.3em] uppercase text-amber-200 font-medium">
                 Exclusive Properties Worldwide
               </span>
             </div>
 
-            {/* Main Headline - Elegant Serif Typography */}
-            <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-8 leading-[1.1]">
-              Exceptional <span className="text-amber-400">Living</span> Awaits
+            {/* Main Headline with TEXT SHADOW for readability */}
+            <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-8 leading-[1.1] drop-shadow-2xl">
+              Exceptional <span className="text-amber-300">Living</span> Awaits
             </h1>
 
-            {/* Subtitle - Clean and Professional */}
-            <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-2xl mx-auto leading-relaxed font-sans tracking-wide">
+            {/* Subtitle with BETTER CONTRAST */}
+            <p className="text-xl md:text-2xl text-gray-100 mb-12 max-w-2xl mx-auto leading-relaxed font-sans tracking-wide drop-shadow-lg">
               Access premium residences through our exclusive property portfolio. 
               Experience unparalleled service and discretion in every detail.
             </p>
 
-            {/* CTA Button - Large and Elegant */}
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
               <Link
                 to="/properties"
-                className="inline-flex items-center justify-center gap-4 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-bold text-lg py-5 px-12 rounded-none hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 min-w-[240px]"
+                className="inline-flex items-center justify-center gap-4 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-bold text-lg py-5 px-12 rounded-none hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 min-w-[240px] shadow-lg"
               >
                 <span>View Properties</span>
                 <ArrowRight className="w-5 h-5" />
@@ -133,7 +133,7 @@ function Home() {
               
               <Link
                 to="/contact"
-                className="inline-flex items-center justify-center gap-4 border-2 border-white text-white font-bold text-lg py-5 px-12 rounded-none hover:bg-white/10 transition-all duration-300 min-w-[240px]"
+                className="inline-flex items-center justify-center gap-4 bg-white/10 backdrop-blur-sm border-2 border-white/30 text-white font-bold text-lg py-5 px-12 rounded-none hover:bg-white/20 hover:border-white/50 transition-all duration-300 min-w-[240px]"
               >
                 <span>Request Information</span>
               </Link>
@@ -141,13 +141,13 @@ function Home() {
           </div>
         </div>
 
-        {/* Scroll Indicator - Minimal */}
+        {/* Scroll Indicator */}
         <div className={`absolute bottom-12 left-1/2 transform -translate-x-1/2 transition-opacity duration-1000 ${
           heroLoaded ? 'opacity-100' : 'opacity-0'
         }`}>
           <div className="flex flex-col items-center">
-            <span className="text-white/60 text-xs tracking-[0.3em] uppercase mb-3">EXPLORE</span>
-            <div className="w-px h-12 bg-gradient-to-b from-white/80 to-transparent"></div>
+            <span className="text-white/70 text-xs tracking-[0.3em] uppercase mb-3">EXPLORE</span>
+            <div className="w-px h-12 bg-gradient-to-b from-white/80 via-white/50 to-transparent"></div>
           </div>
         </div>
       </section>
@@ -215,7 +215,7 @@ function Home() {
                     alt={property.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                   
                   {/* Price Tag */}
                   <div className="absolute top-6 left-6">
