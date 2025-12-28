@@ -9,7 +9,8 @@ import {
   Bell, Heart, Users, Key, Sparkles, Award, Star, TrendingUp,
   Mail, Phone, Globe, Lock, Eye, CalendarDays, Download,
   Menu, X, Filter, Search, Check, XCircle, Zap, Trophy,
-  User, ArrowLeft, Crown, ChevronLeft
+  User, ArrowLeft, Crown, ChevronLeft, Trash2, Edit,
+  Database
 } from 'lucide-react';
 
 function Dashboard() {
@@ -33,22 +34,17 @@ function Dashboard() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('📊 Dashboard useEffect - Auth Loading:', authLoading);
-    console.log('📊 Dashboard useEffect - User:', user);
-    
     if (!authLoading && user) {
       loadDashboardData();
       loadSavedProperties();
       loadNotifications();
     } else if (!authLoading && !user) {
-      console.log('⚠️ No user found, redirecting to signin');
       navigate('/signin');
       setLoading(false);
     }
   }, [user, authLoading, navigate]);
 
   const loadDashboardData = async () => {
-    console.log('📥 Loading dashboard data for user:', user?.id);
     setLoading(true);
     
     try {
@@ -61,12 +57,9 @@ function Dashboard() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (appsError) {
-        console.error('❌ Error loading applications:', appsError);
-      }
+      if (appsError) console.error('Error loading applications:', appsError);
 
       if (appsData) {
-        console.log('✅ Applications loaded:', appsData.length);
         setApplications(appsData);
         
         const pending = appsData.filter(app => 
@@ -90,7 +83,7 @@ function Dashboard() {
         }));
       }
     } catch (error) {
-      console.error('❌ Error loading dashboard data:', error);
+      console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -98,27 +91,40 @@ function Dashboard() {
 
   const loadSavedProperties = async () => {
     try {
-      const mockSavedProperties = [
-        {
-          id: 1,
-          title: 'Oceanfront Luxury Villa',
-          location: 'Maldives',
-          price: '$35,000/week',
-          image: 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
-          saved_date: '2024-12-15'
-        },
-        {
-          id: 2,
-          title: 'Manhattan Skyline Penthouse',
-          location: 'New York, NY',
-          price: '$45,000/week',
-          image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00',
-          saved_date: '2024-12-10'
-        }
-      ];
-      
-      setSavedProperties(mockSavedProperties);
-      setStats(prev => ({ ...prev, savedProperties: mockSavedProperties.length }));
+      const { data, error } = await supabase
+        .from('saved_properties')
+        .select(`
+          *,
+          properties (id, title, location, price_per_week, image_url)
+        `)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error loading saved properties:', error);
+        const mockSavedProperties = [
+          {
+            id: 1,
+            title: 'Oceanfront Luxury Villa',
+            location: 'Maldives',
+            price: '$35,000/week',
+            image: 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
+            saved_date: '2024-12-15'
+          }
+        ];
+        setSavedProperties(mockSavedProperties);
+        setStats(prev => ({ ...prev, savedProperties: mockSavedProperties.length }));
+      } else if (data) {
+        const formattedProperties = data.map(item => ({
+          id: item.properties.id,
+          title: item.properties.title,
+          location: item.properties.location,
+          price: `$${item.properties.price_per_week?.toLocaleString()}/week`,
+          image: item.properties.image_url,
+          saved_date: item.created_at
+        }));
+        setSavedProperties(formattedProperties);
+        setStats(prev => ({ ...prev, savedProperties: formattedProperties.length }));
+      }
     } catch (error) {
       console.error('Error loading saved properties:', error);
     }
@@ -126,34 +132,30 @@ function Dashboard() {
 
   const loadNotifications = async () => {
     try {
-      const mockNotifications = [
-        {
-          id: 1,
-          title: 'Application Under Review',
-          message: 'Your application for Seaside Villa is now under review.',
-          time: '2 hours ago',
-          read: false,
-          type: 'application'
-        },
-        {
-          id: 2,
-          title: 'Payment Confirmed',
-          message: 'Your payment of $50 has been confirmed.',
-          time: '1 day ago',
-          read: true,
-          type: 'payment'
-        },
-        {
-          id: 3,
-          title: 'New Property Alert',
-          message: 'A new luxury villa in Monaco has been added.',
-          time: '3 days ago',
-          read: true,
-          type: 'property'
-        }
-      ];
-      
-      setNotifications(mockNotifications);
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.error('Error loading notifications:', error);
+        const mockNotifications = [
+          {
+            id: 1,
+            title: 'Application Under Review',
+            message: 'Your application for Seaside Villa is now under review.',
+            time: '2 hours ago',
+            read: false,
+            type: 'application'
+          }
+        ];
+        setNotifications(mockNotifications);
+      } else if (data) {
+        setNotifications(data);
+        setStats(prev => ({ ...prev, notifications: data.length }));
+      }
     } catch (error) {
       console.error('Error loading notifications:', error);
     }
@@ -211,6 +213,75 @@ function Dashboard() {
       await signOut();
     } catch (error) {
       console.error('Sign out error:', error);
+    }
+  };
+
+  const handleSaveProperty = async (propertyId) => {
+    try {
+      const { error } = await supabase
+        .from('saved_properties')
+        .insert({
+          user_id: user.id,
+          property_id: propertyId
+        });
+
+      if (error) throw error;
+      
+      alert('Property saved successfully!');
+      loadSavedProperties();
+    } catch (error) {
+      console.error('Error saving property:', error);
+      alert('Error saving property');
+    }
+  };
+
+  const handleRemoveSavedProperty = async (propertyId) => {
+    try {
+      const { error } = await supabase
+        .from('saved_properties')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('property_id', propertyId);
+
+      if (error) throw error;
+      
+      alert('Property removed from saved!');
+      loadSavedProperties();
+    } catch (error) {
+      console.error('Error removing saved property:', error);
+      alert('Error removing saved property');
+    }
+  };
+
+  const handleMarkNotificationRead = async (notificationId) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      
+      loadNotifications();
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const handleUpdateProfile = async (updatedData) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updatedData)
+        .eq('id', user.id);
+
+      if (error) throw error;
+      
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert('Error updating profile');
     }
   };
 
@@ -308,13 +379,13 @@ function Dashboard() {
             <p className="text-gray-600 mb-6 max-w-md mx-auto">
               Start your luxury living journey by applying for one of our premium properties.
             </p>
-            <Link
-              to="/properties"
+            <button
+              onClick={() => navigate('/properties')}
               className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
             >
               <Building2 className="w-5 h-5" />
               Browse Properties
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -409,10 +480,9 @@ function Dashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {savedProperties.map((property) => (
-                  <button 
+                  <div 
                     key={property.id}
-                    onClick={() => navigate(`/properties/${property.id}`)}
-                    className="group text-left relative overflow-hidden rounded-xl border border-gray-200 hover:border-amber-200 transition-all duration-300 w-full"
+                    className="group relative overflow-hidden rounded-xl border border-gray-200 hover:border-amber-200 transition-all duration-300"
                   >
                     <div className="h-40 overflow-hidden">
                       <img
@@ -426,10 +496,15 @@ function Dashboard() {
                       <p className="text-sm text-gray-600 mb-3">{property.location}</p>
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-gray-900">{property.price}</span>
-                        <Heart className="w-5 h-5 text-amber-600 fill-current" />
+                        <button 
+                          onClick={() => handleRemoveSavedProperty(property.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Heart className="w-5 h-5 fill-current" />
+                        </button>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -636,7 +711,10 @@ function Dashboard() {
                     <span className="text-sm">{property.location}</span>
                   </div>
                 </div>
-                <button className="text-amber-600 hover:text-amber-700">
+                <button 
+                  onClick={() => handleRemoveSavedProperty(property.id)}
+                  className="text-red-600 hover:text-red-700"
+                >
                   <Heart className="w-5 h-5 fill-current" />
                 </button>
               </div>
@@ -663,6 +741,13 @@ function Dashboard() {
           <h1 className="font-serif text-2xl font-bold text-gray-900 mb-2">Payments</h1>
           <p className="text-gray-600">Your payment history and transactions</p>
         </div>
+        <button
+          onClick={() => navigate('/properties')}
+          className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
+        >
+          <Building2 className="w-5 h-5" />
+          Browse Properties
+        </button>
       </div>
 
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6">
@@ -670,13 +755,6 @@ function Dashboard() {
           <CreditCard className="w-16 h-16 mx-auto mb-4 text-gray-400" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Payment History</h3>
           <p className="text-gray-600 mb-6">Complete a property application to see payment details here.</p>
-          <button
-            onClick={() => navigate('/properties')}
-            className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
-          >
-            <Building2 className="w-5 h-5" />
-            Browse Properties
-          </button>
         </div>
       </div>
     </div>
@@ -689,7 +767,16 @@ function Dashboard() {
           <h1 className="font-serif text-2xl font-bold text-gray-900 mb-2">Notifications</h1>
           <p className="text-gray-600">Your recent updates and alerts</p>
         </div>
-        <button className="text-sm text-amber-600 hover:text-amber-700 font-medium">
+        <button 
+          onClick={() => {
+            notifications.forEach(notification => {
+              if (!notification.read) {
+                handleMarkNotificationRead(notification.id);
+              }
+            });
+          }}
+          className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+        >
           Mark all as read
         </button>
       </div>
@@ -708,11 +795,16 @@ function Dashboard() {
                 <div>
                   <h4 className="font-medium text-gray-900 mb-1">{notification.title}</h4>
                   <p className="text-gray-600 text-sm mb-2">{notification.message}</p>
-                  <span className="text-xs text-gray-500">{notification.time}</span>
+                  <span className="text-xs text-gray-500">{formatDate(notification.created_at)}</span>
                 </div>
               </div>
               {!notification.read && (
-                <div className="w-2 h-2 bg-amber-500 rounded-full mt-2"></div>
+                <button 
+                  onClick={() => handleMarkNotificationRead(notification.id)}
+                  className="text-sm text-amber-600 hover:text-amber-700"
+                >
+                  Mark as read
+                </button>
               )}
             </div>
           ))}
@@ -758,22 +850,6 @@ function Dashboard() {
               </div>
             </div>
           </div>
-
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6">
-            <h3 className="font-serif font-bold text-gray-900 mb-6">Preferences</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">Email Notifications</p>
-                  <p className="text-sm text-gray-600">Receive updates about your applications</p>
-                </div>
-                <div className="relative inline-block w-12 h-6">
-                  <input type="checkbox" className="opacity-0 w-0 h-0" />
-                  <span className="absolute cursor-pointer top-0 left-0 right-0 bottom-0 bg-gray-300 rounded-full before:absolute before:content-[''] before:h-4 before:w-4 before:left-1 before:bottom-1 before:bg-white before:rounded-full before:transition-all"></span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="space-y-6">
@@ -796,14 +872,6 @@ function Dashboard() {
                 <span className="font-medium">{stats.totalApplications}</span>
               </div>
             </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-amber-500 to-orange-400 rounded-2xl p-6 text-white">
-            <h3 className="font-serif font-bold mb-4">Upgrade Your Experience</h3>
-            <p className="text-sm mb-6">Unlock premium features and priority support</p>
-            <button className="w-full bg-white text-amber-600 font-medium py-3 rounded-lg hover:bg-gray-100 transition-colors">
-              Explore Premium
-            </button>
           </div>
         </div>
       </div>
@@ -844,17 +912,6 @@ function Dashboard() {
               </div>
               <ArrowRight className="w-5 h-5 text-gray-400" />
             </button>
-            
-            <button className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-amber-200 hover:bg-amber-50/50 transition-colors">
-              <div className="flex items-center gap-3">
-                <Globe className="w-5 h-5 text-gray-600" />
-                <div>
-                  <p className="font-medium text-gray-900">Language & Region</p>
-                  <p className="text-sm text-gray-600">Set your preferred language</p>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-gray-400" />
-            </button>
           </div>
         </div>
 
@@ -881,17 +938,6 @@ function Dashboard() {
                 </div>
               </div>
               <ArrowRight className="w-5 h-5 text-gray-400" />
-            </button>
-            
-            <button className="w-full flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-amber-200 hover:bg-amber-50/50 transition-colors text-red-600 hover:text-red-700">
-              <div className="flex items-center gap-3">
-                <Trash2 className="w-5 h-5" />
-                <div>
-                  <p className="font-medium">Delete Account</p>
-                  <p className="text-sm">Permanently delete your account</p>
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -926,18 +972,18 @@ function Dashboard() {
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Access Required</h1>
             <p className="text-gray-600 mb-6">Please sign in to access your dashboard.</p>
             <div className="space-y-3">
-              <Link
-                to="/signin"
+              <button
+                onClick={() => navigate('/signin')}
                 className="block w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300"
               >
                 Sign In
-              </Link>
-              <Link
-                to="/signup"
+              </button>
+              <button
+                onClick={() => navigate('/signup')}
                 className="block w-full border-2 border-amber-500 text-amber-600 font-medium py-3 px-6 rounded-xl hover:bg-amber-50 transition-all duration-300"
               >
                 Create Account
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -1082,7 +1128,7 @@ function Dashboard() {
               </nav>
             </div>
 
-            <div className="p-4 border-t border-gray-100 mt-auto pb-6">
+            <div className="p-4 border-t border-gray-100 mt-auto">
               <button
                 onClick={handleSignOut}
                 className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-center gap-3'} px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors`}
@@ -1273,39 +1319,6 @@ function Dashboard() {
             </div>
 
             {renderContent()}
-
-            <div className="mt-12 pt-8 border-t border-gray-200">
-              <div className="flex flex-col md:flex-row justify-between items-center">
-                <div className="text-center md:text-left mb-4 md:mb-0">
-                  <p className="text-sm text-gray-600">
-                    © {new Date().getFullYear()} Palms Estate Dashboard
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Your personal luxury property management hub
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => navigate('/contact')}
-                    className="text-sm text-gray-600 hover:text-amber-600"
-                  >
-                    Support
-                  </button>
-                  <button
-                    onClick={() => navigate('/privacy')}
-                    className="text-sm text-gray-600 hover:text-amber-600"
-                  >
-                    Privacy
-                  </button>
-                  <button
-                    onClick={() => navigate('/terms')}
-                    className="text-sm text-gray-600 hover:text-amber-600"
-                  >
-                    Terms
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
