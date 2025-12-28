@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
         if (currentSession?.user) {
           const currentUser = currentSession.user;
           
-          // Check for admin role (email contains 'admin' or specific admin emails)
+          // Check for admin role
           const isAdmin = 
             currentUser.email?.includes('admin') || 
             currentUser.email === 'admin@palmsestate.org' ||
@@ -92,7 +92,9 @@ export const AuthProvider = ({ children }) => {
           }
         );
         
-        // Restore session logic remains...
+        return () => {
+          subscription?.unsubscribe();
+        };
         
       } catch (error) {
         console.error('❌ Auth initialization error:', error);
@@ -105,8 +107,6 @@ export const AuthProvider = ({ children }) => {
     };
 
     handleAuthState();
-
-    return () => {};
   }, []);
 
   const loadUserProfile = async (userId) => {
@@ -119,6 +119,8 @@ export const AuthProvider = ({ children }) => {
       
       if (!error && data) {
         setUserProfile(data);
+      } else if (error && error.code !== 'PGRST116') {
+        console.error('Error loading user profile:', error);
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
@@ -135,17 +137,160 @@ export const AuthProvider = ({ children }) => {
     return isAdmin();
   };
 
-  // Original signUp, signIn, signOut functions remain the same...
-  const signUp = async (email, password, userData) => {
-    // ... existing signUp code ...
+  const signUp = async (email, password, userData = {}) => {
+    try {
+      console.log('📝 Signing up user:', email);
+      
+      // Sign up with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            ...userData,
+            full_name: userData.full_name || '',
+            phone: userData.phone || '',
+            role: 'user'
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) {
+        console.error('❌ Sign up error:', error);
+        throw error;
+      }
+
+      console.log('✅ Sign up successful:', data.user?.email);
+      
+      // If we have a session immediately, user is confirmed
+      if (data.session) {
+        const isAdmin = 
+          data.user.email?.includes('admin') || 
+          data.user.email === 'admin@palmsestate.org' ||
+          data.user.user_metadata?.role === 'admin';
+        
+        const enhancedUser = {
+          ...data.user,
+          role: isAdmin ? 'admin' : 'user',
+          isAdmin: isAdmin
+        };
+        
+        setUser(enhancedUser);
+        setUserRole(isAdmin ? 'admin' : 'user');
+        setSession(data.session);
+        await loadUserProfile(data.user.id);
+      }
+      
+      return {
+        user: data.user,
+        session: data.session,
+        requiresEmailConfirmation: !data.session,
+        confirmationSentAt: data.user?.confirmation_sent_at
+      };
+      
+    } catch (error) {
+      console.error('❌ Sign up failed:', error);
+      throw error;
+    }
   };
 
   const signIn = async (email, password) => {
-    // ... existing signIn code ...
+    try {
+      console.log('🔐 Signing in user:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('❌ Sign in error:', error);
+        throw error;
+      }
+
+      console.log('✅ Sign in successful:', data.user?.email);
+      
+      // Check if user is admin
+      const isAdmin = 
+        data.user.email?.includes('admin') || 
+        data.user.email === 'admin@palmsestate.org' ||
+        data.user.user_metadata?.role === 'admin';
+      
+      // Create enhanced user object
+      const enhancedUser = {
+        ...data.user,
+        role: isAdmin ? 'admin' : 'user',
+        isAdmin: isAdmin
+      };
+      
+      setUser(enhancedUser);
+      setUserRole(isAdmin ? 'admin' : 'user');
+      setSession(data.session);
+      
+      // Load user profile
+      await loadUserProfile(data.user.id);
+      
+      return { user: enhancedUser, session: data.session };
+      
+    } catch (error) {
+      console.error('❌ Sign in failed:', error);
+      throw error;
+    }
   };
 
   const signOut = async () => {
-    // ... existing signOut code ...
+    try {
+      console.log('🚪 Signing out user...');
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('❌ Sign out error:', error);
+        throw error;
+      }
+      
+      // Clear local state
+      setUser(null);
+      setUserRole(null);
+      setSession(null);
+      setUserProfile(null);
+      
+      console.log('✅ Sign out successful');
+      
+      // Redirect to home page
+      window.location.href = '/';
+      
+    } catch (error) {
+      console.error('❌ Sign out failed:', error);
+      throw error;
+    }
+  };
+
+  const resendVerification = async (email) => {
+    try {
+      console.log('📧 Resending verification email to:', email);
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      
+      if (error) {
+        console.error('❌ Resend verification error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Verification email resent');
+      return { success: true };
+      
+    } catch (error) {
+      console.error('❌ Failed to resend verification:', error);
+      return { success: false, error: error.message };
+    }
   };
 
   const value = {
@@ -157,10 +302,15 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
+    resendVerification,
     isAdmin: isAdmin(),
     canUseTestMode: canUseTestMode(),
     isAuthenticated: !!user
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
