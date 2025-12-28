@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Mail, Lock, Eye, EyeOff, ChevronLeft, AlertCircle } from 'lucide-react';
+import { LogIn, Mail, Lock, Eye, EyeOff, ChevronLeft, AlertCircle, ArrowRight } from 'lucide-react';
 
 function SignIn() {
   const [email, setEmail] = useState('');
@@ -12,7 +12,7 @@ function SignIn() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn, resendVerification } = useAuth();
+  const { signIn } = useAuth();
 
   const from = location.state?.from || '/dashboard';
 
@@ -27,29 +27,6 @@ function SignIn() {
     } catch (error) {
       setError(error.message || 'Invalid email or password. Please try again.');
       console.error('Sign in error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResendVerification = async () => {
-    if (!email) {
-      setError('Please enter your email address first');
-      return;
-    }
-    
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      const result = await resendVerification(email);
-      if (result.success) {
-        setError('Verification email resent! Please check your inbox.');
-      } else {
-        setError('Failed to resend verification email. Please try again.');
-      }
-    } catch (error) {
-      setError('Failed to resend verification email. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -95,15 +72,6 @@ function SignIn() {
                   <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-red-700 text-sm mb-2">{error}</p>
-                    {error.includes('verify your email') && (
-                      <button
-                        onClick={handleResendVerification}
-                        disabled={isLoading}
-                        className="text-xs font-medium text-red-600 hover:text-red-800 underline"
-                      >
-                        {isLoading ? 'Sending...' : 'Resend verification email'}
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
