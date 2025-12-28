@@ -32,30 +32,34 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close menus when clicking outside
+  // Close menus when clicking outside - IMPROVED
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Mobile menu
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) && 
+      if (mobileMenuOpen && mobileMenuRef.current && 
+          !mobileMenuRef.current.contains(event.target) && 
           !event.target.closest('button[data-menu-button]')) {
         setMobileMenuOpen(false);
         setActivePanel('main');
+        document.body.style.overflow = '';
       }
       // Desktop menu
-      if (desktopMenuRef.current && !desktopMenuRef.current.contains(event.target) && 
+      if (desktopMenuOpen && desktopMenuRef.current && 
+          !desktopMenuRef.current.contains(event.target) && 
           !event.target.closest('button[data-desktop-menu]')) {
         setDesktopMenuOpen(false);
       }
     };
+    
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
-  }, []);
+  }, [mobileMenuOpen, desktopMenuOpen]);
 
-  // Prevent body scroll when mobile menu is open - FIXED with no auto-scroll
+  // Improved scroll management - NO AUTO-SCROLL TO TOP
   useEffect(() => {
     if (mobileMenuOpen) {
       // Store current scroll position
@@ -64,6 +68,7 @@ function Header() {
       document.body.style.top = `-${scrollY}px`;
       document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = '0'; // Prevent layout shift
     } else {
       // Restore scroll position
       const scrollY = document.body.style.top;
@@ -71,10 +76,21 @@ function Header() {
       document.body.style.top = '';
       document.body.style.width = '';
       document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+      
       if (scrollY) {
         window.scrollTo(0, parseInt(scrollY || '0') * -1);
       }
     }
+    
+    return () => {
+      // Cleanup on unmount
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
   }, [mobileMenuOpen]);
 
   const handleSignOut = async () => {
@@ -84,6 +100,7 @@ function Header() {
       setMobileMenuOpen(false);
       setDesktopMenuOpen(false);
       setActivePanel('main');
+      document.body.style.overflow = '';
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -116,12 +133,13 @@ function Header() {
     { name: 'Settings', path: '/admin/settings', icon: <Settings size={20} />, desc: 'Configure system', color: 'from-gray-600 to-gray-700' },
   ];
 
-  // Quick actions for menu
-  const quickActions = [
-    { name: 'Search', icon: <Search size={18} />, action: () => navigate('/properties?search=true') },
-    { name: 'Help', icon: <HelpCircle size={18} />, action: () => navigate('/contact') },
-    { name: 'Bookmarks', icon: <Bookmark size={18} />, action: () => navigate(user ? '/dashboard/favorites' : '/signin') },
-  ];
+  // Enhanced mobile menu handler - NO SCROLL
+  const handleMobileMenuToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMobileMenuOpen(!mobileMenuOpen);
+    // Don't scroll to top - we handle scroll position in useEffect
+  };
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -136,6 +154,7 @@ function Header() {
             onClick={() => {
               setMobileMenuOpen(false);
               setDesktopMenuOpen(false);
+              document.body.style.overflow = '';
             }}
           >
             {/* Simple Orange Palm Tree */}
@@ -177,8 +196,8 @@ function Header() {
                 to={item.path}
                 className={`flex items-center space-x-2 px-5 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                   location.pathname === item.path
-                    ? 'bg-primary-50 text-primary-700 shadow-sm'
-                    : 'text-gray-700 hover:text-primary-700 hover:bg-gray-50'
+                    ? 'bg-gradient-to-r from-primary-50 to-orange-50 text-primary-700 shadow-sm border border-primary-200'
+                    : 'text-gray-700 hover:text-primary-700 hover:bg-gradient-to-r hover:from-primary-50/50 hover:to-orange-50/50'
                 }`}
               >
                 {item.icon}
@@ -274,9 +293,9 @@ function Header() {
                         key={item.path}
                         to={item.path}
                         onClick={() => setDesktopMenuOpen(false)}
-                        className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-gray-50/80 transition-colors group/item"
+                        className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-primary-50/50 hover:to-orange-50/30 transition-colors group/item"
                       >
-                        <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-primary-100 transition-colors">
+                        <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-gradient-to-br group-hover/item:from-primary-500 group-hover/item:to-orange-400 group-hover/item:text-white transition-colors">
                           {item.icon}
                         </div>
                         <div className="flex-1">
@@ -297,16 +316,16 @@ function Header() {
                             key={item.name}
                             to={item.path}
                             onClick={() => setDesktopMenuOpen(false)}
-                            className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-gray-50/80 transition-colors group/item"
+                            className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-primary-50/50 hover:to-orange-50/30 transition-colors group/item"
                           >
-                            <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-primary-100 transition-colors">
+                            <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-gradient-to-br group-hover/item:from-primary-500 group-hover/item:to-orange-400 group-hover/item:text-white transition-colors">
                               {item.icon}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
                                 <p className="font-medium">{item.name}</p>
                                 {item.badge && (
-                                  <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                                  <span className="px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-full">
                                     {item.badge}
                                   </span>
                                 )}
@@ -329,7 +348,7 @@ function Header() {
                             key={item.name}
                             to={item.path}
                             onClick={() => setDesktopMenuOpen(false)}
-                            className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-blue-50/50 transition-colors group/item"
+                            className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/30 transition-colors group/item"
                           >
                             <div className={`p-2 rounded-lg bg-gradient-to-br ${item.color} text-white`}>
                               {item.icon}
@@ -349,14 +368,14 @@ function Header() {
                         <Link
                           to="/signin"
                           onClick={() => setDesktopMenuOpen(false)}
-                          className="block w-full text-center bg-gradient-to-r from-primary-600 to-orange-500 text-white font-semibold py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300"
+                          className="block w-full text-center bg-gradient-to-r from-primary-600 to-orange-500 text-white font-semibold py-3 px-6 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 shadow-md"
                         >
                           Sign In
                         </Link>
                         <Link
                           to="/signup"
                           onClick={() => setDesktopMenuOpen(false)}
-                          className="block w-full text-center border-2 border-primary-500 text-primary-600 font-semibold py-3 px-6 rounded-xl hover:bg-primary-50 transition-colors"
+                          className="block w-full text-center border-2 border-primary-500 text-primary-600 font-semibold py-3 px-6 rounded-xl hover:bg-gradient-to-r hover:from-primary-50 hover:to-orange-50 transition-all duration-300"
                         >
                           Create Account
                         </Link>
@@ -369,9 +388,9 @@ function Header() {
                     {user ? (
                       <button
                         onClick={handleSignOut}
-                        className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors rounded-xl"
+                        className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 hover:text-red-700 transition-colors rounded-xl"
                       >
-                        <div className="p-2 rounded-lg bg-red-100 text-red-600">
+                        <div className="p-2 rounded-lg bg-gradient-to-br from-red-100 to-orange-100 text-red-600">
                           <LogOut size={18} />
                         </div>
                         <span className="font-medium">Sign Out</span>
@@ -387,11 +406,11 @@ function Header() {
             </div>
           </nav>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Button - FIXED: No auto-scroll */}
           <button
             data-menu-button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden relative flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-orange-400 text-white shadow-md hover:shadow-lg transition-all duration-300 touch-manipulation"
+            onClick={handleMobileMenuToggle}
+            className="md:hidden relative flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-orange-400 text-white shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 touch-manipulation z-50"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {mobileMenuOpen ? (
@@ -403,233 +422,246 @@ function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu - COMPLETELY FIXED: No auto-scroll, proper z-index, smooth animation */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-[9999]"> {/* Ultra high z-index */}
-          {/* Backdrop - prevents clicks behind */}
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
-            onClick={() => {
-              setMobileMenuOpen(false);
-            }}
-          />
-          
-          {/* Menu Container - FIXED: No position manipulation, smooth slide-in */}
-          <div 
-            ref={mobileMenuRef}
-            className="absolute right-0 top-0 bottom-0 w-[85vw] max-w-sm bg-gradient-to-b from-white/98 via-white/95 to-white/90 backdrop-blur-2xl shadow-2xl border-l border-white/40 overflow-hidden flex flex-col transform transition-transform duration-300 ease-out translate-x-0"
-            onClick={(e) => e.stopPropagation()} // Prevent backdrop click
-          >
-            {/* Menu Header */}
-            <div className="pt-8 px-6 pb-6 border-b border-white/30 bg-gradient-to-r from-primary-50/30 to-orange-50/20 flex-shrink-0">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-4">
-                  <div className="w-14 h-14 rounded-2xl bg-white/90 shadow-lg border border-white/40 flex items-center justify-center">
-                    <svg 
-                      width="32" 
-                      height="32" 
-                      viewBox="0 0 48 48" 
-                      fill="none" 
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fillOpacity="0.9"/>
-                      <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
-                      <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
-                      <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
-                      <path d="M24 5C10 10, 2 14, 0 24C-2 20, -4 16, 24 5Z" fill="#22c55e"/>
-                      <path d="M24 5C38 10, 46 14, 48 24C50 20, 52 16, 24 5Z" fill="#16a34a"/>
-                      <circle cx="24" cy="22" r="3" fill="#c2410c"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-gray-900">
-                      {user ? user.email?.split('@')[0] : 'Welcome'}
-                    </h2>
-                    <p className="text-sm text-gray-600">
-                      {user ? (isAdmin ? 'Administrator' : 'Premium Member') : 'Guest'}
+      {/* Mobile Menu - COMPLETELY FIXED */}
+      <div className={`md:hidden fixed inset-0 z-[9999] transition-all duration-300 ${
+        mobileMenuOpen ? 'visible' : 'invisible'
+      }`}>
+        {/* Backdrop - Smooth fade in/out */}
+        <div 
+          className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+            mobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={() => {
+            setMobileMenuOpen(false);
+            document.body.style.overflow = '';
+          }}
+        />
+        
+        {/* Menu Container - Slide in from right */}
+        <div 
+          ref={mobileMenuRef}
+          className={`absolute right-0 top-0 bottom-0 w-[85vw] max-w-sm bg-gradient-to-b from-white via-white to-white shadow-2xl border-l border-white/20 flex flex-col transition-transform duration-300 ease-out ${
+            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Menu Header */}
+          <div className="pt-8 px-6 pb-6 border-b border-gray-100 bg-gradient-to-r from-primary-50 to-orange-50 flex-shrink-0">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 rounded-2xl bg-white shadow-lg border border-primary-100 flex items-center justify-center">
+                  <svg 
+                    width="32" 
+                    height="32" 
+                    viewBox="0 0 48 48" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M24 38L20 28C17 24, 22 22, 24 16C26 22, 31 24, 28 28L24 38Z" fill="#f97316" fillOpacity="0.9"/>
+                    <path d="M24 16C22 19, 21 22, 20 25C19 28, 18 31, 20 28L24 38L28 28C29 31, 28 28, 27 25C26 22, 25 19, 24 16Z" fill="#ea580c"/>
+                    <path d="M24 8C14 12, 8 16, 5 25C2 22, 0 18, 24 8Z" fill="#22c55e"/>
+                    <path d="M24 8C34 12, 40 16, 43 25C46 22, 48 18, 24 8Z" fill="#16a34a"/>
+                    <path d="M24 5C10 10, 2 14, 0 24C-2 20, -4 16, 24 5Z" fill="#22c55e"/>
+                    <path d="M24 5C38 10, 46 14, 48 24C50 20, 52 16, 24 5Z" fill="#16a34a"/>
+                    <circle cx="24" cy="22" r="3" fill="#c2410c"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {user ? user.email?.split('@')[0] : 'Welcome'}
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    {user ? (isAdmin ? 'Administrator' : 'Premium Member') : 'Guest'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  document.body.style.overflow = '';
+                }}
+                className="p-2 rounded-xl hover:bg-white transition-colors touch-manipulation"
+                aria-label="Close menu"
+              >
+                <X size={24} className="text-gray-600" />
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Items - Enhanced with orange hover effects */}
+          <div className="flex-1 overflow-y-auto py-6">
+            <div className="space-y-2 px-4">
+              {/* Navigation Links */}
+              {navItems.map((item, index) => (
+                <div key={item.path}>
+                  <Link
+                    to={item.path}
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      document.body.style.overflow = '';
+                    }}
+                    className={`flex items-center space-x-4 px-4 py-4 rounded-xl transition-all duration-300 group ${
+                      location.pathname === item.path
+                        ? 'bg-gradient-to-r from-primary-500 to-orange-500 text-white shadow-lg'
+                        : 'hover:bg-gradient-to-r hover:from-primary-50 hover:to-orange-50 hover:shadow-md'
+                    }`}
+                  >
+                    <div className={`p-2.5 rounded-lg transition-colors duration-300 ${
+                      location.pathname === item.path 
+                        ? 'bg-white/20' 
+                        : 'bg-gray-100 group-hover:bg-gradient-to-br group-hover:from-primary-100 group-hover:to-orange-100'
+                    }`}>
+                      {item.icon}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`font-semibold transition-colors duration-300 ${
+                        location.pathname === item.path ? 'text-white' : 'text-gray-900 group-hover:text-primary-700'
+                      }`}>
+                        {item.name}
+                      </p>
+                      <p className={`text-sm transition-colors duration-300 ${
+                        location.pathname === item.path ? 'text-white/90' : 'text-gray-500 group-hover:text-gray-700'
+                      }`}>
+                        {item.desc}
+                      </p>
+                    </div>
+                    <ChevronDown size={18} className={`transition-transform duration-300 ${
+                      location.pathname === item.path ? 'text-white' : 'text-gray-400 group-hover:text-primary-500'
+                    } -rotate-90`} />
+                  </Link>
+                  
+                  {/* Divider */}
+                  {index < navItems.length - 1 && (
+                    <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-2"></div>
+                  )}
+                </div>
+              ))}
+
+              {/* Spacer */}
+              <div className="my-6">
+                <div className="h-px bg-gradient-to-r from-transparent via-primary-200 to-transparent"></div>
+              </div>
+
+              {/* Auth Section for non-users */}
+              {!user && (
+                <div className="space-y-3 px-2">
+                  <div className="text-center mb-3">
+                    <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                      Join Palms Estate
                     </p>
                   </div>
+                  
+                  {/* Sign In Button */}
+                  <Link
+                    to="/signin"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      document.body.style.overflow = '';
+                    }}
+                    className="flex items-center justify-center gap-3 bg-gradient-to-r from-primary-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 shadow-lg"
+                  >
+                    <Key size={20} />
+                    <span className="text-lg">Sign In</span>
+                  </Link>
+                  
+                  {/* Create Account Button */}
+                  <Link
+                    to="/signup"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      document.body.style.overflow = '';
+                    }}
+                    className="flex items-center justify-center gap-3 border-2 border-primary-500 text-primary-600 font-semibold py-4 px-6 rounded-xl hover:bg-gradient-to-r hover:from-primary-50 hover:to-orange-50 transition-all duration-300"
+                  >
+                    <UserPlus size={20} />
+                    <span className="text-lg">Create Account</span>
+                  </Link>
                 </div>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                  }}
-                  className="p-2 rounded-xl hover:bg-white/40 transition-colors touch-manipulation"
-                  aria-label="Close menu"
-                >
-                  <X size={24} className="text-gray-600" />
-                </button>
-              </div>
-            </div>
+              )}
 
-            {/* Navigation Items - UPDATED: Premium UI */}
-            <div className="flex-1 overflow-y-auto py-6">
-              <div className="space-y-1 px-4">
-                {/* Navigation Links with divider lines */}
-                {navItems.map((item, index) => (
-                  <div key={item.path}>
+              {/* User Section for logged in */}
+              {user && (
+                <div className="space-y-3">
+                  <div className="text-center mb-3">
+                    <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                      Your Account
+                    </p>
+                  </div>
+                  
+                  {/* Dashboard Link */}
+                  <Link
+                    to="/dashboard"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      document.body.style.overflow = '';
+                    }}
+                    className="flex items-center space-x-4 px-4 py-4 rounded-xl bg-gradient-to-r from-primary-50 to-orange-50 hover:from-primary-100 hover:to-orange-100 transition-all duration-300 group"
+                  >
+                    <div className="p-2.5 rounded-lg bg-gradient-to-br from-primary-500 to-orange-400 text-white">
+                      <Grid size={20} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900 group-hover:text-primary-700 transition-colors">
+                        Dashboard
+                      </p>
+                      <p className="text-sm text-gray-500">Manage your account</p>
+                    </div>
+                    <ChevronDown size={18} className="text-gray-400 -rotate-90 group-hover:text-primary-500 transition-colors" />
+                  </Link>
+
+                  {/* Admin Panel (if admin) */}
+                  {isAdmin && (
                     <Link
-                      to={item.path}
+                      to="/admin"
                       onClick={() => {
                         setMobileMenuOpen(false);
+                        document.body.style.overflow = '';
                       }}
-                      className={`flex items-center space-x-4 px-4 py-5 rounded-2xl transition-all duration-300 group ${
-                        location.pathname === item.path
-                          ? 'bg-gradient-to-r from-primary-500/10 to-orange-500/10 border-l-4 border-primary-500'
-                          : 'hover:bg-gradient-to-r hover:from-primary-50/50 hover:to-orange-50/30'
-                      }`}
+                      className="flex items-center space-x-4 px-4 py-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300 group"
                     >
-                      <div className={`p-3 rounded-xl transition-colors duration-300 ${
-                        location.pathname === item.path 
-                          ? 'bg-gradient-to-br from-primary-500 to-orange-400 text-white' 
-                          : 'bg-gray-100 group-hover:bg-primary-100 text-gray-700'
-                      }`}>
-                        {item.icon}
+                      <div className="p-2.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-400 text-white">
+                        <Shield size={20} />
                       </div>
                       <div className="flex-1">
-                        <p className={`font-semibold transition-colors duration-300 ${
-                          location.pathname === item.path ? 'text-primary-700' : 'text-gray-900 group-hover:text-primary-700'
-                        }`}>
-                          {item.name}
+                        <p className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
+                          Admin Panel
                         </p>
-                        <p className="text-sm text-gray-500">{item.desc}</p>
+                        <p className="text-sm text-gray-500">Manage properties</p>
                       </div>
-                      <ChevronDown size={18} className={`transition-transform duration-300 ${
-                        location.pathname === item.path ? 'text-primary-500' : 'text-gray-400 group-hover:text-primary-400'
-                      } -rotate-90`} />
+                      <ChevronDown size={18} className="text-gray-400 -rotate-90 group-hover:text-blue-500 transition-colors" />
                     </Link>
-                    
-                    {/* Divider line after each except last */}
-                    {index < navItems.length - 1 && (
-                      <div className="h-px bg-gradient-to-r from-transparent via-gray-200/50 to-transparent my-2 mx-4"></div>
-                    )}
-                  </div>
-                ))}
+                  )}
 
-                {/* Spacer */}
-                <div className="my-6">
-                  <div className="h-px bg-gradient-to-r from-transparent via-primary-200/30 to-transparent"></div>
+                  {/* Sign Out Button */}
+                  <button
+                    onClick={handleSignOut}
+                    className="flex items-center space-x-4 w-full px-4 py-4 rounded-xl hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 transition-all duration-300 group mt-3"
+                  >
+                    <div className="p-2.5 rounded-lg bg-gradient-to-br from-red-100 to-orange-100 text-red-600 group-hover:from-red-200 group-hover:to-orange-200 transition-colors">
+                      <LogOut size={20} />
+                    </div>
+                    <span className="font-semibold text-gray-900 group-hover:text-red-700 transition-colors">
+                      Sign Out
+                    </span>
+                  </button>
                 </div>
-
-                {/* Auth Section for non-users */}
-                {!user && (
-                  <div className="space-y-4 px-2">
-                    <div className="text-center mb-2">
-                      <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                        Join Palms Estate
-                      </p>
-                    </div>
-                    
-                    {/* Sign In Button */}
-                    <Link
-                      to="/signin"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center justify-center gap-3 bg-gradient-to-r from-primary-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-2xl hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 shadow-lg"
-                    >
-                      <Key size={20} />
-                      <span className="text-lg">Sign In</span>
-                    </Link>
-                    
-                    {/* Create Account Button */}
-                    <Link
-                      to="/signup"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center justify-center gap-3 border-2 border-primary-500 text-primary-600 font-semibold py-4 px-6 rounded-2xl hover:bg-gradient-to-r hover:from-primary-50 hover:to-orange-50 transition-all duration-300"
-                    >
-                      <UserPlus size={20} />
-                      <span className="text-lg">Create Account</span>
-                    </Link>
-                  </div>
-                )}
-
-                {/* User Section for logged in */}
-                {user && (
-                  <div className="space-y-4">
-                    <div className="text-center mb-2">
-                      <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                        Your Account
-                      </p>
-                    </div>
-                    
-                    {/* Dashboard Link */}
-                    <Link
-                      to="/dashboard"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center space-x-4 px-4 py-5 rounded-2xl bg-gradient-to-r from-primary-600/10 to-orange-500/10 hover:from-primary-600/20 hover:to-orange-500/20 transition-all duration-300 group"
-                    >
-                      <div className="p-3 rounded-xl bg-gradient-to-br from-primary-500 to-orange-400 text-white">
-                        <Grid size={20} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900 group-hover:text-primary-700 transition-colors">
-                          Dashboard
-                        </p>
-                        <p className="text-sm text-gray-500">Manage your account</p>
-                      </div>
-                      <ChevronDown size={18} className="text-gray-400 -rotate-90 group-hover:text-primary-400 transition-colors" />
-                    </Link>
-
-                    {/* Admin Panel (if admin) */}
-                    {isAdmin && (
-                      <Link
-                        to="/admin"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                        }}
-                        className="flex items-center space-x-4 px-4 py-5 rounded-2xl bg-gradient-to-r from-blue-600/10 to-indigo-500/10 hover:from-blue-600/20 hover:to-indigo-500/20 transition-all duration-300 group"
-                      >
-                        <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-400 text-white">
-                          <Shield size={20} />
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">
-                            Admin Panel
-                          </p>
-                          <p className="text-sm text-gray-500">Manage properties</p>
-                        </div>
-                        <ChevronDown size={18} className="text-gray-400 -rotate-90 group-hover:text-blue-400 transition-colors" />
-                      </Link>
-                    )}
-
-                    {/* Sign Out Button */}
-                    <button
-                      onClick={() => {
-                        handleSignOut();
-                      }}
-                      className="flex items-center space-x-4 w-full px-4 py-5 rounded-2xl hover:bg-red-50/50 hover:text-red-700 transition-all duration-300 group mt-4"
-                    >
-                      <div className="p-3 rounded-xl bg-red-100 text-red-600 group-hover:bg-red-200 group-hover:text-red-700 transition-colors">
-                        <LogOut size={20} />
-                      </div>
-                      <span className="font-semibold text-gray-900 group-hover:text-red-700 transition-colors">
-                        Sign Out
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
+          </div>
 
-            {/* Footer */}
-            <div className="border-t border-white/30 bg-white/90 p-4">
-              <div className="text-center">
-                <p className="text-xs text-gray-500">
-                  © {new Date().getFullYear()} Palms Estate
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Premium Luxury Rentals Worldwide
-                </p>
-              </div>
+          {/* Footer */}
+          <div className="border-t border-gray-100 bg-gradient-to-r from-primary-50/50 to-orange-50/50 p-4">
+            <div className="text-center">
+              <p className="text-xs text-gray-600">
+                © {new Date().getFullYear()} Palms Estate
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Premium Luxury Rentals Worldwide
+              </p>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </header>
   );
 }
