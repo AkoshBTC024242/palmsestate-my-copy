@@ -44,7 +44,7 @@ function Footer() {
       <div className="container-fluid py-16">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
           
-          {/* Company Info with Verified Badge */}
+          {/* Company Info */}
           <div className="lg:col-span-2">
             <div className="flex items-start space-x-4 mb-8">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center shadow-lg">
@@ -63,25 +63,19 @@ function Footer() {
                 </svg>
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-serif text-2xl font-bold">Palms<span className="text-amber-400">Estate</span></h3>
-                  <div className="flex items-center gap-1 px-3 py-1 bg-emerald-900/30 border border-emerald-700 rounded-full">
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-medium text-emerald-300">Verified</span>
-                  </div>
-                </div>
+                <h3 className="font-serif text-2xl font-bold mb-2">Palms<span className="text-amber-400">Estate</span></h3>
                 <p className="text-gray-300 mb-6 leading-relaxed max-w-lg">
                   Experience unparalleled luxury living through our curated portfolio of premium residences across the world's most exclusive destinations.
                 </p>
                 
-                {/* Real Estate Verified Badge */}
+                {/* Real Estate Verified Badge - UPDATED: Removed green badge */}
                 <div className="inline-flex items-center gap-3 px-4 py-3 bg-gray-800/50 border border-gray-700 rounded-lg mb-6">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center">
                     <Shield className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-white">Real Estate Verified</p>
-                    <p className="text-sm text-gray-400">Licensed & Accredited Agency</p>
+                    <p className="font-medium text-white">Licensed Real Estate Agency</p>
+                    <p className="text-sm text-gray-400">Fully Accredited & Verified</p>
                   </div>
                 </div>
               </div>
@@ -250,30 +244,86 @@ function Footer() {
         </div>
       </div>
 
-      {/* Bottom Bar */}
+      {/* Bottom Bar with Equal Housing Opportunity Logo */}
       <div className="bg-gray-950 py-6 border-t border-gray-800">
         <div className="container-fluid">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="text-center md:text-left">
-              <p className="text-gray-400 text-sm">
-                © {new Date().getFullYear()} Palms Estate. All rights reserved.
-              </p>
-              <p className="text-gray-500 text-xs mt-1">
-                Premier Luxury Real Estate & Property Management
-              </p>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            {/* Left: Copyright and Equal Housing Logo */}
+            <div className="flex items-center gap-6">
+              {/* Equal Housing Opportunity Logo */}
+              <div className="group relative" title="Equal Housing Opportunity">
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-800/50 border border-gray-700">
+                  {/* Official Equal Housing Opportunity Logo - House with equal sign */}
+                  <svg 
+                    width="32" 
+                    height="32" 
+                    viewBox="0 0 32 32" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="text-gray-300 group-hover:text-amber-300 transition-colors"
+                  >
+                    {/* House outline */}
+                    <path 
+                      d="M16 6L6 12V26H26V12L16 6Z" 
+                      stroke="currentColor" 
+                      strokeWidth="1.5"
+                      strokeLinecap="round" 
+                      strokeLinejoin="round"
+                    />
+                    {/* Equal sign lines inside house */}
+                    <line 
+                      x1="11" 
+                      y1="18" 
+                      x2="21" 
+                      y2="18" 
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                    <line 
+                      x1="11" 
+                      y1="22" 
+                      x2="21" 
+                      y2="22" 
+                      stroke="currentColor" 
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                    {/* Door for house detail */}
+                    <rect 
+                      x="13" 
+                      y="18" 
+                      width="6" 
+                      height="8" 
+                      rx="1" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="1"
+                    />
+                  </svg>
+                  <span className="text-xs text-gray-300 group-hover:text-amber-300 transition-colors hidden md:block">
+                    Equal Housing Opportunity
+                  </span>
+                </div>
+                {/* Tooltip for mobile */}
+                <div className="md:hidden absolute bottom-full left-0 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                  Equal Housing Opportunity
+                </div>
+              </div>
+
+              <div className="text-center md:text-left">
+                <p className="text-gray-400 text-sm">
+                  © {new Date().getFullYear()} Palms Estate. All rights reserved.
+                </p>
+                <p className="text-gray-500 text-xs mt-1">
+                  Premier Luxury Real Estate & Property Management
+                </p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <Globe className="w-4 h-4 text-gray-400" />
-                <select className="bg-transparent text-gray-300 text-sm focus:outline-none">
-                  <option value="en">English</option>
-                  <option value="fr">Français</option>
-                  <option value="es">Español</option>
-                  <option value="zh">中文</option>
-                </select>
-              </div>
-              
+            {/* Right: Language and Legal Links */}
+            <div className="flex items-center gap-8">
+              {/* Legal Links */}
               <div className="flex items-center space-x-6">
                 <Link to="/privacy" className="text-gray-400 hover:text-amber-300 text-sm transition-colors">
                   Privacy Policy
@@ -284,6 +334,17 @@ function Footer() {
                 <Link to="/disclaimer" className="text-gray-400 hover:text-amber-300 text-sm transition-colors">
                   Legal Disclaimer
                 </Link>
+              </div>
+              
+              {/* Language Selector */}
+              <div className="flex items-center space-x-2">
+                <Globe className="w-4 h-4 text-gray-400" />
+                <select className="bg-transparent text-gray-300 text-sm focus:outline-none">
+                  <option value="en">English</option>
+                  <option value="fr">Français</option>
+                  <option value="es">Español</option>
+                  <option value="zh">中文</option>
+                </select>
               </div>
             </div>
           </div>
