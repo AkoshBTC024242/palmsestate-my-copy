@@ -306,8 +306,8 @@ function Dashboard() {
       {/* Desktop Layout Container - Start below header */}
       <div className="flex min-h-screen">
         {/* Desktop Sidebar - Fixed on left, below header */}
-        <div className="hidden lg:block w-64 fixed left-0 top-0 bottom-0 z-40 mt-20">
-          <div className="w-full h-full bg-white/95 backdrop-blur-md border-r border-gray-100 overflow-y-auto">
+        <div className="hidden lg:block w-64 fixed left-0 top-20 bottom-0 z-40">
+          <div className="w-full h-full bg-white/95 backdrop-blur-md border-r border-gray-100 overflow-y-auto flex flex-col">
             {/* Sidebar Header */}
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center space-x-3 mb-6">
@@ -342,45 +342,47 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* Navigation */}
-            <nav className="p-4 space-y-1">
-              {[
-                { id: 'overview', label: 'Overview', icon: <Home className="w-5 h-5" />, badge: null },
-                { id: 'applications', label: 'Applications', icon: <FileText className="w-5 h-5" />, badge: stats.totalApplications },
-                { id: 'saved', label: 'Saved Properties', icon: <Heart className="w-5 h-5" />, badge: stats.savedProperties },
-                { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" />, badge: null },
-                { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" />, badge: stats.notifications },
-                { id: 'profile', label: 'Profile', icon: <User className="w-5 h-5" />, badge: null },
-                { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" />, badge: null },
-              ].map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className={`
-                    w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200
-                    ${activeSection === item.id 
-                      ? 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-100' 
-                      : 'text-gray-700 hover:bg-gray-50'
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${activeSection === item.id ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}>
-                      {item.icon}
+            {/* Navigation - Scrollable area */}
+            <div className="flex-1 overflow-y-auto py-4">
+              <nav className="px-4 space-y-1">
+                {[
+                  { id: 'overview', label: 'Overview', icon: <Home className="w-5 h-5" />, badge: null },
+                  { id: 'applications', label: 'Applications', icon: <FileText className="w-5 h-5" />, badge: stats.totalApplications },
+                  { id: 'saved', label: 'Saved Properties', icon: <Heart className="w-5 h-5" />, badge: stats.savedProperties },
+                  { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" />, badge: null },
+                  { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" />, badge: stats.notifications },
+                  { id: 'profile', label: 'Profile', icon: <User className="w-5 h-5" />, badge: null },
+                  { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" />, badge: null },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`
+                      w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200
+                      ${activeSection === item.id 
+                        ? 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-100' 
+                        : 'text-gray-700 hover:bg-gray-50'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${activeSection === item.id ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}>
+                        {item.icon}
+                      </div>
+                      <span className="font-medium">{item.label}</span>
                     </div>
-                    <span className="font-medium">{item.label}</span>
-                  </div>
-                  {item.badge !== null && item.badge > 0 && (
-                    <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </nav>
+                    {item.badge !== null && item.badge > 0 && (
+                      <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
+            </div>
 
-            {/* Sidebar Footer */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
+            {/* Sign Out Button - Fixed at bottom */}
+            <div className="p-4 border-t border-gray-100 mt-auto">
               <button
                 onClick={handleSignOut}
                 className="w-full flex items-center justify-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
@@ -398,105 +400,109 @@ function Dashboard() {
           transform transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
-          {/* Sidebar Header */}
-          <div className="p-6 border-b border-gray-100">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center shadow-lg">
-                  <User className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-serif font-bold text-gray-900">
-                    {userProfile?.full_name || user?.email?.split('@')[0]}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-xs font-medium rounded-full">
-                      Premium Member
-                    </span>
-                    <Sparkles className="w-3 h-3 text-amber-500" />
+          <div className="h-full flex flex-col">
+            {/* Sidebar Header */}
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-400 flex items-center justify-center shadow-lg">
+                    <User className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-gray-900">
+                      {userProfile?.full_name || user?.email?.split('@')[0]}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-400 text-white text-xs font-medium rounded-full">
+                        Premium Member
+                      </span>
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                    </div>
                   </div>
                 </div>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
               </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="p-2 rounded-lg hover:bg-gray-100"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Member Since</span>
+                  <span className="font-medium">{formatDate(user?.created_at)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Status</span>
+                  <span className="flex items-center gap-1 text-emerald-600">
+                    <CheckCircle className="w-3 h-3" />
+                    Active
+                  </span>
+                </div>
+              </div>
             </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Member Since</span>
-                <span className="font-medium">{formatDate(user?.created_at)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-600">Status</span>
-                <span className="flex items-center gap-1 text-emerald-600">
-                  <CheckCircle className="w-3 h-3" />
-                  Active
-                </span>
-              </div>
-            </div>
-          </div>
 
-          {/* Navigation */}
-          <nav className="p-4 space-y-1">
-            {[
-              { id: 'overview', label: 'Overview', icon: <Home className="w-5 h-5" />, badge: null },
-              { id: 'applications', label: 'Applications', icon: <FileText className="w-5 h-5" />, badge: stats.totalApplications },
-              { id: 'saved', label: 'Saved Properties', icon: <Heart className="w-5 h-5" />, badge: stats.savedProperties },
-              { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" />, badge: null },
-              { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" />, badge: stats.notifications },
-              { id: 'profile', label: 'Profile', icon: <User className="w-5 h-5" />, badge: null },
-              { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" />, badge: null },
-            ].map((item) => (
+            {/* Navigation */}
+            <div className="flex-1 overflow-y-auto py-4">
+              <nav className="px-4 space-y-1">
+                {[
+                  { id: 'overview', label: 'Overview', icon: <Home className="w-5 h-5" />, badge: null },
+                  { id: 'applications', label: 'Applications', icon: <FileText className="w-5 h-5" />, badge: stats.totalApplications },
+                  { id: 'saved', label: 'Saved Properties', icon: <Heart className="w-5 h-5" />, badge: stats.savedProperties },
+                  { id: 'payments', label: 'Payments', icon: <CreditCard className="w-5 h-5" />, badge: null },
+                  { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" />, badge: stats.notifications },
+                  { id: 'profile', label: 'Profile', icon: <User className="w-5 h-5" />, badge: null },
+                  { id: 'settings', label: 'Settings', icon: <Settings className="w-5 h-5" />, badge: null },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveSection(item.id);
+                      setSidebarOpen(false);
+                    }}
+                    className={`
+                      w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200
+                      ${activeSection === item.id 
+                        ? 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-100' 
+                        : 'text-gray-700 hover:bg-gray-50'
+                      }
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${activeSection === item.id ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}>
+                        {item.icon}
+                      </div>
+                      <span className="font-medium">{item.label}</span>
+                    </div>
+                    {item.badge !== null && item.badge > 0 && (
+                      <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
+            </div>
+
+            {/* Sign Out Button */}
+            <div className="p-4 border-t border-gray-100">
               <button
-                key={item.id}
                 onClick={() => {
-                  setActiveSection(item.id);
+                  handleSignOut();
                   setSidebarOpen(false);
                 }}
-                className={`
-                  w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200
-                  ${activeSection === item.id 
-                    ? 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-100' 
-                    : 'text-gray-700 hover:bg-gray-50'
-                  }
-                `}
+                className="w-full flex items-center justify-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${activeSection === item.id ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'}`}>
-                    {item.icon}
-                  </div>
-                  <span className="font-medium">{item.label}</span>
-                </div>
-                {item.badge !== null && item.badge > 0 && (
-                  <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">
-                    {item.badge}
-                  </span>
-                )}
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Sign Out</span>
               </button>
-            ))}
-          </nav>
-
-          {/* Sidebar Footer */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
-            <button
-              onClick={() => {
-                handleSignOut();
-                setSidebarOpen(false);
-              }}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Sign Out</span>
-            </button>
+            </div>
           </div>
         </div>
 
         {/* Main Content Area - Adjusted for sidebar and header */}
-        <div className="flex-1 lg:ml-64 pt-20 lg:pt-0">
+        <div className="flex-1 lg:ml-64 pt-16 lg:pt-0">
           {/* Desktop Welcome Bar */}
           <div className="hidden lg:block bg-white/80 backdrop-blur-sm border-b border-gray-200/50 px-8 py-6">
             <div className="flex items-center justify-between">
@@ -523,6 +529,28 @@ function Dashboard() {
 
           {/* Main Content */}
           <div className="p-4 lg:p-8">
+            {/* Mobile Welcome Section */}
+            <div className="lg:hidden mb-8">
+              <div className="mb-6">
+                <h1 className="font-serif text-2xl font-bold text-gray-900">
+                  Welcome back, {userProfile?.full_name?.split(' ')[0] || 'Guest'}
+                </h1>
+                <p className="text-gray-600 mt-1">Your journey to exceptional living continues here.</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/properties"
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 shadow-md"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                  New Application
+                </Link>
+                <button className="p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <Bell className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+            </div>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {[
