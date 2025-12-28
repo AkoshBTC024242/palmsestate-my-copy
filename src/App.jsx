@@ -63,6 +63,21 @@ function App() {
                 </ProtectedRoute>
               } />
               
+              {/* ===== ADMIN ROUTES ===== */}
+              
+              {/* Admin Dashboard */}
+              <Route path="/admin" element={
+                <AdminProtectedRoute>
+                  <AdminDashboard />
+                </AdminProtectedRoute>
+              } />
+              
+              <Route path="/admin-dashboard" element={
+                <AdminProtectedRoute>
+                  <AdminDashboard />
+                </AdminProtectedRoute>
+              } />
+              
               {/* ===== ERROR PAGES ===== */}
               
               {/* 404 - Page Not Found */}
