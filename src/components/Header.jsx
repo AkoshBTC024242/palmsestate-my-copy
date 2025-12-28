@@ -6,7 +6,8 @@ import {
   Building2, Info, Phone, LogOut, Menu, X, 
   FileText, Key, Shield, Bell, MessageSquare,
   Settings, Heart, Bookmark, HelpCircle, LogIn, 
-  UserPlus, MapPin, Star
+  UserPlus, MapPin, Star, LayoutDashboard, Settings as SettingsIcon,
+  Shield as ShieldIcon
 } from 'lucide-react';
 
 function Header() {
@@ -256,6 +257,62 @@ function Header() {
                       </Link>
                     ))}
                     
+                    {/* Dashboard & Admin Links (Only for logged in users) */}
+                    {user && (
+                      <>
+                        <div className="px-5 py-2">
+                          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account</p>
+                        </div>
+                        
+                        {/* Dashboard Link */}
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setDesktopMenuOpen(false)}
+                          className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-amber-50 transition-colors group/item"
+                        >
+                          <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-amber-100 group-hover/item:text-amber-600 transition-colors">
+                            <LayoutDashboard size={20} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium">Dashboard</p>
+                            <p className="text-sm text-gray-500">Your property applications & saved properties</p>
+                          </div>
+                        </Link>
+                        
+                        {/* Admin Panel Link (Only for admins) */}
+                        {isAdmin && (
+                          <Link
+                            to="/admin"
+                            onClick={() => setDesktopMenuOpen(false)}
+                            className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-blue-50 transition-colors group/item"
+                          >
+                            <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-blue-100 group-hover/item:text-blue-600 transition-colors">
+                              <ShieldIcon size={20} />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">Admin Panel</p>
+                              <p className="text-sm text-gray-500">Manage properties, users, and applications</p>
+                            </div>
+                          </Link>
+                        )}
+                        
+                        {/* Settings Link */}
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setDesktopMenuOpen(false)}
+                          className="flex items-center space-x-3 px-5 py-3 text-gray-700 hover:bg-amber-50 transition-colors group/item"
+                        >
+                          <div className="p-2 rounded-lg bg-gray-100 group-hover/item:bg-amber-100 group-hover/item:text-amber-600 transition-colors">
+                            <SettingsIcon size={20} />
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium">Settings</p>
+                            <p className="text-sm text-gray-500">Manage your account preferences</p>
+                          </div>
+                        </Link>
+                      </>
+                    )}
+                    
                     {/* Auth Buttons */}
                     {!user && (
                       <div className="px-5 py-4 space-y-3">
@@ -410,6 +467,67 @@ function Header() {
               <div className="my-8">
                 <div className="h-px bg-gradient-to-r from-transparent via-amber-200 to-transparent"></div>
               </div>
+
+              {/* Dashboard & Admin Links (Only for logged in users) */}
+              {user && (
+                <>
+                  <div className="mb-4 px-4">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Account</p>
+                    
+                    {/* Dashboard Link */}
+                    <Link
+                      to="/dashboard"
+                      onClick={closeMobileMenu}
+                      className="flex items-center space-x-4 px-4 py-5 rounded-lg hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/50 transition-all duration-200 mb-3"
+                    >
+                      <div className="p-3 rounded-lg bg-gray-100 text-gray-700 group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
+                        <LayoutDashboard size={20} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">Dashboard</p>
+                        <p className="text-sm text-gray-500">Your property applications & saved properties</p>
+                      </div>
+                      <ChevronDown size={18} className="transform -rotate-90 text-gray-400" />
+                    </Link>
+                    
+                    {/* Admin Panel Link (Only for admins) */}
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={closeMobileMenu}
+                        className="flex items-center space-x-4 px-4 py-5 rounded-lg hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-blue-50/30 transition-all duration-200 mb-3"
+                      >
+                        <div className="p-3 rounded-lg bg-gray-100 text-gray-700 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                          <ShieldIcon size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-gray-900">Admin Panel</p>
+                          <p className="text-sm text-gray-500">Manage properties, users, and applications</p>
+                        </div>
+                        <ChevronDown size={18} className="transform -rotate-90 text-gray-400" />
+                      </Link>
+                    )}
+                    
+                    {/* Settings Link */}
+                    <Link
+                      to="/dashboard"
+                      onClick={closeMobileMenu}
+                      className="flex items-center space-x-4 px-4 py-5 rounded-lg hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/50 transition-all duration-200"
+                    >
+                      <div className="p-3 rounded-lg bg-gray-100 text-gray-700 group-hover:bg-amber-100 group-hover:text-amber-700 transition-colors">
+                        <SettingsIcon size={20} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">Settings</p>
+                        <p className="text-sm text-gray-500">Manage your account preferences</p>
+                      </div>
+                      <ChevronDown size={18} className="transform -rotate-90 text-gray-400" />
+                    </Link>
+                  </div>
+                  
+                  <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent mx-4 my-6"></div>
+                </>
+              )}
 
               {/* Auth Section */}
               {!user ? (
