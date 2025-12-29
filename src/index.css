@@ -6,47 +6,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== LUXURY GLOBAL STYLES ===== */
-
-/* 1. Better touch targets - Luxury feel */
+/* Simple base styles */
 @layer base {
-  button, 
-  a[role="button"],
-  .btn,
-  input[type="submit"],
-  input[type="button"] {
-    min-height: 44px;
-    min-width: 44px;
-    touch-action: manipulation;
-  }
-  
-  /* Smooth scrolling for luxury feel */
-  html {
-    scroll-behavior: smooth;
-    -webkit-tap-highlight-color: transparent;
-  }
-  
   body {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    overscroll-behavior-y: none;
-    @apply text-gray-800 bg-white antialiased;
+    font-family: 'Inter', sans-serif;
+    @apply bg-white text-gray-800;
   }
-
-  /* Luxury typography */
+  
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-weight: 300;
-    letter-spacing: -0.02em;
-  }
-
-  p, li, span, div {
-    font-family: 'Montserrat', system-ui, sans-serif;
-    font-weight: 300;
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
   }
 }
 
-/* 2. Container system */
+/* Container */
 .container-fluid {
   width: 100%;
   margin-left: auto;
@@ -73,115 +46,4 @@
   .container-fluid {
     max-width: 90rem;
   }
-}
-
-/* 3. Prevent horizontal overflow */
-body {
-  overflow-x: hidden;
-  width: 100%;
-}
-
-/* 4. Luxury utility classes */
-@layer components {
-  .luxury-section {
-    padding-top: 5rem;
-    padding-bottom: 5rem;
-  }
-  
-  @media (min-width: 768px) {
-    .luxury-section {
-      padding-top: 8rem;
-      padding-bottom: 8rem;
-    }
-  }
-  
-  .luxury-heading {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-weight: 300;
-    font-size: 2.25rem;
-    line-height: 1.2;
-    letter-spacing: -0.02em;
-  }
-  
-  @media (min-width: 768px) {
-    .luxury-heading {
-      font-size: 3rem;
-    }
-  }
-  
-  @media (min-width: 1024px) {
-    .luxury-heading {
-      font-size: 3.75rem;
-    }
-  }
-  
-  .luxury-subheading {
-    font-family: 'Montserrat', system-ui, sans-serif;
-    font-weight: 300;
-    font-size: 1.125rem;
-    line-height: 1.75;
-    letter-spacing: 0.01em;
-  }
-  
-  @media (min-width: 768px) {
-    .luxury-subheading {
-      font-size: 1.25rem;
-    }
-  }
-}
-
-/* 5. Luxury hover effects */
-@media (hover: hover) {
-  .luxury-hover {
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .luxury-hover-lift {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .luxury-hover-lift:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  }
-}
-
-/* 6. Mobile tap feedback */
-button:active, 
-a[role="button"]:active {
-  transform: scale(0.98);
-  transition: transform 0.1s ease;
-}
-
-/* 7. Luxury text gradients */
-.text-gradient-luxury {
-  background: linear-gradient(to right, #C77D1E, #D4AF37, #fb923c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* 8. Custom scrollbar for desktop */
-@media (min-width: 768px) {
-  ::-webkit-scrollbar {
-    width: 10px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background-color: #F5F1E8;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background-color: rgba(199, 125, 30, 0.3);
-    border-radius: 9999px;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(199, 125, 30, 0.5);
-  }
-}
-
-/* 9. Background patterns */
-.bg-luxury-pattern {
-  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23C77D1E' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
