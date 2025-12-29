@@ -11,13 +11,6 @@ function Footer() {
     { name: 'Contact', path: '/contact' },
   ];
 
-  const services = [
-    'Luxury Rentals',
-    'Property Management',
-    'Investment Advisory',
-    'Corporate Housing'
-  ];
-
   return (
     <footer className="bg-gray-900 text-white">
       {/* Main Footer Content */}
@@ -26,7 +19,7 @@ function Footer() {
           
           {/* Brand Column */}
           <div className="lg:col-span-2">
-            <div className="flex items-start gap-4 mb-8">
+            <div className="flex items-start gap-4 mb-6">
               {/* Luxury Branding */}
               <div className="flex-shrink-0">
                 <div className="w-12 h-12 bg-gradient-to-br from-luxury-orange to-amber-600 flex items-center justify-center rounded-lg">
@@ -46,23 +39,37 @@ function Footer() {
               </div>
               
               <div>
-                <h3 className="font-serif text-2xl font-light mb-3">
+                <h3 className="font-serif text-2xl font-light mb-2">
                   Palms<span className="text-luxury-orange">Estate</span>
                 </h3>
-                <p className="text-gray-300 text-sm leading-relaxed max-w-lg">
+                <p className="text-gray-300 text-sm leading-relaxed max-w-md">
                   Premier luxury real estate with exclusive properties and unparalleled service worldwide.
                 </p>
               </div>
             </div>
 
-            {/* Contact CTA */}
-            <Link
-              to="/contact"
-              className="inline-flex items-center gap-3 bg-luxury-orange hover:bg-amber-600 text-white font-medium py-3 px-8 rounded-full transition-all duration-300 hover:scale-105"
-            >
-              <Phone className="w-4 h-4" />
-              <span>Contact Our Concierge</span>
-            </Link>
+            {/* Contact Info in Brand Column */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Phone className="w-4 h-4 text-luxury-orange flex-shrink-0" />
+                <a 
+                  href="tel:+18286239765" 
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  +1 (828) 623-9765
+                </a>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Mail className="w-4 h-4 text-luxury-orange flex-shrink-0" />
+                <a 
+                  href="mailto:concierge@palmsestate.org" 
+                  className="text-gray-300 hover:text-white transition-colors text-sm"
+                >
+                  concierge@palmsestate.org
+                </a>
+              </div>
+            </div>
           </div>
 
           {/* Quick Links */}
@@ -85,44 +92,41 @@ function Footer() {
             </ul>
           </div>
 
-          {/* Contact Info */}
+          {/* Services */}
           <div>
             <h4 className="font-serif text-lg font-medium mb-6 text-white pb-3 border-b border-gray-800">
-              Contact
+              Services
             </h4>
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <Phone className="w-4 h-4 text-luxury-orange mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-white">Phone</p>
-                  <a 
-                    href="tel:+18286239765" 
-                    className="text-gray-300 hover:text-luxury-orange transition-colors text-sm block"
-                  >
-                    +1 (828) 623-9765
-                  </a>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-luxury-orange mt-1 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-white">Email</p>
-                  <a 
-                    href="mailto:admin@palmsestate.org" 
-                    className="text-gray-300 hover:text-luxury-orange transition-colors text-sm block"
-                  >
-                    concierge@palmsestate.org
-                  </a>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-luxury-orange mt=1 flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-white">Location</p>
-                  <p className="text-gray-300 text-sm">Monte Carlo, Monaco</p>
-                </div>
+            <ul className="space-y-3">
+              {[
+                'Luxury Rentals',
+                'Property Management',
+                'Investment Advisory',
+                'Corporate Housing'
+              ].map((service) => (
+                <li key={service}>
+                  <span className="text-gray-300 hover:text-white transition-colors text-sm cursor-default">
+                    {service}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Location */}
+          <div>
+            <h4 className="font-serif text-lg font-medium mb-6 text-white pb-3 border-b border-gray-800">
+              Headquarters
+            </h4>
+            <div className="flex items-start gap-3">
+              <MapPin className="w-4 h-4 text-luxury-orange mt-1 flex-shrink-0" />
+              <div>
+                <p className="text-gray-300 text-sm">
+                  123 Luxury Avenue<br />
+                  Monte Carlo<br />
+                  Monaco 98000
+                </p>
+                <p className="text-gray-400 text-xs mt-2">By appointment only</p>
               </div>
             </div>
           </div>
