@@ -63,10 +63,10 @@ function Footer() {
               <div className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-luxury-orange flex-shrink-0" />
                 <a 
-                  href="mailto:concierge@palmsestate.org" 
+                  href="mailto:admin@palmsestate.org" 
                   className="text-gray-300 hover:text-white transition-colors text-sm"
                 >
-                  concierge@palmsestate.org
+                  admin@palmsestate.org
                 </a>
               </div>
             </div>
@@ -122,9 +122,8 @@ function Footer() {
               <MapPin className="w-4 h-4 text-luxury-orange mt-1 flex-shrink-0" />
               <div>
                 <p className="text-gray-300 text-sm">
-                  123 Luxury Avenue<br />
-                  Monte Carlo<br />
-                  Monaco 98000
+                  Whitney, TX<br />
+                  76692
                 </p>
                 <p className="text-gray-400 text-xs mt-2">By appointment only</p>
               </div>
