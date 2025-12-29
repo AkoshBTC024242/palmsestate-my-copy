@@ -8,8 +8,8 @@ export default {
     extend: {
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
-        'serif': ['Playfair Display', 'Georgia', 'serif'], // Luxury serif font
-        'montserrat': ['Montserrat', 'system-ui', 'sans-serif'], // Luxury sans font
+        'serif': ['Playfair Display', 'Georgia', 'serif'],
+        'montserrat': ['Montserrat', 'system-ui', 'sans-serif'],
         'display': ['SF Pro Display', 'system-ui', 'sans-serif'],
         'mono': ['SF Mono', 'monospace'],
       },
@@ -26,14 +26,14 @@ export default {
           800: '#9a3412',
           900: '#7c2d12',
         },
-        // Luxury color palette
+        // Luxury color palette - CORRECTED SYNTAX
         'luxury': {
-          'orange': '#C77D1E', // Rich, premium orange (for "Living" accent)
-          'gold': '#D4AF37', // Luxury gold
-          'cream': '#F5F1E8', // Off-white cream
-          'charcoal': '#1A1A1A', // Deep charcoal
-          'slate': '#4A5568', // Muted slate
-          'beige': '#E8E2D6', // Warm beige
+          'orange': '#C77D1E',
+          'gold': '#D4AF37',
+          'cream': '#F5F1E8',
+          'charcoal': '#1A1A1A',
+          'slate': '#4A5568',
+          'beige': '#E8E2D6',
         }
       },
       animation: {
@@ -71,7 +71,6 @@ export default {
           '50%': { transform: 'translateY(-10px)' },
         }
       },
-      // Luxury shadows
       boxShadow: {
         'luxury': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         'luxury-lg': '0 35px 60px -15px rgba(0, 0, 0, 0.3)',
@@ -97,22 +96,14 @@ export default {
             paddingRight: '2rem',
           },
           '@screen lg': {
-            maxWidth: '90rem', // Increased for luxury spaciousness
+            maxWidth: '90rem',
           },
         },
-        // Luxury utility classes
+        // Luxury utility classes - CORRECTED (no @apply)
         '.text-balance': {
           textWrap: 'balance',
         },
-        '.luxury-section': {
-          '@apply py-20 md:py-32', // Extra spacing for luxury feel
-        },
-        '.luxury-heading': {
-          '@apply font-serif text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight',
-        },
-        '.luxury-subheading': {
-          '@apply font-montserrat text-lg md:text-xl font-light leading-relaxed tracking-wide',
-        },
+        // These classes will be defined in index.css instead
       })
     },
   ],
