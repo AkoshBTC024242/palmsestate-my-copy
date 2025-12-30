@@ -100,7 +100,7 @@ function InitialApplyForm() {
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
-        <div className="text-center p-8 max-w-md">
+        <div className="text-center p-8 max-w-md mx-auto">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Application Submitted</h2>
           <p className="text-gray-600 mb-6">Our team will review your application and get back to you within 24-48 hours with next steps.</p>
