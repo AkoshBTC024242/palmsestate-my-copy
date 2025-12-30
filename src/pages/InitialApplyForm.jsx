@@ -72,7 +72,7 @@ function InitialApplyForm() {
 
       if (error) throw error;
 
-      // Send confirmation email to user
+      // Send confirmation to user
       await sendApplicationConfirmation(formData.email, {
         applicationId: application.id,
         propertyId: id,
@@ -80,7 +80,7 @@ function InitialApplyForm() {
         message: 'Your application has been received. Our team will review shortly.'
       });
 
-      // Send notification email to admin
+      // Send notification to admin
       await sendApplicationConfirmation('admin@palmsestate.org', {
         applicationId: application.id,
         userName: formData.fullName,
@@ -99,92 +99,90 @@ function InitialApplyForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center p-8">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
+        <div className="text-center p-8 max-w-md">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Application Submitted</h2>
-          <p>We'll review and get back to you soon with next steps.</p>
-          <Link to="/properties" className="mt-4 inline-block text-orange-600">Back to Properties</Link>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Application Submitted</h2>
+          <p className="text-gray-600 mb-6">Our team will review your application and get back to you within 24-48 hours with next steps.</p>
+          <Link to="/properties" className="inline-flex items-center bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl font-sans font-semibold hover:shadow-lg transition-all">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Properties
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <form onSubmit={handleSubmit} className="w-full max-w-md p-8 bg-white rounded-2xl shadow-xl">
-        <h2 className="text-2xl font-bold mb-6">Apply for Property</h2>
-
-        {error && <p className="text-red-600 mb-4">{error}</p>}
-
-        <div className="space-y-4">
-          <div className="flex items-center border rounded-lg p-2">
-            <User className="w-5 h-5 mr-2" />
-            <input
-              type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleInputChange}
-              placeholder="Full Name"
-              className="w-full outline-none"
-              required
-            />
-          </div>
-
-          <div className="flex items-center border rounded-lg p-2">
-            <Mail className="w-5 h-5 mr-2" />
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              placeholder="Email"
-              className="w-full outline-none"
-              required
-            />
-          </div>
-
-          <div className="flex items-center border rounded-lg p-2">
-            <Phone className="w-5 h-5 mr-2" />
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              placeholder="Phone"
-              className="w-full outline-none"
-              required
-            />
-          </div>
-
-          <div className="flex items-center border rounded-lg p-2">
-            <Calendar className="w-5 h-5 mr-2" />
-            <input
-              type="date"
-              name="preferredDate"
-              value={formData.preferredDate}
-              onChange={handleInputChange}
-              className="w-full outline-none"
-            />
-          </div>
-
-          <div className="flex items-center border rounded-lg p-2">
-            <FileText className="w-5 h-5 mr-2" />
-            <textarea
-              name="message"
-              value={formData.message}
-              onChange={handleInputChange}
-              placeholder="Message or Notes"
-              className="w-full outline-none"
-              rows="4"
-            />
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50 flex items-center justify-center py-8">
+      <div className="w-full max-w-md mx-auto px-4">
+        <Link to={`/properties/${id}`} className="inline-flex items-center text-amber-600 hover:text-amber-700 mb-6">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Property
+        </Link>
+        <div className="bg-white rounded-2xl shadow-xl p-8">
+          <h1 className="text-2xl font-serif font-bold text-gray-800 mb-6">Initial Application</h1>
+          <p className="text-gray-600 mb-8">Submit your interest — our team will review and notify you for next steps.</p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+              <input
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleInputChange}
+                className="w-full p-3 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full p-3 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="w-full p-3 border border-gray-300 rounded-lg"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Preferred Date (optional)</label>
+              <input
+                type="date"
+                name="preferredDate"
+                value={formData.preferredDate}
+                onChange={handleInputChange}
+                className="w-full p-3 border border-gray-300 rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Message (optional)</label>
+              <textarea
+                name="message"
+                value={formData.message}
+                onChange={handleInputChange}
+                className="w-full p-3 border border-gray-300 rounded-lg"
+                rows="4"
+              />
+            </div>
+            <button type="submit" disabled={submitting} className="w-full bg-amber-600 text-white py-4 rounded-lg font-bold">
+              {submitting ? 'Submitting...' : 'Submit Application'}
+            </button>
+          </form>
         </div>
-
-        <button type="submit" disabled={submitting} className="w-full bg-orange-500 text-white py-4 rounded-lg mt-6">
-          {submitting ? 'Submitting...' : 'Submit Application'}
-        </button>
-      </form>
+      </div>
     </div>
   );
 }
