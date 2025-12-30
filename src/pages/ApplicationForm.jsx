@@ -8,7 +8,7 @@ import {
   Calendar, User, Mail, Phone, FileText, ArrowLeft, 
   CreditCard, CheckCircle, Home, Shield, Clock, Building, 
   DollarSign, Users, Dog, MapPin, Home as HomeIcon, Globe,
-  Flask
+  Beaker // Changed from Flask to Beaker
 } from 'lucide-react';
 
 function ApplicationForm() {
@@ -532,7 +532,7 @@ function ApplicationForm() {
             
             {isTestMode && step === 1 && (
               <div className="bg-gradient-to-r from-amber-500 to-orange-400 text-white px-4 py-2 rounded-full text-sm font-medium flex items-center">
-                <Flask className="w-4 h-4 mr-2" />
+                <Beaker className="w-4 h-4 mr-2" />
                 TEST MODE
               </div>
             )}
@@ -583,7 +583,7 @@ function ApplicationForm() {
               }`}>
                 <div className="flex items-start">
                   {isTestMode ? (
-                    <Flask className="w-6 h-6 text-emerald-600 mr-3 mt-1 flex-shrink-0" />
+                    <Beaker className="w-6 h-6 text-emerald-600 mr-3 mt-1 flex-shrink-0" />
                   ) : (
                     <CreditCard className="w-6 h-6 text-amber-600 mr-3 mt-1 flex-shrink-0" />
                   )}
