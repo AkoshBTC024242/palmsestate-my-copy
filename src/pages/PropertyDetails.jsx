@@ -10,13 +10,96 @@ import {
 } from 'lucide-react';
 
 const mockProperties = [
-  // your mock properties array (unchanged)
+  {
+    id: '1',
+    title: 'Oceanfront Villa Bianca',
+    location: 'Maldives',
+    price: 35000,
+    price_per_week: 35000,
+    sqft: 12500,
+    bedrooms: 5,
+    bathrooms: 6,
+    category: 'Exclusive',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'An architectural masterpiece nestled on a private island in the Maldives, Villa Bianca redefines oceanfront luxury. This exclusive estate features direct beach access, panoramic ocean views from every room, and unparalleled privacy for discerning guests seeking the ultimate retreat.',
+  },
+  {
+    id: '2',
+    title: 'Skyline Penthouse',
+    location: 'Manhattan, NY',
+    price: 45000,
+    price_per_week: 45000,
+    sqft: 8500,
+    bedrooms: 4,
+    bathrooms: 5,
+    category: 'Premium',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1560448075-bb485b4d6e49?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'Perched atop one of Manhattan\'s most exclusive towers, this triplex penthouse offers 360-degree views of Central Park and the Manhattan skyline. Featuring a private elevator, smart home automation, and a rooftop terrace with outdoor kitchen.',
+  },
+  {
+    id: '3',
+    title: 'Mediterranean Estate',
+    location: 'Saint-Tropez, France',
+    price: 75000,
+    price_per_week: 75000,
+    sqft: 22000,
+    bedrooms: 8,
+    bathrooms: 10,
+    category: 'Exclusive',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1518780664697-55e3ad937233?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'A magnificent Mediterranean estate overlooking the French Riviera. This historic property features a private vineyard, infinity pool, tennis court, and staff quarters. Perfect for hosting large gatherings or enjoying a luxurious retreat.',
+  },
+  {
+    id: '4',
+    title: 'Modern Cliffside Villa',
+    location: 'Big Sur, CA',
+    price: 28000,
+    price_per_week: 28000,
+    sqft: 9800,
+    bedrooms: 6,
+    bathrooms: 7,
+    category: 'Premium',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'Architectural marvel perched on the cliffs of Big Sur. Floor-to-ceiling glass walls offer breathtaking Pacific Ocean views. Features an infinity edge pool, home theater, wine cellar, and sustainable design elements.',
+  },
+  {
+    id: '5',
+    title: 'Alpine Chalet',
+    location: 'Aspen, CO',
+    price: 32000,
+    price_per_week: 32000,
+    sqft: 13500,
+    bedrooms: 7,
+    bathrooms: 8,
+    category: 'Exclusive',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1513584684374-8bab748fbf90?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'Luxury ski-in/ski-out chalet in Aspen\'s most exclusive neighborhood. Features heated indoor pool, spa with sauna and steam room, game room with bowling alley, and private ski valet service.',
+  },
+  {
+    id: '6',
+    title: 'Urban Penthouse Loft',
+    location: 'Miami Beach, FL',
+    price: 38000,
+    price_per_week: 38000,
+    sqft: 6800,
+    bedrooms: 3,
+    bathrooms: 4,
+    category: 'Premium',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'Sophisticated penthouse loft in the heart of Miami Beach. Features 20-foot ceilings, exposed concrete beams, custom Italian kitchen, and a rooftop pool with panoramic ocean and city views.',
+  }
 ];
 
 function PropertyDetails() {
   const { id } = useParams();
-  const { user } = useAuth();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,7 +111,7 @@ function PropertyDetails() {
       setLoading(false);
     }, 300);
 
-  return () => clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [id]);
 
   const handleApplyForRental = () => {
@@ -70,11 +153,37 @@ function PropertyDetails() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
+        <div className="text-center">
+          <div className="w-12 h-12 mx-auto mb-4 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin"></div>
+          <p className="text-gray-600">Loading property details...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!property) {
-    return <div className="min-h-screen flex items-center justify-center">Property not found</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-serif font-bold text-gray-800 mb-2">Property Not Found</h2>
+          <p className="text-gray-600 mb-4">The property with ID "{id}" could not be found.</p>
+          <Link
+            to="/properties"
+            className="inline-flex items-center bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl font-sans font-semibold hover:shadow-lg transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Properties
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
