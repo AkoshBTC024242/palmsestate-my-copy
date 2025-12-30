@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
-  FileText, Clock, CheckCircle, Heart, Building2, MapPin,
-  CalendarDays, DollarSign, Eye, ArrowRight, Home as HomeIcon
+  FileText, Clock, CheckCircle, AlertCircle, CreditCard,
+  Building2, CalendarDays, DollarSign, ArrowRight, Home as HomeIcon
 } from 'lucide-react';
 
 function Dashboard() {
@@ -12,58 +12,58 @@ function Dashboard() {
   const navigate = useNavigate();
 
   const [applications, setApplications] = useState([]);
-  const [savedProperties, setSavedProperties] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      loadData();
+      loadApplications();
     }
   }, [user]);
 
-  const loadData = async () => {
+  const loadApplications = async () => {
     try {
-      // Load applications
-      const { data: apps } = await supabase
+      const { data, error } = await supabase
         .from('applications')
         .select('*, properties(title, location, price_per_week)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      setApplications(apps || []);
+      if (error) throw error;
 
-      // Load saved properties
-      const { data: saved } = await supabase
-        .from('saved_properties')
-        .select('*, properties(title, location, price_per_week, image_url)')
-        .eq('user_id', user.id);
-
-      setSavedProperties(saved || []);
+      setApplications(data || []);
     } catch (error) {
-      console.error('Load error:', error);
+      console.error('Error loading applications:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatus = (status) => {
-    const map = {
+  const getStatusConfig = (status) => {
+    const configs = {
       submitted: { color: 'bg-blue-100 text-blue-800', icon: <Clock className="w-4 h-4" />, label: 'Submitted' },
       pre_approved: { color: 'bg-amber-100 text-amber-800', icon: <AlertCircle className="w-4 h-4" />, label: 'Pre-Approved' },
-      paid_under_review: { color: 'bg-purple-100 text-purple-800', icon: <DollarSign className="w-4 h-4" />, label: 'Paid - Review' },
+      paid_under_review: { color: 'bg-purple-100 text-purple-800', icon: <CreditCard className="w-4 h-4" />, label: 'Paid - Review' },
       approved: { color: 'bg-green-100 text-green-800', icon: <CheckCircle className="w-4 h-4" />, label: 'Approved' },
       rejected: { color: 'bg-red-100 text-red-800', icon: <AlertCircle className="w-4 h-4" />, label: 'Rejected' },
     };
-    return map[status] || map.submitted;
+    return configs[status] || configs.submitted;
   };
 
-  const formatDate = (date) => new Date(date).toLocaleDateString();
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
-  if (loading) return <div className="p-8 text-center">Loading dashboard...</div>;
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-      {/* Simple Header - No Verified Member */}
+      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-2 text-amber-600 font-bold">
@@ -79,29 +79,27 @@ function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">My Dashboard</h1>
 
-        {/* Applications Section */}
-        <section className="mb-12">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">My Applications</h2>
-            <Link to="/properties" className="text-amber-600 hover:text-amber-700">
-              Browse Properties →
-            </Link>
-          </div>
+        <section>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">My Applications ({applications.length})</h2>
 
           {applications.length === 0 ? (
             <div className="bg-white rounded-2xl shadow p-12 text-center">
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-600">No applications yet. Start by browsing properties.</p>
+              <p className="text-gray-600 mb-6">No applications yet.</p>
+              <Link to="/properties" className="bg-amber-600 text-white px-6 py-3 rounded-xl">
+                Browse Properties
+              </Link>
             </div>
           ) : (
             <div className="space-y-6">
               {applications.map(app => {
-                const status = getStatus(app.status);
+                const status = getStatusConfig(app.status);
+
                 return (
                   <div key={app.id} className="bg-white rounded-2xl shadow p-6">
                     <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                       <div>
-                        <h3 className="text-xl font-bold">{app.properties?.title || 'Property'}</h3>
+                        <h3 className="text-xl font-bold">{app.properties?.title || 'Luxury Property'}</h3>
                         <p className="text-gray-600">{app.properties?.location}</p>
                         <p className="text-sm text-gray-500 mt-1">Applied {formatDate(app.created_at)}</p>
                       </div>
@@ -123,26 +121,6 @@ function Dashboard() {
                   </div>
                 );
               })}
-            </div>
-          )}
-        </section>
-
-        {/* Saved Properties */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Saved Properties</h2>
-          {savedProperties.length === 0 ? (
-            <p className="text-gray-600">No saved properties.</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {savedProperties.map(saved => (
-                <div key={saved.property_id} className="bg-white rounded-2xl shadow overflow-hidden">
-                  <img src={saved.properties.image_url} alt="" className="w-full h-48 object-cover" />
-                  <div className="p-4">
-                    <h3 className="font-bold">{saved.properties.title}</h3>
-                    <p className="text-gray-600">{saved.properties.location}</p>
-                  </div>
-                </div>
-              ))}
             </div>
           )}
         </section>
