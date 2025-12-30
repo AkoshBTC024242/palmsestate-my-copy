@@ -431,6 +431,26 @@ export const AuthProvider = ({ children }) => {
     refreshSession // Export refresh function
   };
 
+  // In your AuthContext.jsx, ensure this function exists:
+const canUseTestMode = () => {
+  if (!user) return false;
+  
+  try {
+    // Only admins can use test mode
+    return isAdmin();
+  } catch (error) {
+    console.error('Error checking test mode:', error);
+    return false;
+  }
+};
+
+// And make sure it's included in the value object:
+const value = {
+  // ... other values
+  canUseTestMode: canUseTestMode(),
+  // ... other values
+};
+
   return (
     <AuthContext.Provider value={value}>
       {children}
