@@ -11,18 +11,17 @@ import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import ApplicationForm from './pages/ApplicationForm';
+import InitialApplyForm from './pages/InitialApplyForm'; // NEW
+import PaymentPage from './pages/PaymentPage'; // NEW
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
-
 // Dashboard Pages
 import Applications from './pages/dashboard/Applications';
 import ApplicationDetail from './pages/dashboard/ApplicationDetail';
-import PaymentPage from './pages/dashboard/PaymentPage';
 import SavedProperties from './pages/dashboard/SavedProperties';
 import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
-
 // Admin Pages
 import AdminProperties from './pages/admin/AdminProperties';
 import AdminPropertyEdit from './pages/admin/AdminPropertyEdit';
@@ -48,6 +47,8 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/properties" element={<Properties />} />
                     <Route path="/properties/:id" element={<PropertyDetails />} />
+                    <Route path="/properties/:id/initial-apply" element={<InitialApplyForm />} /> {/* NEW */}
+                    <Route path="/applications/:id/pay" element={<PaymentPage />} /> {/* NEW */}
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/signin" element={<SignIn />} />
@@ -57,7 +58,6 @@ function App() {
                 <Footer />
               </div>
             } />
-
             {/* ===== USER DASHBOARD ROUTES (NO HEADER/FOOTER) ===== */}
             <Route path="/dashboard/*" element={
               <ProtectedRoute>
@@ -65,14 +65,12 @@ function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/applications" element={<Applications />} />
                   <Route path="/applications/:id" element={<ApplicationDetail />} />
-                  <Route path="/applications/:id/payment" element={<PaymentPage />} />
                   <Route path="/saved" element={<SavedProperties />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                 </Routes>
               </ProtectedRoute>
             } />
-
             {/* ===== ADMIN DASHBOARD ROUTES (NO HEADER/FOOTER) ===== */}
             <Route path="/admin/*" element={
               <AdminProtectedRoute>
@@ -90,8 +88,7 @@ function App() {
                 </Routes>
               </AdminProtectedRoute>
             } />
-
-            {/* ===== PROTECTED APPLICATION FORM ===== */}
+            {/* ===== PROTECTED APPLICATION FORM (OLD) - KEEP FOR BACKWARD COMPATIBILITY ===== */}
             <Route path="/properties/:id/apply" element={
               <ProtectedRoute>
                 <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
@@ -103,7 +100,6 @@ function App() {
                 </div>
               </ProtectedRoute>
             } />
-
             {/* ===== 404 PAGE ===== */}
             <Route path="*" element={
               <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
@@ -124,17 +120,17 @@ function App() {
                           The page you're looking for doesn't exist or has been moved to a new location.
                         </p>
                       </div>
-                      
+                     
                       <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <a 
-                          href="/" 
+                        <a
+                          href="/"
                           className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white px-8 py-4 rounded-full font-sans font-bold hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                         >
                           Return to Home
                         </a>
-                        
-                        <a 
-                          href="/properties" 
+                       
+                        <a
+                          href="/properties"
                           className="inline-flex items-center gap-3 backdrop-blur-md bg-white/10 text-gray-900 border border-gray-300 px-8 py-4 rounded-full font-sans font-bold hover:bg-white/20 transition-all duration-300"
                         >
                           Browse Properties
