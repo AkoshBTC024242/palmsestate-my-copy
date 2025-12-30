@@ -11,8 +11,8 @@ import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import ApplicationForm from './pages/ApplicationForm';
-import InitialApplyForm from './pages/InitialApplyForm'; // NEW
-import PaymentPage from './pages/PaymentPage'; // NEW
+import InitialApplyForm from './pages/InitialApplyForm'; // ADD THIS IMPORT
+import PaymentPage from './pages/dashboard/PaymentPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
@@ -47,8 +47,7 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/properties" element={<Properties />} />
                     <Route path="/properties/:id" element={<PropertyDetails />} />
-                    <Route path="/properties/:id/initial-apply" element={<InitialApplyForm />} /> {/* NEW */}
-                    <Route path="/applications/:id/pay" element={<PaymentPage />} /> {/* NEW */}
+                    <Route path="/properties/:id/initial-apply" element={<InitialApplyForm />} /> {/* NEW ROUTE */}
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/signin" element={<SignIn />} />
@@ -65,6 +64,7 @@ function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/applications" element={<Applications />} />
                   <Route path="/applications/:id" element={<ApplicationDetail />} />
+                  <Route path="/applications/:id/payment" element={<PaymentPage />} />
                   <Route path="/saved" element={<SavedProperties />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
@@ -105,39 +105,7 @@ function App() {
               <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
                 <Header />
                 <main className="flex-grow pt-16 md:pt-20">
-                  <div className="min-h-[70vh] flex items-center justify-center bg-gradient-to-b from-white to-amber-50">
-                    <div className="text-center px-4 max-w-2xl mx-auto">
-                      <div className="mb-8">
-                        <div className="inline-block backdrop-blur-md bg-white/60 border border-gray-200/50 rounded-2xl px-8 py-4 mb-6">
-                          <span className="font-sans text-amber-600 font-semibold tracking-widest text-sm md:text-base uppercase">
-                            ERROR 404
-                          </span>
-                        </div>
-                        <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6">
-                          Page Not <span className="text-amber-600">Found</span>
-                        </h1>
-                        <p className="font-sans text-lg md:text-xl text-gray-600 mb-8 max-w-lg mx-auto leading-relaxed">
-                          The page you're looking for doesn't exist or has been moved to a new location.
-                        </p>
-                      </div>
-                     
-                      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                        <a
-                          href="/"
-                          className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white px-8 py-4 rounded-full font-sans font-bold hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                        >
-                          Return to Home
-                        </a>
-                       
-                        <a
-                          href="/properties"
-                          className="inline-flex items-center gap-3 backdrop-blur-md bg-white/10 text-gray-900 border border-gray-300 px-8 py-4 rounded-full font-sans font-bold hover:bg-white/20 transition-all duration-300"
-                        >
-                          Browse Properties
-                        </a>
-                      </div>
-                    </div>
-                  </div>
+                  {/* your 404 JSX */}
                 </main>
                 <Footer />
               </div>
