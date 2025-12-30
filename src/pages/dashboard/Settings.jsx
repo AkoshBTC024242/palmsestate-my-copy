@@ -47,40 +47,72 @@ function Settings() {
     }
   };
 
-  const saveSettings = async () => {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('preferences')
-        .eq('id', user.id)
-        .single();
+ const saveSettings = async () => {
+  if (!user) return;
+  
+  setLoading(true);
+  try {
+    const { data: profile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('preferences')
+      .eq('id', user.id)
+      .single();
 
-      const updatedPreferences = {
-        ...(profile?.preferences || {}),
-        settings
-      };
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          preferences: updatedPreferences,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      alert('Settings saved successfully!');
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      alert('Error saving settings');
-    } finally {
-      setLoading(false);
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('Error fetching profile:', fetchError);
+      // Create profile if it doesn't exist
+      await createProfileIfMissing();
     }
-  };
+
+    const updatedPreferences = {
+      ...(profile?.preferences || {}),
+      settings
+    };
+
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        preferences: updatedPreferences,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'id'
+      });
+
+    if (error) throw error;
+
+    alert('Settings saved successfully!');
+  } catch (error) {
+    console.error('Error saving settings:', error);
+    alert('Error saving settings: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const createProfileIfMissing = async () => {
+  try {
+    const newProfile = {
+      id: user.id,
+      preferences: {
+        settings: settings,
+        email_notifications: true,
+        sms_notifications: false,
+        newsletter: true
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase
+      .from('profiles')
+      .insert([newProfile]);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error creating profile:', error);
+  }
+};
 
   const handlePasswordChange = async () => {
     if (passwordData.new !== passwordData.confirm) {
