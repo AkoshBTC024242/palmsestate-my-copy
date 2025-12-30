@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import { sendApplicationConfirmation } from '../lib/emailService';
 import {
   Building2, Users, FileText, DollarSign, BarChart3,
   Shield, Settings, LogOut, PlusCircle, Search,
@@ -71,6 +72,14 @@ function AdminDashboard() {
     }
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
   const handlePreApprove = async (appId) => {
     try {
       const { error } = await supabase
@@ -95,14 +104,6 @@ function AdminDashboard() {
     } catch (error) {
       alert('Error pre-approving');
     }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString();
   };
 
   const renderContent = () => {
