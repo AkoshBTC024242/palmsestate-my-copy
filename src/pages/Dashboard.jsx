@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import DashboardLayout from '../components/DashboardLayout';
@@ -30,7 +30,6 @@ function Dashboard() {
 
   const loadDashboardData = async () => {
     try {
-      // Load applications — ALL statuses including 'submitted'
       const { data: appsData, error: appsError } = await supabase
         .from('applications')
         .select('*, properties(title, location, price_per_week)')
@@ -52,16 +51,15 @@ function Dashboard() {
         totalApplications: appsData.length,
         pending,
         approved,
-        savedProperties: savedProperties.length // keep your saved logic if any
       }));
 
-      // Load saved properties (your code)
       const { data: savedData } = await supabase
         .from('saved_properties')
         .select('*, properties(*)')
         .eq('user_id', user.id);
 
       setSavedProperties(savedData || []);
+      setStats(prev => ({ ...prev, savedProperties: savedData?.length || 0 }));
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     }
@@ -115,94 +113,124 @@ function Dashboard() {
     return null;
   }
 
-  return (
-    <DashboardLayout activeSection={activeSection} setActiveSection={setActiveSection}>
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {/* your stats cards — unchanged */}
-      </div>
-
-      {/* Recent Applications */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="font-serif text-xl font-bold text-gray-900 mb-2">Recent Applications</h2>
-            <p className="text-gray-600">Track your property applications and their status</p>
+  const renderContent = () => {
+    if (activeSection === 'overview') {
+      return (
+        <>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {/* your stats cards */}
           </div>
-          <button
-            onClick={() => navigate('/dashboard/applications')}
-            className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1"
-          >
-            View All
-          </button>
-        </div>
 
-        {applications.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
-              <FileText className="w-8 h-8 text-amber-600" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Yet</h3>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
-              Start your luxury living journey by applying for one of our premium properties.
-            </p>
-            <button
-              onClick={() => navigate('/properties')}
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium px-6 py-3 rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
-            >
-              <Building2 className="w-5 h-5" />
-              Browse Properties
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {applications.slice(0, 3).map((application) => (
-              <div
-                key={application.id}
-                className="group flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-amber-200 hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/30 transition-all duration-300"
+          {/* Recent Applications */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-serif text-xl font-bold text-gray-900 mb-2">Recent Applications</h2>
+                <p className="text-gray-600">Track your property applications and their status</p>
+              </div>
+              <button
+                onClick={() => setActiveSection('applications')}
+                className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1"
               >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-4">
-                    <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-200" />
+                View All
+              </button>
+            </div>
+
+            {applications.length === 0 ? (
+              <div className="text-center py-12">
+                {/* your no applications UI */}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {applications.slice(0, 3).map((application) => (
+                  <div key={application.id} className="group flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 rounded-xl border border-gray-200 hover:border-amber-200 hover:bg-gradient-to-r hover:from-amber-50/50 hover:to-orange-50/30 transition-all duration-300">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-4">
+                        <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-gray-200" />
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-serif font-bold text-gray-900">
+                              {application.properties?.title || 'Luxury Property'}
+                            </h4>
+                            {getStatusBadge(application.status)}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <span className="flex items-center gap-1">
+                              <CalendarDays className="w-4 h-4" />
+                              Applied {formatDate(application.created_at)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 lg:mt-0 lg:ml-4 flex items-center gap-4">
+                      <button
+                        onClick={() => navigate(`/dashboard/applications/${application.id}`)}
+                        className="text-sm text-gray-700 hover:text-amber-600 font-medium flex items-center gap-1"
+                      >
+                        View Details
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      {application.status === 'pre_approved' && (
+                        <Link
+                          to={`/applications/${application.id}/pay`}
+                          className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                        >
+                          Pay $50 Fee
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      );
+    }
+
+    if (activeSection === 'applications') {
+      return (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-gray-900">All Applications</h2>
+          {applications.length === 0 ? (
+            <p>No applications found.</p>
+          ) : (
+            <div className="space-y-4">
+              {applications.map((application) => (
+                <div key={application.id} className="bg-white rounded-xl shadow p-6">
+                  <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-serif font-bold text-gray-900">
-                          {application.properties?.title || 'Luxury Property'}
-                        </h4>
-                        {getStatusBadge(application.status)}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <CalendarDays className="w-4 h-4" />
-                          Applied {formatDate(application.created_at)}
-                        </span>
-                      </div>
+                      <h3 className="text-xl font-bold">{application.properties?.title}</h3>
+                      <p className="text-gray-600">{application.properties?.location}</p>
+                      <p className="text-sm text-gray-500">Applied {formatDate(application.created_at)}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {getStatusBadge(application.status)}
+                      {application.status === 'pre_approved' && (
+                        <Link to={`/applications/${application.id}/pay`} className="bg-amber-600 text-white px-6 py-3 rounded-xl">
+                          Pay $50 Fee
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </div>
-               
-                <div className="mt-4 lg:mt-0 lg:ml-4 flex items-center gap-4">
-                  <button
-                    onClick={() => navigate(`/dashboard/applications/${application.id}`)}
-                    className="text-sm text-gray-700 hover:text-amber-600 font-medium flex items-center gap-1"
-                  >
-                    View Details
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  {application.status === 'pre_approved' && (
-                    <Link
-                      to={`/applications/${application.id}/pay`}
-                      className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                    >
-                      Pay $50 Fee
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // other sections (saved, profile, etc.) — keep your original or empty for now
+
+    return <div>Section not implemented yet</div>;
+  };
+
+  return (
+    <DashboardLayout activeSection={activeSection} setActiveSection={setActiveSection}>
+      {renderContent()}
     </DashboardLayout>
   );
 }
