@@ -10,7 +10,23 @@ import {
 } from 'lucide-react';
 
 // Mock data...
-const mockProperties = [ /* your mock array */ ];
+const mockProperties = [
+  {
+    id: '1',
+    title: 'Oceanfront Villa Bianca',
+    location: 'Maldives',
+    price: 35000,
+    price_per_week: 35000,
+    sqft: 12500,
+    bedrooms: 5,
+    bathrooms: 6,
+    category: 'Exclusive',
+    status: 'available',
+    image_url: 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80',
+    description: 'An architectural masterpiece nestled on a private island in the Maldives, Villa Bianca redefines oceanfront luxury. This exclusive estate features direct beach access, panoramic ocean views from every room, and unparalleled privacy for discerning guests seeking the ultimate retreat.',
+  },
+  // add the other properties from your code
+];
 
 function PropertyDetails() {
   const { id } = useParams();
@@ -169,7 +185,7 @@ function PropertyDetails() {
               />
             </div>
           </div>
-  <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((num) => (
               <div key={num} className="rounded-2xl overflow-hidden shadow-lg">
                 <div className="h-40 bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
