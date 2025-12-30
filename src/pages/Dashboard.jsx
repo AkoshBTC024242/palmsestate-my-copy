@@ -29,34 +29,48 @@ function Dashboard() {
   }, [user, authLoading]);
 
   const loadDashboardData = async () => {
-    try {
-      // Load applications
-      const { data: appsData } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+  try {
+    // Load applications
+    const { data: appsData } = await supabase
+      .from('applications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
-      if (appsData) {
-        setApplications(appsData);
-        const pending = appsData.filter(app => 
-          app.status === 'pending' || app.status === 'under_review'
-        ).length;
-        const approved = appsData.filter(app => 
-          app.status === 'approved'
-        ).length;
+    // Load saved properties
+    const { data: savedData } = await supabase
+      .from('saved_properties')
+      .select(`
+        property_id,
+        properties (*)
+      `)
+      .eq('user_id', user.id);
 
-        setStats(prev => ({
-          ...prev,
-          totalApplications: appsData.length,
-          pending,
-          approved
-        }));
-      }
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
+    if (appsData) {
+      setApplications(appsData);
+      const pending = appsData.filter(app => 
+        app.status === 'pending' || app.status === 'under_review'
+      ).length;
+      const approved = appsData.filter(app => 
+        app.status === 'approved'
+      ).length;
+
+      setStats(prev => ({
+        ...prev,
+        totalApplications: appsData.length,
+        pending,
+        approved,
+        savedProperties: savedData?.length || 0
+      }));
     }
-  };
+
+    if (savedData) {
+      setSavedProperties(savedData);
+    }
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+  }
+};
 
   const getStatusBadge = (status, paymentStatus) => {
     const statusConfig = {
