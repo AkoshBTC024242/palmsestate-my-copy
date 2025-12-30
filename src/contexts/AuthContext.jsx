@@ -13,44 +13,43 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(null);
   const [testMode, setTestMode] = useState(false);
 
-  // Session refresh function
   const refreshSession = async () => {
     try {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (currentSession) {
         const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
         if (error) {
-          console.error('❌ Session refresh error:', error);
+          console.error('Session refresh error:', error);
           if (error.message.includes('Invalid refresh token')) {
             await signOut();
           }
         } else if (refreshedSession) {
           setSession(refreshedSession);
-          console.log('🔄 Session refreshed');
+          console.log('Session refreshed');
         }
       }
     } catch (error) {
-      console.error('❌ Refresh session failed:', error);
+      console.error('Refresh session failed:', error);
     }
   };
 
   useEffect(() => {
-    console.log('🔄 AuthProvider initializing...');
+    console.log('AuthProvider initializing...');
 
     const handleAuthState = async () => {
       try {
-        console.log('🔍 Checking for existing session...');
+        console.log('Checking for existing session...');
 
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
 
         if (error) {
-          console.error('❌ Error getting session:', error);
+          console.error('Error getting session:', error);
           setLoading(false);
           return;
         }
 
-        console.log('📊 Session found:', currentSession ? 'Yes' : 'No');
-        console.log('👤 User email:', currentSession?.user?.email);
+        console.log('Session found:', currentSession ? 'Yes' : 'No');
+        console.log('User email:', currentSession?.user?.email);
 
         setSession(currentSession);
 
@@ -69,7 +68,7 @@ export const AuthProvider = ({ children }) => {
             if (roleData) {
               isAdmin = roleData.role === 'admin';
               userTestMode = roleData.test_mode === true;
-              console.log('👑 User role from database:', roleData.role, 'Test mode:', userTestMode);
+              console.log('User role from database:', roleData.role, 'Test mode:', userTestMode);
             } else {
               isAdmin =
                 currentUser.email?.includes('admin') ||
@@ -77,7 +76,7 @@ export const AuthProvider = ({ children }) => {
                 currentUser.user_metadata?.role === 'admin';
             }
           } catch (error) {
-            console.log('⚠️ Using fallback admin check');
+            console.log('Using fallback admin check');
             isAdmin =
               currentUser.email?.includes('admin') ||
               currentUser.email === 'admin@palmsestate.org' ||
@@ -92,14 +91,14 @@ export const AuthProvider = ({ children }) => {
 
             if (systemSettings?.test_mode?.enabled && isAdmin) {
               userTestMode = true;
-              console.log('⚙️ Global test mode enabled in system settings');
+              console.log('Global test mode enabled in system settings');
             }
           } catch (error) {
             console.log('No system settings found or error:', error.message);
           }
 
-          console.log('👑 Admin check:', isAdmin ? 'Admin user' : 'Regular user');
-          console.log('🧪 Test mode:', userTestMode ? 'Enabled' : 'Disabled');
+          console.log('Admin check:', isAdmin ? 'Admin user' : 'Regular user');
+          console.log('Test mode:', userTestMode ? 'Enabled' : 'Disabled');
 
           const enhancedUser = {
             ...currentUser,
@@ -121,7 +120,7 @@ export const AuthProvider = ({ children }) => {
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, newSession) => {
-            console.log('🎯 Auth state changed:', event);
+            console.log('Auth state changed:', event);
 
             setSession(newSession);
 
@@ -194,11 +193,11 @@ export const AuthProvider = ({ children }) => {
         };
 
       } catch (error) {
-        console.error('❌ Auth initialization error:', error);
+        console.error('Auth initialization error:', error);
       } finally {
         setTimeout(() => {
           setLoading(false);
-          console.log('✅ AuthProvider initialized');
+          console.log('AuthProvider initialized');
         }, 300);
       }
     };
@@ -266,7 +265,7 @@ export const AuthProvider = ({ children }) => {
 
   const signUp = async (email, password, userData = {}) => {
     try {
-      console.log('📝 Signing up user:', email);
+      console.log('Signing up user:', email);
 
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -283,11 +282,11 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) {
-        console.error('❌ Sign up error:', error);
+        console.error('Sign up error:', error);
         throw error;
       }
 
-      console.log('✅ Sign up successful:', data.user?.email);
+      console.log('Sign up successful:', data.user?.email);
 
       if (data.session) {
         const isAdmin =
@@ -316,14 +315,14 @@ export const AuthProvider = ({ children }) => {
       };
 
     } catch (error) {
-      console.error('❌ Sign up failed:', error);
+      console.error('Sign up failed:', error);
       throw error;
     }
   };
 
   const signIn = async (email, password) => {
     try {
-      console.log('🔐 Signing in user:', email);
+      console.log('Signing in user:', email);
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -331,16 +330,16 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) {
-        console.error('❌ Sign in error:', error);
+        console.error('Sign in error:', error);
         throw error;
       }
 
-      console.log('✅ Sign in successful:', data.user?.email);
+      console.log('Sign in successful:', data.user?.email);
 
       // Force persist the session
       if (data.session) {
         await supabase.auth.setSession(data.session);
-        console.log('Session persisted');
+        console.log('Session persisted in localStorage');
       }
 
       let isAdmin = false;
@@ -395,19 +394,19 @@ export const AuthProvider = ({ children }) => {
 
       return { user: enhancedUser, session: data.session };
     } catch (error) {
-      console.error('❌ Sign in failed:', error);
+      console.error('Sign in failed:', error);
       throw error;
     }
   };
 
   const signOut = async () => {
     try {
-      console.log('🚪 Signing out user...');
+      console.log('Signing out user...');
 
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        console.error('❌ Sign out error:', error);
+        console.error('Sign out error:', error);
         throw error;
       }
 
@@ -417,18 +416,18 @@ export const AuthProvider = ({ children }) => {
       setUserProfile(null);
       setTestMode(false);
 
-      console.log('✅ Sign out successful');
+      console.log('Sign out successful');
 
       window.location.href = '/';
     } catch (error) {
-      console.error('❌ Sign out failed:', error);
+      console.error('Sign out failed:', error);
       throw error;
     }
   };
 
   const resendVerification = async (email) => {
     try {
-      console.log('📧 Resending verification email to:', email);
+      console.log('Resending verification email to:', email);
 
       const { error } = await supabase.auth.resend({
         type: 'signup',
@@ -439,14 +438,14 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (error) {
-        console.error('❌ Resend verification error:', error);
+        console.error('Resend verification error:', error);
         throw error;
       }
 
-      console.log('✅ Verification email resent');
+      console.log('Verification email resent');
       return { success: true };
     } catch (error) {
-      console.error('❌ Failed to resend verification:', error);
+      console.error('Failed to resend verification:', error);
       return { success: false, error: error.message };
     }
   };
