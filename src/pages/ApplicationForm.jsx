@@ -7,12 +7,13 @@ import PaymentForm from '../components/PaymentForm';
 import { 
   Calendar, User, Mail, Phone, FileText, ArrowLeft, 
   CreditCard, CheckCircle, Home, Shield, Clock, Building, 
-  DollarSign, Users, Dog, MapPin, Home as HomeIcon, Globe
+  DollarSign, Users, Dog, MapPin, Home as HomeIcon, Globe,
+  Flask
 } from 'lucide-react';
 
 function ApplicationForm() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, canUseTestMode } = useAuth();
   const navigate = useNavigate();
   
   const [property, setProperty] = useState(null);
@@ -50,11 +51,13 @@ function ApplicationForm() {
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isTestMode, setIsTestMode] = useState(false);
   
   const APPLICATION_FEE = 5000;
 
   useEffect(() => {
     fetchProperty();
+    checkTestMode();
   }, [id]);
 
   useEffect(() => {
@@ -78,7 +81,6 @@ function ApplicationForm() {
     try {
       setLoading(true);
       
-      // First try to fetch from Supabase
       const { data: supabaseProperty, error: supabaseError } = await supabase
         .from('properties')
         .select('*')
@@ -138,10 +140,41 @@ function ApplicationForm() {
     }
   };
 
+  const checkTestMode = async () => {
+    if (!user || !canUseTestMode) return;
+    
+    try {
+      // Check user_roles table for test mode
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('test_mode')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.log('Checking test mode from system settings');
+        // Check system_settings instead
+        const { data: settings } = await supabase
+          .from('system_settings')
+          .select('test_mode')
+          .single();
+        
+        if (settings?.test_mode?.enabled) {
+          setIsTestMode(true);
+          console.log('✅ Test mode enabled from system settings');
+        }
+      } else if (data && data.test_mode) {
+        setIsTestMode(true);
+        console.log('✅ Test mode enabled for admin user');
+      }
+    } catch (error) {
+      console.log('Test mode check error:', error.message);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
     
-    // Handle nested billing address fields
     if (name.startsWith('billing.')) {
       const addressField = name.split('.')[1];
       setFormData(prev => ({
@@ -161,7 +194,6 @@ function ApplicationForm() {
   };
 
   const validateStep1 = () => {
-    // Validate personal info
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
       setError('First and last name are required');
       return false;
@@ -175,25 +207,26 @@ function ApplicationForm() {
       return false;
     }
     
-    // Validate billing address
-    if (!formData.billingAddress.line1.trim()) {
-      setError('Billing address line 1 is required');
-      return false;
-    }
-    if (!formData.billingAddress.city.trim()) {
-      setError('City is required');
-      return false;
-    }
-    if (!formData.billingAddress.state.trim()) {
-      setError('State is required');
-      return false;
-    }
-    if (!formData.billingAddress.postalCode.trim()) {
-      setError('Postal code is required');
-      return false;
+    // In test mode, billing address is optional
+    if (!isTestMode) {
+      if (!formData.billingAddress.line1.trim()) {
+        setError('Billing address line 1 is required');
+        return false;
+      }
+      if (!formData.billingAddress.city.trim()) {
+        setError('City is required');
+        return false;
+      }
+      if (!formData.billingAddress.state.trim()) {
+        setError('State is required');
+        return false;
+      }
+      if (!formData.billingAddress.postalCode.trim()) {
+        setError('Postal code is required');
+        return false;
+      }
     }
     
-    // Validate other fields
     if (!formData.employmentStatus) {
       setError('Please select employment status');
       return false;
@@ -229,12 +262,18 @@ function ApplicationForm() {
         billingAddress: formData.billingAddress
       };
 
-      console.log('Submitting application with customer data:', {
-        property_id: id,
-        user_id: user?.id,
-        ...formData,
-        customerInfo
-      });
+      console.log('Submitting application. Test mode:', isTestMode);
+
+      // Determine application status based on test mode
+      let applicationStatus = 'payment_pending';
+      let paymentStatus = 'pending';
+      let applicationFee = 50;
+      
+      if (isTestMode) {
+        applicationStatus = 'approved'; // Auto-approve for test mode
+        paymentStatus = 'test_mode_skipped';
+        applicationFee = 0;
+      }
 
       // Create application record in database
       const { data: application, error: appError } = await supabase
@@ -257,35 +296,75 @@ function ApplicationForm() {
             preferred_tour_date: formData.preferredDate || null,
             notes: formData.notes,
             application_type: formData.applicationType,
-            status: 'payment_pending',
-            application_fee: 50,
+            status: applicationStatus,
+            payment_status: paymentStatus,
+            application_fee: applicationFee,
             created_at: new Date().toISOString()
           }
         ])
         .select()
         .single();
 
-      console.log('Database response:', { application, appError });
-
       if (appError) {
         console.error('Database error details:', appError);
         throw appError;
       }
 
-      // Store application ID AND customer info for payment processing
+      // Store application ID for next steps
       localStorage.setItem('currentApplicationId', application.id);
       localStorage.setItem('applicantData', JSON.stringify(customerInfo));
       
       console.log('Application created successfully:', application.id);
       
-      // Move to payment step
-      setStep(2);
+      // If test mode, skip payment and go to success
+      if (isTestMode) {
+        await handleTestModeSuccess(application);
+      } else {
+        // Move to payment step
+        setStep(2);
+      }
 
     } catch (error) {
       console.error('Full application error:', error);
       setError(`Failed to submit application: ${error.message}. Please try again or contact support.`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleTestModeSuccess = async (application) => {
+    try {
+      // Send test mode confirmation email
+      if (user?.email) {
+        await sendApplicationConfirmation(user.email, {
+          applicationId: application.id,
+          propertyName: property?.title || 'Luxury Property',
+          propertyLocation: property?.location || 'Premium Location',
+          propertyPrice: property ? `$${property.price_per_week}/week` : '$0/week',
+          applicationDate: new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+          paymentId: 'TEST_MODE_SKIPPED',
+          paymentAmount: '$0.00',
+          customerName: `${formData.firstName} ${formData.lastName}`,
+          isTestMode: true,
+          status: 'auto-approved'
+        });
+      }
+
+      setPaymentComplete(true);
+      setStep(3);
+      
+      // Clear stored data
+      localStorage.removeItem('currentApplicationId');
+      localStorage.removeItem('applicantData');
+
+    } catch (error) {
+      console.error('Test mode success error:', error);
+      setError('Application submitted but failed to send confirmation.');
     }
   };
 
@@ -437,16 +516,27 @@ function ApplicationForm() {
             Back to Property
           </Link>
           
-          <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-800 mb-2">
-            {step === 1 ? 'Rental Application' : 
-             step === 2 ? 'Payment Processing' : 
-             'Application Complete'}
-          </h1>
-          <p className="text-gray-600">
-            {step === 1 ? `Applying for ${property.title}` : 
-             step === 2 ? 'Secure payment for your application fee' : 
-             'Your application has been submitted successfully'}
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-800 mb-2">
+                {step === 1 ? 'Rental Application' : 
+                 step === 2 ? 'Payment Processing' : 
+                 'Application Complete'}
+              </h1>
+              <p className="text-gray-600">
+                {step === 1 ? `Applying for ${property.title}` : 
+                 step === 2 ? 'Secure payment for your application fee' : 
+                 'Your application has been submitted successfully'}
+              </p>
+            </div>
+            
+            {isTestMode && step === 1 && (
+              <div className="bg-gradient-to-r from-amber-500 to-orange-400 text-white px-4 py-2 rounded-full text-sm font-medium flex items-center">
+                <Flask className="w-4 h-4 mr-2" />
+                TEST MODE
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Error Message */}
@@ -486,18 +576,47 @@ function ApplicationForm() {
 
             <div className="p-6 md:p-8">
               {/* Application Fee Notice */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-6 mb-8">
+              <div className={`rounded-xl p-6 mb-8 ${
+                isTestMode 
+                  ? 'bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200' 
+                  : 'bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200'
+              }`}>
                 <div className="flex items-start">
-                  <CreditCard className="w-6 h-6 text-amber-600 mr-3 mt-1 flex-shrink-0" />
+                  {isTestMode ? (
+                    <Flask className="w-6 h-6 text-emerald-600 mr-3 mt-1 flex-shrink-0" />
+                  ) : (
+                    <CreditCard className="w-6 h-6 text-amber-600 mr-3 mt-1 flex-shrink-0" />
+                  )}
                   <div>
-                    <h3 className="font-semibold text-amber-800 mb-2">Application Fee: $50</h3>
-                    <p className="text-amber-700 text-sm">
-                      This non-refundable fee covers administrative processing and background checks. 
-                      You'll be redirected to secure payment after submitting this form.
-                    </p>
-                    <p className="text-amber-700 text-sm mt-2">
-                      <strong>Note:</strong> Your billing address is required for fraud protection.
-                    </p>
+                    {isTestMode ? (
+                      <>
+                        <h3 className="font-semibold text-emerald-800 mb-2">🧪 ADMIN TEST MODE ACTIVE</h3>
+                        <p className="text-emerald-700 text-sm">
+                          You are submitting this application in test mode. Payment will be skipped and application will be auto-approved.
+                        </p>
+                        <div className="mt-3 p-3 bg-emerald-100 rounded-lg">
+                          <p className="text-emerald-800 font-medium">Test Mode Features:</p>
+                          <ul className="text-emerald-700 text-sm list-disc list-inside mt-1">
+                            <li>No payment required ($0 fee)</li>
+                            <li>Auto-approved status</li>
+                            <li>Billing address optional</li>
+                            <li>Immediate confirmation</li>
+                            <li>Full admin dashboard access</li>
+                          </ul>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="font-semibold text-amber-800 mb-2">Application Fee: $50</h3>
+                        <p className="text-amber-700 text-sm">
+                          This non-refundable fee covers administrative processing and background checks. 
+                          You'll be redirected to secure payment after submitting this form.
+                        </p>
+                        <p className="text-amber-700 text-sm mt-2">
+                          <strong>Note:</strong> Your billing address is required for fraud protection.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -576,22 +695,27 @@ function ApplicationForm() {
                   </div>
                 </div>
 
-                {/* Billing Address */}
+                {/* Billing Address - Optional in test mode */}
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Billing Address *</h3>
-                  <p className="text-sm text-gray-600 -mt-4">
-                    Required for payment verification and fraud protection
-                  </p>
+                  <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">
+                    Billing Address {!isTestMode && '*'}
+                    {isTestMode && <span className="text-sm text-gray-500 ml-2">(Optional in test mode)</span>}
+                  </h3>
+                  {!isTestMode && (
+                    <p className="text-sm text-gray-600 -mt-4">
+                      Required for payment verification and fraud protection
+                    </p>
+                  )}
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <MapPin className="w-4 h-4 inline mr-2" />
-                      Street Address *
+                      Street Address {!isTestMode && '*'}
                     </label>
                     <input
                       type="text"
                       name="billing.line1"
-                      required
+                      required={!isTestMode}
                       value={formData.billingAddress.line1}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
@@ -616,12 +740,12 @@ function ApplicationForm() {
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        City *
+                        City {!isTestMode && '*'}
                       </label>
                       <input
                         type="text"
                         name="billing.city"
-                        required
+                        required={!isTestMode}
                         value={formData.billingAddress.city}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
@@ -631,12 +755,12 @@ function ApplicationForm() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        State *
+                        State {!isTestMode && '*'}
                       </label>
                       <input
                         type="text"
                         name="billing.state"
-                        required
+                        required={!isTestMode}
                         value={formData.billingAddress.state}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
@@ -646,12 +770,12 @@ function ApplicationForm() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        ZIP Code *
+                        ZIP Code {!isTestMode && '*'}
                       </label>
                       <input
                         type="text"
                         name="billing.postalCode"
-                        required
+                        required={!isTestMode}
                         value={formData.billingAddress.postalCode}
                         onChange={handleInputChange}
                         className="w-full px-4 py-3 bg-white text-gray-800 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-400"
@@ -663,7 +787,7 @@ function ApplicationForm() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       <Globe className="w-4 h-4 inline mr-2" />
-                      Country *
+                      Country {!isTestMode && '*'}
                     </label>
                     <select
                       name="billing.country"
@@ -828,7 +952,7 @@ function ApplicationForm() {
                       className="mt-1 mr-3 w-4 h-4 text-amber-600 bg-white border-gray-300 rounded focus:ring-amber-500 flex-shrink-0"
                     />
                     <label htmlFor="agreeTerms" className="text-sm text-gray-600">
-                      <span className="font-semibold text-gray-800">Terms & Conditions:</span> I agree to pay the $50 non-refundable application fee and understand that this does not guarantee approval. I authorize Palms Estate to conduct background, credit, and reference checks as part of the application process. I certify that all information provided is true and accurate.
+                      <span className="font-semibold text-gray-800">Terms & Conditions:</span> I agree to {isTestMode ? 'submit this test application' : 'pay the $50 non-refundable application fee'} and understand that this does not guarantee approval. I authorize Palms Estate to conduct background, credit, and reference checks as part of the application process. I certify that all information provided is true and accurate.
                     </label>
                   </div>
                 </div>
@@ -837,7 +961,11 @@ function ApplicationForm() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none"
+                  className={`w-full font-semibold py-4 px-6 rounded-xl hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none ${
+                    isTestMode 
+                      ? 'bg-gradient-to-r from-emerald-500 to-green-400 text-white' 
+                      : 'bg-gradient-to-r from-amber-600 to-orange-500 text-white'
+                  }`}
                 >
                   {submitting ? (
                     <span className="flex items-center justify-center">
@@ -847,6 +975,8 @@ function ApplicationForm() {
                       </svg>
                       Processing...
                     </span>
+                  ) : isTestMode ? (
+                    'Submit Test Application (No Payment)'
                   ) : (
                     'Continue to Payment - $50'
                   )}
@@ -868,8 +998,8 @@ function ApplicationForm() {
           </div>
         )}
 
-        {/* Step 2: Payment */}
-        {step === 2 && (
+        {/* Step 2: Payment - Only show if NOT in test mode */}
+        {step === 2 && !isTestMode && (
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-500 p-6 text-white">
               <div className="flex items-center">
@@ -882,44 +1012,12 @@ function ApplicationForm() {
             </div>
 
             <div className="p-6 md:p-8">
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Application Fee</h3>
-                    <p className="text-gray-600">For: {property.title}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-800">$50.00</p>
-                    <p className="text-sm text-gray-500">Non-refundable</p>
-                  </div>
-                </div>
-                
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <div className="flex items-start">
-                    <Shield className="w-5 h-5 text-blue-600 mr-3 mt-0.5" />
-                    <div>
-                      <p className="text-blue-800 text-sm">
-                        <strong>Secure Payment:</strong> Your payment is processed through Stripe with 256-bit SSL encryption. 
-                        We never store your credit card details.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <PaymentForm
                 amount={APPLICATION_FEE}
                 onSuccess={handlePaymentSuccess}
                 onCancel={handlePaymentCancel}
                 propertyTitle={property.title}
               />
-
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <div className="flex items-center justify-center text-sm text-gray-500">
-                  <Clock className="w-4 h-4 mr-2" />
-                  <p>Payment processing usually takes 2-3 seconds</p>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -927,62 +1025,81 @@ function ApplicationForm() {
         {/* Step 3: Success */}
         {step === 3 && (
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-            <div className="bg-gradient-to-r from-green-600 to-emerald-500 p-8 text-white text-center">
+            <div className={`p-8 text-white text-center ${
+              isTestMode 
+                ? 'bg-gradient-to-r from-emerald-600 to-green-500' 
+                : 'bg-gradient-to-r from-green-600 to-emerald-500'
+            }`}>
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
                 <CheckCircle className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-2xl font-serif font-bold mb-2">Application Submitted!</h2>
+              <h2 className="text-2xl font-serif font-bold mb-2">
+                Application {isTestMode ? 'Submitted in Test Mode!' : 'Submitted!'}
+              </h2>
               <p className="opacity-90 max-w-md mx-auto">
-                Your application for {property.title} has been received successfully.
+                {isTestMode 
+                  ? `Your test application for ${property.title} has been auto-approved.`
+                  : `Your application for ${property.title} has been received successfully.`
+                }
               </p>
             </div>
 
             <div className="p-8">
               <div className="text-center mb-8">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-green-100 flex items-center justify-center">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+                <div className={`w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center ${
+                  isTestMode ? 'bg-emerald-100' : 'bg-green-100'
+                }`}>
+                  <CheckCircle className={`w-8 h-8 ${isTestMode ? 'text-emerald-600' : 'text-green-600'}`} />
                 </div>
                 <h3 className="text-xl font-serif font-bold text-gray-800 mb-3">
                   What Happens Next?
                 </h3>
                 <p className="text-gray-600 mb-6 max-w-lg mx-auto">
-                  Our team will review your application and get back to you within 24-48 hours.
-                  You'll receive an email confirmation shortly.
+                  {isTestMode 
+                    ? 'As a test application, it has been auto-approved. You can view it immediately in your dashboard.'
+                    : 'Our team will review your application and get back to you within 24-48 hours. You\'ll receive an email confirmation shortly.'
+                  }
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-6 mb-8">
-                <div className="bg-gray-50 rounded-xl p-6 text-center">
-                  <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-                    <span className="text-blue-600 font-bold">1</span>
+              {!isTestMode && (
+                <div className="grid md:grid-cols-3 gap-6 mb-8">
+                  <div className="bg-gray-50 rounded-xl p-6 text-center">
+                    <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                      <span className="text-blue-600 font-bold">1</span>
+                    </div>
+                    <h4 className="font-semibold text-gray-800 mb-2">Review Process</h4>
+                    <p className="text-sm text-gray-600">Our team reviews your application details</p>
                   </div>
-                  <h4 className="font-semibold text-gray-800 mb-2">Review Process</h4>
-                  <p className="text-sm text-gray-600">Our team reviews your application details</p>
-                </div>
-                
-                <div className="bg-gray-50 rounded-xl p-6 text-center">
-                  <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
-                    <span className="text-amber-600 font-bold">2</span>
+                  
+                  <div className="bg-gray-50 rounded-xl p-6 text-center">
+                    <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+                      <span className="text-amber-600 font-bold">2</span>
+                    </div>
+                    <h4 className="font-semibold text-gray-800 mb-2">Verification</h4>
+                    <p className="text-sm text-gray-600">Background and reference checks</p>
                   </div>
-                  <h4 className="font-semibold text-gray-800 mb-2">Verification</h4>
-                  <p className="text-sm text-gray-600">Background and reference checks</p>
-                </div>
-                
-                <div className="bg-gray-50 rounded-xl p-6 text-center">
-                  <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-                    <span className="text-green-600 font-bold">3</span>
+                  
+                  <div className="bg-gray-50 rounded-xl p-6 text-center">
+                    <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                      <span className="text-green-600 font-bold">3</span>
+                    </div>
+                    <h4 className="font-semibold text-gray-800 mb-2">Decision</h4>
+                    <p className="text-sm text-gray-600">You'll receive our final decision</p>
                   </div>
-                  <h4 className="font-semibold text-gray-800 mb-2">Decision</h4>
-                  <p className="text-sm text-gray-600">You'll receive our final decision</p>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-4">
                 <Link
                   to="/dashboard"
-                  className="block w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white font-semibold py-4 px-6 rounded-xl text-center hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+                  className={`block w-full text-white font-semibold py-4 px-6 rounded-xl text-center hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 ${
+                    isTestMode 
+                      ? 'bg-gradient-to-r from-emerald-500 to-green-400' 
+                      : 'bg-gradient-to-r from-amber-600 to-orange-500'
+                  }`}
                 >
-                  View Application Status
+                  View {isTestMode ? 'Test ' : ''}Application in Dashboard
                 </Link>
                 
                 <div className="grid md:grid-cols-2 gap-4">
