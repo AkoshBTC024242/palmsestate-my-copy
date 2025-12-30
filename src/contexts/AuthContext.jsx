@@ -11,6 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [testMode, setTestMode] = useState(false);
 
   // Session refresh function
   const refreshSession = async () => {
@@ -60,6 +61,7 @@ export const AuthProvider = ({ children }) => {
           
           // Check for admin role from user_roles table
           let isAdmin = false;
+          let userTestMode = false;
           try {
             const { data: roleData } = await supabase
               .from('user_roles')
@@ -69,7 +71,8 @@ export const AuthProvider = ({ children }) => {
             
             if (roleData) {
               isAdmin = roleData.role === 'admin';
-              console.log('👑 User role from database:', roleData.role);
+              userTestMode = roleData.test_mode === true;
+              console.log('👑 User role from database:', roleData.role, 'Test mode:', userTestMode);
             } else {
               // Fallback to email check
               isAdmin = 
@@ -85,23 +88,42 @@ export const AuthProvider = ({ children }) => {
               currentUser.user_metadata?.role === 'admin';
           }
           
+          // Also check system settings for global test mode
+          try {
+            const { data: systemSettings } = await supabase
+              .from('system_settings')
+              .select('test_mode')
+              .single();
+            
+            if (systemSettings?.test_mode?.enabled && isAdmin) {
+              userTestMode = true;
+              console.log('⚙️ Global test mode enabled in system settings');
+            }
+          } catch (error) {
+            console.log('No system settings found or error:', error.message);
+          }
+          
           console.log('👑 Admin check:', isAdmin ? 'Admin user' : 'Regular user');
+          console.log('🧪 Test mode:', userTestMode ? 'Enabled' : 'Disabled');
           
           // Create enhanced user object with role
           const enhancedUser = {
             ...currentUser,
             role: isAdmin ? 'admin' : 'user',
-            isAdmin: isAdmin
+            isAdmin: isAdmin,
+            testMode: userTestMode
           };
           
           setUser(enhancedUser);
           setUserRole(isAdmin ? 'admin' : 'user');
+          setTestMode(userTestMode);
           
           // Load user profile
           await loadUserProfile(currentUser.id);
         } else {
           setUser(null);
           setUserRole(null);
+          setTestMode(false);
         }
         
         // Set up auth state listener
@@ -116,6 +138,7 @@ export const AuthProvider = ({ children }) => {
               
               // Check admin role from database
               let isAdmin = false;
+              let userTestMode = false;
               try {
                 const { data: roleData } = await supabase
                   .from('user_roles')
@@ -125,6 +148,7 @@ export const AuthProvider = ({ children }) => {
                 
                 if (roleData) {
                   isAdmin = roleData.role === 'admin';
+                  userTestMode = roleData.test_mode === true;
                 } else {
                   isAdmin = 
                     currentUser.email?.includes('admin') || 
@@ -138,19 +162,36 @@ export const AuthProvider = ({ children }) => {
                   currentUser.user_metadata?.role === 'admin';
               }
               
+              // Check system settings for global test mode
+              try {
+                const { data: systemSettings } = await supabase
+                  .from('system_settings')
+                  .select('test_mode')
+                  .single();
+                
+                if (systemSettings?.test_mode?.enabled && isAdmin) {
+                  userTestMode = true;
+                }
+              } catch (error) {
+                // Ignore error, use user-specific setting
+              }
+              
               const enhancedUser = {
                 ...currentUser,
                 role: isAdmin ? 'admin' : 'user',
-                isAdmin: isAdmin
+                isAdmin: isAdmin,
+                testMode: userTestMode
               };
               
               setUser(enhancedUser);
               setUserRole(isAdmin ? 'admin' : 'user');
+              setTestMode(userTestMode);
               await loadUserProfile(currentUser.id);
             } else {
               setUser(null);
               setUserRole(null);
               setUserProfile(null);
+              setTestMode(false);
             }
           }
         );
@@ -235,13 +276,11 @@ export const AuthProvider = ({ children }) => {
   const canUseTestMode = () => {
     if (!user) return false;
     
-    try {
-      // Check if user has test_mode enabled in user_roles
-      return isAdmin(); // Only admins can use test mode
-    } catch (error) {
-      console.error('Error checking test mode:', error);
-      return false;
-    }
+    // Only admins can use test mode
+    if (!isAdmin()) return false;
+    
+    // Check if test mode is enabled for this user
+    return testMode === true;
   };
 
   const signUp = async (email, password, userData = {}) => {
@@ -279,12 +318,14 @@ export const AuthProvider = ({ children }) => {
         const enhancedUser = {
           ...data.user,
           role: isAdmin ? 'admin' : 'user',
-          isAdmin: isAdmin
+          isAdmin: isAdmin,
+          testMode: false
         };
         
         setUser(enhancedUser);
         setUserRole(isAdmin ? 'admin' : 'user');
         setSession(data.session);
+        setTestMode(false);
         await loadUserProfile(data.user.id);
       }
       
@@ -319,15 +360,17 @@ export const AuthProvider = ({ children }) => {
       
       // Check admin role from database
       let isAdmin = false;
+      let userTestMode = false;
       try {
         const { data: roleData } = await supabase
           .from('user_roles')
-          .select('role')
+          .select('role, test_mode')
           .eq('user_id', data.user.id)
           .single();
         
         if (roleData) {
           isAdmin = roleData.role === 'admin';
+          userTestMode = roleData.test_mode === true;
         } else {
           isAdmin = 
             data.user.email?.includes('admin') || 
@@ -343,11 +386,13 @@ export const AuthProvider = ({ children }) => {
       const enhancedUser = {
         ...data.user,
         role: isAdmin ? 'admin' : 'user',
-        isAdmin: isAdmin
+        isAdmin: isAdmin,
+        testMode: userTestMode
       };
       
       setUser(enhancedUser);
       setUserRole(isAdmin ? 'admin' : 'user');
+      setTestMode(userTestMode);
       setSession(data.session);
       
       // Load user profile
@@ -377,6 +422,7 @@ export const AuthProvider = ({ children }) => {
       setUserRole(null);
       setSession(null);
       setUserProfile(null);
+      setTestMode(false);
       
       console.log('✅ Sign out successful');
       
@@ -415,20 +461,48 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateTestMode = async (enabled) => {
+    if (!user) return { success: false, error: 'No user logged in' };
+    
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .upsert({
+          user_id: user.id,
+          test_mode: enabled,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) throw error;
+      
+      setTestMode(enabled);
+      setUser(prev => ({ ...prev, testMode: enabled }));
+      
+      return { success: true, testMode: enabled };
+    } catch (error) {
+      console.error('Error updating test mode:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const value = {
     user,
     session,
     loading,
     userRole,
     userProfile,
+    testMode,
     signUp,
     signIn,
     signOut,
     resendVerification,
+    updateTestMode,
     isAdmin: isAdmin(),
     canUseTestMode: canUseTestMode(),
     isAuthenticated: !!user,
-    refreshSession // Export refresh function
+    refreshSession
   };
 
   return (
