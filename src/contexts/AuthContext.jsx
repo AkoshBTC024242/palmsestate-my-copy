@@ -12,6 +12,28 @@ export const AuthProvider = ({ children }) => {
   const [userRole, setUserRole] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
 
+  // Session refresh function
+  const refreshSession = async () => {
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (currentSession) {
+        const { data: { session: refreshedSession }, error } = await supabase.auth.refreshSession();
+        if (error) {
+          console.error('❌ Session refresh error:', error);
+          if (error.message.includes('Invalid refresh token')) {
+            // Token expired, sign out
+            await signOut();
+          }
+        } else if (refreshedSession) {
+          setSession(refreshedSession);
+          console.log('🔄 Session refreshed');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Refresh session failed:', error);
+    }
+  };
+
   useEffect(() => {
     console.log('🔄 AuthProvider initializing...');
     
@@ -36,11 +58,32 @@ export const AuthProvider = ({ children }) => {
         if (currentSession?.user) {
           const currentUser = currentSession.user;
           
-          // Check for admin role
-          const isAdmin = 
-            currentUser.email?.includes('admin') || 
-            currentUser.email === 'admin@palmsestate.org' ||
-            currentUser.user_metadata?.role === 'admin';
+          // Check for admin role from user_roles table
+          let isAdmin = false;
+          try {
+            const { data: roleData } = await supabase
+              .from('user_roles')
+              .select('role, test_mode')
+              .eq('user_id', currentUser.id)
+              .single();
+            
+            if (roleData) {
+              isAdmin = roleData.role === 'admin';
+              console.log('👑 User role from database:', roleData.role);
+            } else {
+              // Fallback to email check
+              isAdmin = 
+                currentUser.email?.includes('admin') || 
+                currentUser.email === 'admin@palmsestate.org' ||
+                currentUser.user_metadata?.role === 'admin';
+            }
+          } catch (error) {
+            console.log('⚠️ Using fallback admin check');
+            isAdmin = 
+              currentUser.email?.includes('admin') || 
+              currentUser.email === 'admin@palmsestate.org' ||
+              currentUser.user_metadata?.role === 'admin';
+          }
           
           console.log('👑 Admin check:', isAdmin ? 'Admin user' : 'Regular user');
           
@@ -70,10 +113,30 @@ export const AuthProvider = ({ children }) => {
             
             if (newSession?.user) {
               const currentUser = newSession.user;
-              const isAdmin = 
-                currentUser.email?.includes('admin') || 
-                currentUser.email === 'admin@palmsestate.org' ||
-                currentUser.user_metadata?.role === 'admin';
+              
+              // Check admin role from database
+              let isAdmin = false;
+              try {
+                const { data: roleData } = await supabase
+                  .from('user_roles')
+                  .select('role, test_mode')
+                  .eq('user_id', currentUser.id)
+                  .single();
+                
+                if (roleData) {
+                  isAdmin = roleData.role === 'admin';
+                } else {
+                  isAdmin = 
+                    currentUser.email?.includes('admin') || 
+                    currentUser.email === 'admin@palmsestate.org' ||
+                    currentUser.user_metadata?.role === 'admin';
+                }
+              } catch (error) {
+                isAdmin = 
+                  currentUser.email?.includes('admin') || 
+                  currentUser.email === 'admin@palmsestate.org' ||
+                  currentUser.user_metadata?.role === 'admin';
+              }
               
               const enhancedUser = {
                 ...currentUser,
@@ -92,8 +155,12 @@ export const AuthProvider = ({ children }) => {
           }
         );
         
+        // Set up session refresh every 30 minutes
+        const refreshInterval = setInterval(refreshSession, 30 * 60 * 1000);
+        
         return () => {
           subscription?.unsubscribe();
+          clearInterval(refreshInterval);
         };
         
       } catch (error) {
@@ -121,9 +188,41 @@ export const AuthProvider = ({ children }) => {
         setUserProfile(data);
       } else if (error && error.code !== 'PGRST116') {
         console.error('Error loading user profile:', error);
+        // Create profile if it doesn't exist
+        await createUserProfile(userId);
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
+    }
+  };
+
+  const createUserProfile = async (userId) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      
+      const newProfile = {
+        id: userId,
+        full_name: user?.user_metadata?.full_name || '',
+        phone: user?.user_metadata?.phone || '',
+        preferences: {
+          email_notifications: true,
+          sms_notifications: false,
+          newsletter: true
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      const { error } = await supabase
+        .from('profiles')
+        .upsert(newProfile);
+      
+      if (!error) {
+        setUserProfile(newProfile);
+      }
+    } catch (error) {
+      console.error('Error creating user profile:', error);
     }
   };
 
@@ -132,9 +231,17 @@ export const AuthProvider = ({ children }) => {
     return user?.isAdmin === true || userRole === 'admin';
   };
 
-  // Check if user can access test mode
+  // Check if user can use test mode
   const canUseTestMode = () => {
-    return isAdmin();
+    if (!user) return false;
+    
+    try {
+      // Check if user has test_mode enabled in user_roles
+      return isAdmin(); // Only admins can use test mode
+    } catch (error) {
+      console.error('Error checking test mode:', error);
+      return false;
+    }
   };
 
   const signUp = async (email, password, userData = {}) => {
@@ -167,8 +274,7 @@ export const AuthProvider = ({ children }) => {
       if (data.session) {
         const isAdmin = 
           data.user.email?.includes('admin') || 
-          data.user.email === 'admin@palmsestate.org' ||
-          data.user.user_metadata?.role === 'admin';
+          data.user.email === 'admin@palmsestate.org';
         
         const enhancedUser = {
           ...data.user,
@@ -211,11 +317,27 @@ export const AuthProvider = ({ children }) => {
 
       console.log('✅ Sign in successful:', data.user?.email);
       
-      // Check if user is admin
-      const isAdmin = 
-        data.user.email?.includes('admin') || 
-        data.user.email === 'admin@palmsestate.org' ||
-        data.user.user_metadata?.role === 'admin';
+      // Check admin role from database
+      let isAdmin = false;
+      try {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+        
+        if (roleData) {
+          isAdmin = roleData.role === 'admin';
+        } else {
+          isAdmin = 
+            data.user.email?.includes('admin') || 
+            data.user.email === 'admin@palmsestate.org';
+        }
+      } catch (error) {
+        isAdmin = 
+          data.user.email?.includes('admin') || 
+          data.user.email === 'admin@palmsestate.org';
+      }
       
       // Create enhanced user object
       const enhancedUser = {
@@ -305,7 +427,8 @@ export const AuthProvider = ({ children }) => {
     resendVerification,
     isAdmin: isAdmin(),
     canUseTestMode: canUseTestMode(),
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
+    refreshSession // Export refresh function
   };
 
   return (
