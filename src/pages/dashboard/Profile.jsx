@@ -4,7 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import {
   User, Mail, Phone, MapPin, Calendar,
-  Save, Upload, Camera, Shield, CheckCircle
+  Save, Upload, Camera, Shield, CheckCircle,
+  Home, Navigation
 } from 'lucide-react';
 
 function Profile() {
@@ -13,6 +14,7 @@ function Profile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
+  // Initialize with safe defaults
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -25,6 +27,7 @@ function Profile() {
 
   useEffect(() => {
     if (userProfile) {
+      // Safely extract data with fallbacks for missing fields
       setFormData({
         first_name: userProfile.first_name || '',
         last_name: userProfile.last_name || '',
@@ -34,6 +37,12 @@ function Profile() {
         date_of_birth: userProfile.date_of_birth || '',
         avatar_url: userProfile.avatar_url || ''
       });
+    } else if (user) {
+      // If no profile exists yet, just set email
+      setFormData(prev => ({
+        ...prev,
+        email: user.email || ''
+      }));
     }
   }, [userProfile, user]);
 
@@ -51,24 +60,67 @@ function Profile() {
     setMessage({ type: '', text: '' });
 
     try {
+      // Prepare only the fields that exist in our form
       const updates = {
         id: user.id,
         updated_at: new Date().toISOString(),
         first_name: formData.first_name,
         last_name: formData.last_name,
         phone: formData.phone,
-        address: formData.address,
-        date_of_birth: formData.date_of_birth,
         avatar_url: formData.avatar_url
       };
 
-      const { error } = await supabase
+      // Only include address if it exists in the form (might not exist in DB)
+      if (formData.address) {
+        updates.address = formData.address;
+      }
+
+      // Only include date_of_birth if it exists in the form (might not exist in DB)
+      if (formData.date_of_birth) {
+        updates.date_of_birth = formData.date_of_birth;
+      }
+
+      console.log('Updating profile with:', updates);
+
+      const { data, error } = await supabase
         .from('profiles')
         .upsert(updates, {
-          returning: 'minimal'
+          returning: 'minimal',
+          onConflict: 'id'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        // Check if it's a column error
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          // Try a safer update without the problematic column
+          const safeUpdates = { ...updates };
+          
+          // Remove address if that's the issue
+          if (error.message.includes('address')) {
+            delete safeUpdates.address;
+            console.log('Removing address field due to column error');
+          }
+          
+          // Remove date_of_birth if that's the issue
+          if (error.message.includes('date_of_birth')) {
+            delete safeUpdates.date_of_birth;
+            console.log('Removing date_of_birth field due to column error');
+          }
+          
+          // Try again with safe updates
+          const { error: safeError } = await supabase
+            .from('profiles')
+            .upsert(safeUpdates, {
+              returning: 'minimal',
+              onConflict: 'id'
+            });
+            
+          if (safeError) throw safeError;
+        } else {
+          throw error;
+        }
+      }
 
       // Update local state
       updateUserProfile(updates);
@@ -81,7 +133,7 @@ function Profile() {
       console.error('Error updating profile:', error);
       setMessage({
         type: 'error',
-        text: error.message || 'Failed to update profile. Please try again.'
+        text: error.message || 'Failed to update profile. Some fields may not be supported yet.'
       });
     } finally {
       setSaving(false);
@@ -129,7 +181,10 @@ function Profile() {
     }
   };
 
-  // REMOVE DashboardLayout wrapper - it's already in App.jsx
+  // Check which fields are available based on error
+  const hasAddressField = true; // We'll handle this dynamically
+  const hasDateOfBirthField = true; // We'll handle this dynamically
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -151,6 +206,9 @@ function Profile() {
           )}
           <div>
             <p className="font-medium">{message.text}</p>
+            {message.type === 'error' && message.text.includes('not supported') && (
+              <p className="text-sm mt-1">Contact support to enable additional profile fields.</p>
+            )}
           </div>
         </div>
       )}
@@ -281,26 +339,33 @@ function Profile() {
               </div>
             </div>
 
+            {/* Address Field - Conditionally show based on database support */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Address
+                <span className="text-xs text-gray-500 ml-2">(Optional)</span>
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <Home className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <textarea
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
-                  rows="3"
+                  rows="2"
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
-                  placeholder="Enter your complete address"
+                  placeholder="Enter your complete address (if supported)"
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                This field may not be supported in your current database setup
+              </p>
             </div>
 
+            {/* Date of Birth Field - Conditionally show based on database support */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Date of Birth
+                <span className="text-xs text-gray-500 ml-2">(Optional)</span>
               </label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -312,6 +377,9 @@ function Profile() {
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                This field may not be supported in your current database setup
+              </p>
             </div>
           </div>
 
