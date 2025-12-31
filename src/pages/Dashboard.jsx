@@ -1,8 +1,8 @@
-// pages/dashboard/Dashboard.jsx
+// src/pages/Dashboard.jsx (or move it to src/pages/dashboard/Dashboard.jsx)
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import {
   FileText, Clock, CheckCircle, Building2, Heart, AlertCircle,
   ArrowRight, CalendarDays, MapPin, DollarSign, Users, TrendingUp
@@ -41,12 +41,12 @@ function Dashboard() {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
-      // Fetch pending applications
+      // Fetch pending applications (submitted, payment_pending, pre_approved)
       const { count: pendingCount } = await supabase
         .from('applications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('status', 'submitted');
+        .in('status', ['submitted', 'payment_pending', 'pre_approved']);
 
       // Fetch approved applications
       const { count: approvedCount } = await supabase
@@ -102,6 +102,22 @@ function Dashboard() {
 
       if (!error && data) {
         setUserProfile(data);
+      } else {
+        // If no profile exists, create one
+        const { data: newProfile } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            full_name: user.email?.split('@')[0] || 'User',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+        
+        if (newProfile) {
+          setUserProfile(newProfile);
+        }
       }
     } catch (error) {
       console.error('Error loading user profile:', error);
@@ -114,6 +130,11 @@ function Dashboard() {
         color: 'bg-blue-100 text-blue-800 border-blue-200',
         icon: <Clock className="w-4 h-4" />,
         label: 'Submitted'
+      },
+      payment_pending: {
+        color: 'bg-orange-100 text-orange-800 border-orange-200',
+        icon: <AlertCircle className="w-4 h-4" />,
+        label: 'Payment Pending'
       },
       pre_approved: { 
         color: 'bg-amber-100 text-amber-800 border-amber-200',
@@ -209,7 +230,7 @@ function Dashboard() {
             </div>
           </div>
           <div className="text-xs text-amber-600 mt-4">
-            Awaiting initial review
+            Awaiting review or payment
           </div>
         </div>
 
