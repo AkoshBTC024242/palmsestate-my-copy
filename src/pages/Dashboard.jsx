@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx - REMOVE DashboardLayout import and wrapper
+// src/pages/Dashboard.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,15 +6,17 @@ import { supabase } from '../lib/supabase';
 import { 
   FileText, Clock, CheckCircle, Heart, Building2, MapPin,
   CalendarDays, DollarSign, Eye, PlusCircle, Bell,
-  CreditCard, Trophy, Sparkles, ArrowRight, Users, Home
+  CreditCard, Trophy, Sparkles, ArrowRight, Users, Home,
+  AlertCircle
 } from 'lucide-react';
 
 function Dashboard() {
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const { user, userProfile } = useAuth();
   const navigate = useNavigate();
   
   const [applications, setApplications] = useState([]);
   const [savedProperties, setSavedProperties] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
   const [stats, setStats] = useState({
     totalApplications: 0,
     pending: 0,
@@ -24,37 +26,71 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!authLoading && user) {
+    if (user) {
       loadDashboardData();
     }
-  }, [user, authLoading]);
+  }, [user]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       
-      // Load applications
+      // Load applications with property details
       const { data: appsData, error: appsError } = await supabase
         .from('applications')
-        .select('*')
+        .select(`
+          *,
+          properties (
+            id,
+            title,
+            location,
+            price_per_week,
+            main_image_url
+          )
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (appsError) throw appsError;
 
-      // Load saved properties count
+      // Load saved properties with full property details
       const { data: savedData, error: savedError } = await supabase
         .from('saved_properties')
-        .select('id')
-        .eq('user_id', user.id);
+        .select(`
+          id,
+          created_at,
+          properties (
+            id,
+            title,
+            location,
+            price_per_week,
+            property_type,
+            main_image_url
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
 
       if (savedError) throw savedError;
 
+      // Transform saved properties data
+      const savedPropertiesList = savedData?.map(item => ({
+        savedId: item.id,
+        savedAt: item.created_at,
+        ...item.properties
+      })) || [];
+
+      // Calculate stats
       if (appsData) {
         setApplications(appsData);
+        
         const pending = appsData.filter(app => 
-          app.status === 'submitted' || app.status === 'pre_approved' || app.status === 'paid_under_review'
+          app.status === 'submitted' || 
+          app.status === 'pre_approved' || 
+          app.status === 'paid_under_review'
         ).length;
+        
         const approved = appsData.filter(app => 
           app.status === 'approved'
         ).length;
@@ -63,13 +99,43 @@ function Dashboard() {
           totalApplications: appsData.length,
           pending,
           approved,
-          savedProperties: savedData?.length || 0
+          savedProperties: savedPropertiesList.length
         });
+
+        // Generate recent activity from applications
+        const activity = appsData.slice(0, 3).map(app => ({
+          id: app.id,
+          type: 'application',
+          status: app.status,
+          title: app.properties?.title || 'Property Application',
+          date: app.created_at,
+          icon: app.status === 'approved' ? CheckCircle : 
+                app.status === 'rejected' ? AlertCircle : Clock,
+          color: app.status === 'approved' ? 'green' :
+                 app.status === 'rejected' ? 'red' : 'blue'
+        }));
+        
+        // Add saved properties to activity if exists
+        if (savedPropertiesList.length > 0) {
+          const latestSaved = savedPropertiesList[0];
+          activity.unshift({
+            id: latestSaved.savedId,
+            type: 'saved',
+            status: 'saved',
+            title: latestSaved.title || 'Property',
+            date: latestSaved.savedAt,
+            icon: Heart,
+            color: 'pink'
+          });
+        }
+        
+        setRecentActivity(activity);
       }
 
       if (savedData) {
-        setSavedProperties(savedData);
+        setSavedProperties(savedPropertiesList);
       }
+
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -100,7 +166,7 @@ function Dashboard() {
         label: 'Approved'
       },
       rejected: { 
-        icon: <FileText className="w-3 h-3" />, 
+        icon: <AlertCircle className="w-3 h-3" />, 
         color: 'bg-red-100 text-red-800 border-red-200',
         label: 'Rejected'
       }
@@ -118,14 +184,39 @@ function Dashboard() {
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    
+    return date.toLocaleDateString('en-US', {
       month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+      day: 'numeric'
     });
   };
 
-  if (authLoading) {
+  const getActivityIcon = (activity) => {
+    const Icon = activity.icon;
+    const colorClass = {
+      green: 'text-green-600 bg-green-100',
+      red: 'text-red-600 bg-red-100',
+      blue: 'text-blue-600 bg-blue-100',
+      pink: 'text-pink-600 bg-pink-100',
+      orange: 'text-orange-600 bg-orange-100'
+    }[activity.color] || 'text-gray-600 bg-gray-100';
+    
+    return (
+      <div className={`p-2 rounded-lg ${colorClass}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+    );
+  };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -142,7 +233,6 @@ function Dashboard() {
   }
 
   return (
-    // REMOVED DashboardLayout wrapper - it's now in App.jsx
     <div className="max-w-7xl mx-auto">
       {/* Welcome Header */}
       <div className="mb-8">
@@ -169,14 +259,14 @@ function Dashboard() {
             value: stats.pending, 
             icon: <Clock className="w-6 h-6" />,
             color: 'from-amber-500 to-orange-500',
-            onClick: () => navigate('/dashboard/applications')
+            onClick: () => navigate('/dashboard/applications?status=pending')
           },
           { 
             label: 'Approved', 
             value: stats.approved, 
             icon: <CheckCircle className="w-6 h-6" />,
             color: 'from-emerald-500 to-green-600',
-            onClick: () => navigate('/dashboard/applications')
+            onClick: () => navigate('/dashboard/applications?status=approved')
           },
           { 
             label: 'Saved Properties', 
@@ -197,9 +287,7 @@ function Dashboard() {
               </div>
             </div>
             <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
-            <p className="text-3xl font-bold text-gray-900">
-              {loading ? '...' : stat.value}
-            </p>
+            <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
           </div>
         ))}
       </div>
@@ -214,13 +302,15 @@ function Dashboard() {
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Recent Applications</h2>
                 <p className="text-gray-600">Track your property applications and their status</p>
               </div>
-              <button
-                onClick={() => navigate('/dashboard/applications')}
-                className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
-              >
-                View All
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {applications.length > 0 && (
+                <button
+                  onClick={() => navigate('/dashboard/applications')}
+                  className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+                >
+                  View All
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
             {applications.length === 0 ? (
@@ -249,13 +339,21 @@ function Dashboard() {
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          <Building2 className="w-6 h-6 text-gray-400" />
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          {application.properties?.main_image_url ? (
+                            <img 
+                              src={application.properties.main_image_url} 
+                              alt={application.properties.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Building2 className="w-6 h-6 text-gray-400" />
+                          )}
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-medium text-gray-900">
-                              Property Application
+                              {application.properties?.title || 'Property Application'}
                             </h4>
                             {getStatusBadge(application.status)}
                           </div>
@@ -264,12 +362,22 @@ function Dashboard() {
                               <CalendarDays className="w-4 h-4" />
                               Applied {formatDate(application.created_at)}
                             </span>
-                            {application.reference_number && (
+                            {application.properties?.location && (
+                              <span className="text-gray-500">
+                                {application.properties.location}
+                              </span>
+                            )}
+                            {application.properties?.price_per_week && (
                               <span className="font-medium">
-                                Ref: #{application.reference_number}
+                                ${application.properties.price_per_week}/week
                               </span>
                             )}
                           </div>
+                          {application.reference_number && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              Reference: #{application.reference_number}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -347,9 +455,17 @@ function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Profile Summary</h2>
             <div className="flex items-center mb-4">
-              <div className="h-16 w-16 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
-                <Users className="w-8 h-8 text-orange-600" />
-              </div>
+              {userProfile?.avatar_url ? (
+                <img
+                  src={userProfile.avatar_url}
+                  alt="Profile"
+                  className="h-16 w-16 rounded-full object-cover border-2 border-orange-100"
+                />
+              ) : (
+                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
+                  <Users className="w-8 h-8 text-orange-600" />
+                </div>
+              )}
               <div className="ml-4">
                 <h3 className="font-bold text-gray-900">
                   {userProfile?.first_name || 'User'} {userProfile?.last_name || ''}
@@ -360,75 +476,50 @@ function Dashboard() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => navigate('/dashboard/profile')}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-            >
-              Edit Profile
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => navigate('/dashboard/profile')}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <Users className="w-4 h-4" />
+                Profile
+              </button>
+              <button
+                onClick={() => navigate('/dashboard/settings')}
+                className="bg-orange-100 hover:bg-orange-200 text-orange-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                Settings
+              </button>
+            </div>
           </div>
 
           {/* Recent Activity */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
             <div className="space-y-4">
-              {applications.slice(0, 2).map((app, index) => (
-                <div key={index} className="flex items-start">
-                  <div className={`p-2 rounded-lg ${
-                    app.status === 'approved' ? 'bg-green-100' :
-                    app.status === 'rejected' ? 'bg-red-100' :
-                    'bg-blue-100'
-                  }`}>
-                    {app.status === 'approved' ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    ) : app.status === 'rejected' ? (
-                      <FileText className="h-5 w-5 text-red-600" />
-                    ) : (
-                      <Clock className="h-5 w-5 text-blue-600" />
-                    )}
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">
-                      {app.status === 'approved' ? 'Application approved' :
-                       app.status === 'rejected' ? 'Application rejected' :
-                       'Application submitted'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {formatDate(app.updated_at || app.created_at)}
-                    </p>
-                  </div>
+              {recentActivity.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-gray-500 text-sm">No recent activity</p>
                 </div>
-              ))}
-              
-              {savedProperties.length > 0 && (
-                <div className="flex items-start">
-                  <div className="p-2 rounded-lg bg-pink-100">
-                    <Heart className="h-5 w-5 text-pink-600" />
+              ) : (
+                recentActivity.map((activity) => (
+                  <div key={activity.id} className="flex items-start">
+                    {getActivityIcon(activity)}
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900">
+                        {activity.type === 'saved' ? 'Property saved' : 
+                         activity.status === 'approved' ? 'Application approved' :
+                         activity.status === 'rejected' ? 'Application rejected' :
+                         'Application submitted'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatDate(activity.date)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900">
-                      Property saved
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Recently
-                    </p>
-                  </div>
-                </div>
+                ))
               )}
-              
-              <div className="flex items-start">
-                <div className="p-2 rounded-lg bg-orange-100">
-                  <Home className="h-5 w-5 text-orange-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-900">
-                    Dashboard accessed
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Today
-                  </p>
-                </div>
-              </div>
             </div>
           </div>
 
