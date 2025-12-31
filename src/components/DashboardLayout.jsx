@@ -1,43 +1,39 @@
-// components/DashboardLayout.jsx
-import { useState, useEffect } from 'react';
+// src/components/DashboardLayout.jsx
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  HomeIcon,
-  DocumentTextIcon,
-  HeartIcon,
-  UserIcon,
-  CogIcon,
-  ArrowRightOnRectangleIcon,
-  BellIcon,
-  ChevronDownIcon,
-  XMarkIcon,
-  Bars3Icon
-} from '@heroicons/react/24/outline';
+import { 
+  Home, 
+  FileText, 
+  Heart, 
+  User, 
+  Settings,
+  LogOut,
+  Bell,
+  Menu,
+  X,
+  ChevronDown,
+  Building2
+} from 'lucide-react';
 
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-    { name: 'Applications', href: '/dashboard/applications', icon: DocumentTextIcon },
-    { name: 'Saved Properties', href: '/dashboard/saved', icon: HeartIcon },
-    { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
-    { name: 'Settings', href: '/dashboard/settings', icon: CogIcon },
+    { name: 'Dashboard', href: '/dashboard', icon: Home },
+    { name: 'Applications', href: '/dashboard/applications', icon: FileText },
+    { name: 'Saved Properties', href: '/dashboard/saved', icon: Heart },
+    { name: 'Profile', href: '/dashboard/profile', icon: User },
+    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
   const handleLogout = async () => {
     await logout();
     navigate('/signin');
-  };
-
-  const markNotificationAsRead = (id) => {
-    setNotifications(notifications.filter(n => n.id !== id));
   };
 
   return (
@@ -62,7 +58,7 @@ const DashboardLayout = ({ children }) => {
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden"
           >
-            <XMarkIcon className="h-6 w-6 text-gray-500" />
+            <X className="h-6 w-6 text-gray-500" />
           </button>
         </div>
         
@@ -94,14 +90,14 @@ const DashboardLayout = ({ children }) => {
               to="/properties"
               className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5 text-gray-400" />
+              <Building2 className="mr-3 h-5 w-5 text-gray-400" />
               Browse Properties
             </Link>
             <button
               onClick={handleLogout}
               className="w-full flex items-center px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-2"
             >
-              <ArrowRightOnRectangleIcon className="mr-3 h-5 w-5" />
+              <LogOut className="mr-3 h-5 w-5" />
               Logout
             </button>
           </div>
@@ -117,7 +113,7 @@ const DashboardLayout = ({ children }) => {
               onClick={() => setSidebarOpen(true)}
               className="lg:hidden"
             >
-              <Bars3Icon className="h-6 w-6 text-gray-500" />
+              <Menu className="h-6 w-6 text-gray-500" />
             </button>
             
             <div className="flex-1" />
@@ -126,10 +122,8 @@ const DashboardLayout = ({ children }) => {
               {/* Notifications */}
               <div className="relative">
                 <button className="p-2 text-gray-500 hover:text-gray-700 relative">
-                  <BellIcon className="h-6 w-6" />
-                  {notifications.length > 0 && (
-                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
-                  )}
+                  <Bell className="h-6 w-6" />
+                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
                 </button>
               </div>
               
@@ -139,24 +133,16 @@ const DashboardLayout = ({ children }) => {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center space-x-3 focus:outline-none"
                 >
-                  {user?.profilePicture ? (
-                    <img
-                      src={user.profilePicture}
-                      alt="Profile"
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                      <UserIcon className="h-5 w-5 text-blue-600" />
-                    </div>
-                  )}
+                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <User className="h-5 w-5 text-blue-600" />
+                  </div>
                   <div className="hidden md:block text-left">
                     <p className="text-sm font-medium text-gray-900">
-                      {user?.firstName} {user?.lastName}
+                      {user?.email || 'User'}
                     </p>
-                    <p className="text-xs text-gray-500">{user?.role}</p>
+                    <p className="text-xs text-gray-500">Dashboard</p>
                   </div>
-                  <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                  <ChevronDown className="h-5 w-5 text-gray-400" />
                 </button>
                 
                 {userMenuOpen && (
