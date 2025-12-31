@@ -1,21 +1,23 @@
-// src/pages/dashboard/Settings.jsx
-import { useState } from 'react';
+// src/pages/dashboard/Settings.jsx - UPDATED WITH DATABASE
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
 import {
   Bell, Shield, Globe, Moon, Eye, EyeOff,
-  Save, CheckCircle, AlertCircle, Lock, Mail
+  Save, CheckCircle, AlertCircle, Lock, Mail,
+  Key
 } from 'lucide-react';
 
 function Settings() {
   const { user } = useAuth();
   
   const [settings, setSettings] = useState({
-    emailNotifications: true,
-    pushNotifications: false,
-    marketingEmails: false,
-    darkMode: false,
+    email_notifications: true,
+    push_notifications: false,
+    marketing_emails: false,
+    dark_mode: false,
     language: 'en',
-    twoFactorAuth: false
+    two_factor_auth: false
   });
   
   const [password, setPassword] = useState({
@@ -30,8 +32,50 @@ function Settings() {
     confirm: false
   });
   
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  useEffect(() => {
+    if (user) {
+      loadUserSettings();
+    }
+  }, [user]);
+
+  const loadUserSettings = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
+        throw error;
+      }
+
+      if (data) {
+        setSettings({
+          email_notifications: data.email_notifications ?? true,
+          push_notifications: data.push_notifications ?? false,
+          marketing_emails: data.marketing_emails ?? false,
+          dark_mode: data.dark_mode ?? false,
+          language: data.language || 'en',
+          two_factor_auth: data.two_factor_auth ?? false
+        });
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      setMessage({
+        type: 'error',
+        text: 'Failed to load settings. Please refresh the page.'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSettingChange = (key, value) => {
     setSettings(prev => ({
@@ -61,14 +105,27 @@ function Settings() {
     setMessage({ type: '', text: '' });
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const settingsData = {
+        user_id: user.id,
+        ...settings,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert(settingsData, {
+          onConflict: 'user_id',
+          returning: 'minimal'
+        });
+
+      if (error) throw error;
       
       setMessage({
         type: 'success',
         text: 'Settings saved successfully!'
       });
     } catch (error) {
+      console.error('Error saving settings:', error);
       setMessage({
         type: 'error',
         text: 'Failed to save settings. Please try again.'
@@ -103,8 +160,12 @@ function Settings() {
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Update password using Supabase Auth
+      const { error } = await supabase.auth.updateUser({
+        password: password.new
+      });
+
+      if (error) throw error;
       
       setMessage({
         type: 'success',
@@ -117,17 +178,35 @@ function Settings() {
         new: '',
         confirm: ''
       });
+      
+      // Clear password visibility
+      setShowPassword({
+        current: false,
+        new: false,
+        confirm: false
+      });
     } catch (error) {
+      console.error('Error updating password:', error);
       setMessage({
         type: 'error',
-        text: 'Failed to update password. Please try again.'
+        text: error.message || 'Failed to update password. Please try again.'
       });
     } finally {
       setSaving(false);
     }
   };
 
-  // REMOVE DashboardLayout wrapper - it's already in App.jsx
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading settings...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -170,9 +249,9 @@ function Settings() {
 
             <div className="space-y-4">
               {[
-                { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive application updates via email' },
-                { key: 'pushNotifications', label: 'Push Notifications', description: 'Get browser notifications for updates' },
-                { key: 'marketingEmails', label: 'Marketing Emails', description: 'Receive newsletters and property updates' }
+                { key: 'email_notifications', label: 'Email Notifications', description: 'Receive application updates via email' },
+                { key: 'push_notifications', label: 'Push Notifications', description: 'Get browser notifications for updates' },
+                { key: 'marketing_emails', label: 'Marketing Emails', description: 'Receive newsletters and property updates' }
               ].map((item) => (
                 <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                   <div>
@@ -213,13 +292,13 @@ function Settings() {
                   <p className="text-sm text-gray-500">Switch to dark theme</p>
                 </div>
                 <button
-                  onClick={() => handleSettingChange('darkMode', !settings.darkMode)}
+                  onClick={() => handleSettingChange('dark_mode', !settings.dark_mode)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.darkMode ? 'bg-orange-600' : 'bg-gray-200'
+                    settings.dark_mode ? 'bg-orange-600' : 'bg-gray-200'
                   }`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.darkMode ? 'translate-x-6' : 'translate-x-1'
+                    settings.dark_mode ? 'translate-x-6' : 'translate-x-1'
                   }`} />
                 </button>
               </div>
@@ -263,13 +342,13 @@ function Settings() {
                   <p className="text-sm text-gray-500">Add an extra layer of security</p>
                 </div>
                 <button
-                  onClick={() => handleSettingChange('twoFactorAuth', !settings.twoFactorAuth)}
+                  onClick={() => handleSettingChange('two_factor_auth', !settings.two_factor_auth)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.twoFactorAuth ? 'bg-orange-600' : 'bg-gray-200'
+                    settings.two_factor_auth ? 'bg-orange-600' : 'bg-gray-200'
                   }`}
                 >
                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    settings.twoFactorAuth ? 'translate-x-6' : 'translate-x-1'
+                    settings.two_factor_auth ? 'translate-x-6' : 'translate-x-1'
                   }`} />
                 </button>
               </div>
@@ -278,7 +357,16 @@ function Settings() {
 
           {/* Change Password */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Change Password</h3>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                <Key className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Change Password</h3>
+                <p className="text-gray-600">Update your account password</p>
+              </div>
+            </div>
+            
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
