@@ -12,6 +12,7 @@ import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import ApplicationForm from './pages/ApplicationForm';
 import InitialApplyForm from './pages/InitialApplyForm';
+import DashboardLayout from './components/DashboardLayout';
 import PaymentPage from './pages/dashboard/PaymentPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './pages/AdminDashboard';
@@ -58,18 +59,20 @@ function App() {
               </div>
             } />
             
-            {/* ===== USER DASHBOARD ROUTES (SEPARATE LAYOUT) ===== */}
+            {/* ===== USER DASHBOARD ROUTES (WITH DASHBOARD LAYOUT WRAPPER) ===== */}
             <Route path="/dashboard/*" element={
               <ProtectedRoute>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/applications" element={<Applications />} />
-                  <Route path="/applications/:id" element={<ApplicationDetail />} />
-                  <Route path="/applications/:id/payment" element={<PaymentPage />} />
-                  <Route path="/saved" element={<SavedProperties />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/settings" element={<Settings />} />
-                </Routes>
+                <DashboardLayout>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/applications" element={<Applications />} />
+                    <Route path="/applications/:id" element={<ApplicationDetail />} />
+                    <Route path="/applications/:id/payment" element={<PaymentPage />} />
+                    <Route path="/saved" element={<SavedProperties />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/settings" element={<Settings />} />
+                  </Routes>
+                </DashboardLayout>
               </ProtectedRoute>
             } />
             
