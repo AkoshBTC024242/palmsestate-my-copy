@@ -1,438 +1,410 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+// src/pages/dashboard/Settings.jsx
+import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
-import DashboardLayout from '../../components/DashboardLayout';
-import { 
-  Lock, Bell, Globe, Shield, FileText, Trash2, 
-  Moon, Sun, Globe as Language, Download, Database,
-  ArrowRight, CheckCircle, AlertCircle
+import {
+  Bell, Shield, Globe, Moon, Eye, EyeOff,
+  Save, CheckCircle, AlertCircle, Lock, Mail
 } from 'lucide-react';
 
 function Settings() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  
   const [settings, setSettings] = useState({
-    theme: 'light',
+    emailNotifications: true,
+    pushNotifications: false,
+    marketingEmails: false,
+    darkMode: false,
     language: 'en',
-    timezone: 'UTC',
-    date_format: 'MM/DD/YYYY'
+    twoFactorAuth: false
   });
-  const [passwordData, setPasswordData] = useState({
+  
+  const [password, setPassword] = useState({
     current: '',
     new: '',
     confirm: ''
   });
-
-  useEffect(() => {
-    loadSettings();
-  }, [user]);
-
-  const loadSettings = async () => {
-    if (!user) return;
-    
-    try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('preferences')
-        .eq('id', user.id)
-        .single();
-
-      if (data?.preferences?.settings) {
-        setSettings(data.preferences.settings);
-      }
-    } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-  };
-
- const saveSettings = async () => {
-  if (!user) return;
   
-  setLoading(true);
-  try {
-    const { data: profile, error: fetchError } = await supabase
-      .from('profiles')
-      .select('preferences')
-      .eq('id', user.id)
-      .single();
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('Error fetching profile:', fetchError);
-      // Create profile if it doesn't exist
-      await createProfileIfMissing();
-    }
+  const handleSettingChange = (key, value) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
 
-    const updatedPreferences = {
-      ...(profile?.preferences || {}),
-      settings
-    };
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPassword(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
-    const { error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: user.id,
-        preferences: updatedPreferences,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'id'
-      });
+  const togglePasswordVisibility = (field) => {
+    setShowPassword(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
 
-    if (error) throw error;
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage({ type: '', text: '' });
 
-    alert('Settings saved successfully!');
-  } catch (error) {
-    console.error('Error saving settings:', error);
-    alert('Error saving settings: ' + error.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-const createProfileIfMissing = async () => {
-  try {
-    const newProfile = {
-      id: user.id,
-      preferences: {
-        settings: settings,
-        email_notifications: true,
-        sms_notifications: false,
-        newsletter: true
-      },
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const { error } = await supabase
-      .from('profiles')
-      .insert([newProfile]);
-
-    if (error) throw error;
-  } catch (error) {
-    console.error('Error creating profile:', error);
-  }
-};
-
-  const handlePasswordChange = async () => {
-    if (passwordData.new !== passwordData.confirm) {
-      alert('New passwords do not match');
-      return;
-    }
-
-    if (passwordData.new.length < 6) {
-      alert('New password must be at least 6 characters');
-      return;
-    }
-
-    setLoading(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: passwordData.new
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setMessage({
+        type: 'success',
+        text: 'Settings saved successfully!'
       });
-
-      if (error) throw error;
-
-      alert('Password changed successfully!');
-      setPasswordData({ current: '', new: '', confirm: '' });
     } catch (error) {
-      console.error('Error changing password:', error);
-      alert('Error changing password: ' + error.message);
+      setMessage({
+        type: 'error',
+        text: 'Failed to save settings. Please try again.'
+      });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage({ type: '', text: '' });
+
+    // Validate passwords
+    if (password.new !== password.confirm) {
+      setMessage({
+        type: 'error',
+        text: 'New passwords do not match!'
+      });
+      setSaving(false);
       return;
     }
 
-    if (!window.confirm('This will permanently delete all your data including applications and saved properties. Type DELETE to confirm.')) {
+    if (password.new.length < 6) {
+      setMessage({
+        type: 'error',
+        text: 'Password must be at least 6 characters long!'
+      });
+      setSaving(false);
       return;
     }
 
-    setLoading(true);
     try {
-      // First delete user data
-      await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user.id);
-
-      await supabase
-        .from('saved_properties')
-        .delete()
-        .eq('user_id', user.id);
-
-      await supabase
-        .from('applications')
-        .delete()
-        .eq('user_id', user.id);
-
-      // Then sign out and delete auth user
-      await supabase.auth.signOut();
-      alert('Account deleted successfully. You will be redirected to the home page.');
-      navigate('/');
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setMessage({
+        type: 'success',
+        text: 'Password updated successfully!'
+      });
+      
+      // Reset form
+      setPassword({
+        current: '',
+        new: '',
+        confirm: ''
+      });
     } catch (error) {
-      console.error('Error deleting account:', error);
-      alert('Error deleting account');
+      setMessage({
+        type: 'error',
+        text: 'Failed to update password. Please try again.'
+      });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
+  // REMOVE DashboardLayout wrapper - it's already in App.jsx
   return (
-    <DashboardLayout activeSection="settings" setActiveSection={() => {}}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Account Settings</h1>
+        <p className="text-gray-600 mt-2">Manage your account preferences and security</p>
+      </div>
+
+      {message.text && (
+        <div className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
+          message.type === 'success' 
+            ? 'bg-green-50 text-green-800 border border-green-200' 
+            : 'bg-red-50 text-red-800 border border-red-200'
+        }`}>
+          {message.type === 'success' ? (
+            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+          )}
           <div>
-            <h1 className="font-serif text-2xl font-bold text-gray-900 mb-2">Settings</h1>
-            <p className="text-gray-600">Manage your account settings and preferences</p>
+            <p className="font-medium">{message.text}</p>
           </div>
-          <button
-            onClick={saveSettings}
-            disabled={loading}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-orange-500 text-white font-medium px-4 py-2 rounded-lg hover:shadow-md disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Saving...
-              </>
-            ) : (
-              'Save Settings'
-            )}
-          </button>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Security Settings */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6">
-            <h3 className="font-serif font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-gray-600" />
-              Security Settings
-            </h3>
-            
-            <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - General Settings */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Notification Settings */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <Bell className="w-6 h-6" />
+              </div>
               <div>
-                <h4 className="font-medium text-gray-900 mb-3">Change Password</h4>
-                <div className="space-y-3">
-                  <input
-                    type="password"
-                    placeholder="Current Password"
-                    value={passwordData.current}
-                    onChange={(e) => setPasswordData({...passwordData, current: e.target.value})}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
-                  />
-                  <input
-                    type="password"
-                    placeholder="New Password"
-                    value={passwordData.new}
-                    onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
-                  />
-                  <input
-                    type="password"
-                    placeholder="Confirm New Password"
-                    value={passwordData.confirm}
-                    onChange={(e) => setPasswordData({...passwordData, confirm: e.target.value})}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
-                  />
-                  <button
-                    onClick={handlePasswordChange}
-                    disabled={loading || !passwordData.current || !passwordData.new || !passwordData.confirm}
-                    className="w-full flex items-center justify-center gap-2 bg-amber-600 text-white font-medium py-2 rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Lock className="w-4 h-4" />
-                    Change Password
-                  </button>
-                </div>
+                <h2 className="text-xl font-bold text-gray-900">Notifications</h2>
+                <p className="text-gray-600">Manage how you receive notifications</p>
               </div>
+            </div>
 
-              <div className="pt-4 border-t border-gray-200">
-                <h4 className="font-medium text-gray-900 mb-3">Two-Factor Authentication</h4>
-                <div className="flex items-center justify-between p-3 rounded-lg border border-gray-200">
+            <div className="space-y-4">
+              {[
+                { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive application updates via email' },
+                { key: 'pushNotifications', label: 'Push Notifications', description: 'Get browser notifications for updates' },
+                { key: 'marketingEmails', label: 'Marketing Emails', description: 'Receive newsletters and property updates' }
+              ].map((item) => (
+                <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
                   <div>
-                    <p className="font-medium text-gray-900">2FA Status</p>
-                    <p className="text-sm text-gray-600">Add an extra layer of security</p>
+                    <h4 className="font-medium text-gray-900">{item.label}</h4>
+                    <p className="text-sm text-gray-500">{item.description}</p>
                   </div>
-                  <button className="text-sm text-amber-600 hover:text-amber-700 font-medium">
-                    Enable
+                  <button
+                    onClick={() => handleSettingChange(item.key, !settings[item.key])}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings[item.key] ? 'bg-orange-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings[item.key] ? 'translate-x-6' : 'translate-x-1'
+                    }`} />
                   </button>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
 
           {/* Appearance Settings */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6">
-            <h3 className="font-serif font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Moon className="w-5 h-5 text-gray-600" />
-              Appearance
-            </h3>
-            
-            <div className="space-y-4">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                <Moon className="w-6 h-6" />
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setSettings({...settings, theme: 'light'})}
-                    className={`flex-1 flex flex-col items-center p-4 rounded-lg border ${
-                      settings.theme === 'light' 
-                        ? 'border-amber-500 bg-amber-50' 
-                        : 'border-gray-200 hover:border-amber-200'
-                    }`}
-                  >
-                    <Sun className="w-6 h-6 text-gray-600 mb-2" />
-                    <span className="text-sm font-medium">Light</span>
-                  </button>
-                  <button
-                    onClick={() => setSettings({...settings, theme: 'dark'})}
-                    className={`flex-1 flex flex-col items-center p-4 rounded-lg border ${
-                      settings.theme === 'dark' 
-                        ? 'border-amber-500 bg-amber-50' 
-                        : 'border-gray-200 hover:border-amber-200'
-                    }`}
-                  >
-                    <Moon className="w-6 h-6 text-gray-600 mb-2" />
-                    <span className="text-sm font-medium">Dark</span>
-                  </button>
+                <h2 className="text-xl font-bold text-gray-900">Appearance</h2>
+                <p className="text-gray-600">Customize your dashboard appearance</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <h4 className="font-medium text-gray-900">Dark Mode</h4>
+                  <p className="text-sm text-gray-500">Switch to dark theme</p>
                 </div>
+                <button
+                  onClick={() => handleSettingChange('darkMode', !settings.darkMode)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.darkMode ? 'bg-orange-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings.darkMode ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+              <div className="py-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Language
+                </label>
                 <select
                   value={settings.language}
-                  onChange={(e) => setSettings({...settings, language: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
+                  onChange={(e) => handleSettingChange('language', e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="en">English</option>
-                  <option value="es">Spanish</option>
-                  <option value="fr">French</option>
-                  <option value="de">German</option>
+                  <option value="es">Español</option>
+                  <option value="fr">Français</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
-                <select
-                  value={settings.timezone}
-                  onChange={(e) => setSettings({...settings, timezone: e.target.value})}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none"
-                >
-                  <option value="UTC">UTC</option>
-                  <option value="EST">Eastern Time</option>
-                  <option value="PST">Pacific Time</option>
-                  <option value="GMT">GMT</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Privacy Settings */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6">
-            <h3 className="font-serif font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-gray-600" />
-              Privacy & Data
-            </h3>
-            
-            <div className="space-y-4">
-              <button className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-amber-200 hover:bg-amber-50/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-gray-600" />
-                  <div>
-                    <p className="font-medium text-gray-900">Privacy Policy</p>
-                    <p className="text-sm text-gray-600">Review our privacy practices</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </button>
-              
-              <button className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-amber-200 hover:bg-amber-50/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <Download className="w-5 h-5 text-gray-600" />
-                  <div>
-                    <p className="font-medium text-gray-900">Export Data</p>
-                    <p className="text-sm text-gray-600">Download your personal data</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </button>
-              
-              <button className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-amber-200 hover:bg-amber-50/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <Database className="w-5 h-5 text-gray-600" />
-                  <div>
-                    <p className="font-medium text-gray-900">Data Retention</p>
-                    <p className="text-sm text-gray-600">Manage your data storage</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-          </div>
-
-          {/* Account Management */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6">
-            <h3 className="font-serif font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-gray-600" />
-              Account Management
-            </h3>
-            
-            <div className="space-y-4">
-              <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                <h4 className="font-medium text-amber-800 mb-2">Danger Zone</h4>
-                <p className="text-sm text-amber-700 mb-4">
-                  These actions are irreversible. Please proceed with caution.
-                </p>
-                
-                <div className="space-y-3">
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Clear all your saved properties?')) {
-                        // Implement clear saved properties
-                      }
-                    }}
-                    className="w-full text-left p-3 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors text-amber-700"
-                  >
-                    <p className="font-medium">Clear Saved Properties</p>
-                    <p className="text-sm">Remove all properties from your saved list</p>
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Delete all your application history?')) {
-                        // Implement clear applications
-                      }
-                    }}
-                    className="w-full text-left p-3 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors text-amber-700"
-                  >
-                    <p className="font-medium">Clear Application History</p>
-                    <p className="text-sm">Remove all your past applications</p>
-                  </button>
-                  
-                  <button
-                    onClick={handleDeleteAccount}
-                    disabled={loading}
-                    className="w-full text-left p-3 rounded-lg border border-red-200 hover:bg-red-50 transition-colors text-red-600"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Delete Account</p>
-                        <p className="text-sm">Permanently delete your account and all data</p>
-                      </div>
-                      <Trash2 className="w-5 h-5" />
-                    </div>
-                  </button>
-                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Right Column - Security */}
+        <div className="space-y-6">
+          {/* Security Settings */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 rounded-lg bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <Shield className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Security</h2>
+                <p className="text-gray-600">Manage your account security</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
+                  <p className="text-sm text-gray-500">Add an extra layer of security</p>
+                </div>
+                <button
+                  onClick={() => handleSettingChange('twoFactorAuth', !settings.twoFactorAuth)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.twoFactorAuth ? 'bg-orange-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings.twoFactorAuth ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Change Password */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Change Password</h3>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type={showPassword.current ? 'text' : 'password'}
+                    name="current"
+                    value={password.current}
+                    onChange={handlePasswordChange}
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility('current')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                  >
+                    {showPassword.current ? (
+                      <EyeOff className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <Eye className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type={showPassword.new ? 'text' : 'password'}
+                    name="new"
+                    value={password.new}
+                    onChange={handlePasswordChange}
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility('new')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                  >
+                    {showPassword.new ? (
+                      <EyeOff className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <Eye className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type={showPassword.confirm ? 'text' : 'password'}
+                    name="confirm"
+                    value={password.confirm}
+                    onChange={handlePasswordChange}
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => togglePasswordVisibility('confirm')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                  >
+                    {showPassword.confirm ? (
+                      <EyeOff className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <Eye className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium py-2.5 px-4 rounded-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {saving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Update Password
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Save All Settings */}
+          <button
+            onClick={handleSaveSettings}
+            disabled={saving}
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium py-3 px-4 rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5" />
+                Save All Settings
+              </>
+            )}
+          </button>
+        </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
 
