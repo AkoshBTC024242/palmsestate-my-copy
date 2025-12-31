@@ -1,4 +1,3 @@
-// src/pages/dashboard/Applications.jsx
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -6,7 +5,7 @@ import { supabase } from '../../lib/supabase';
 import {
   FileText, Clock, CheckCircle, AlertCircle, CreditCard,
   CalendarDays, ArrowRight, Building2, Search, Filter, Eye,
-  DollarSign, MapPin, XCircle
+  DollarSign, MapPin, XCircle, ExternalLink
 } from 'lucide-react';
 
 function Applications() {
@@ -19,6 +18,7 @@ function Applications() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [totalCount, setTotalCount] = useState(0);
+  const [properties, setProperties] = useState({});
 
   // Get status filter from URL if present
   useEffect(() => {
@@ -38,20 +38,12 @@ function Applications() {
   const loadApplications = async () => {
     try {
       setLoading(true);
+      console.log('Loading applications for user:', user?.id);
       
+      // SIMPLE QUERY: Get applications without property join
       let query = supabase
         .from('applications')
-        .select(`
-          *,
-          properties (
-            id,
-            title,
-            location,
-            price_per_week,
-            property_type,
-            main_image_url
-          )
-        `, { count: 'exact' })
+        .select('*', { count: 'exact' })
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -62,12 +54,53 @@ function Applications() {
 
       const { data, error, count } = await query;
 
-      if (error) throw error;
+      console.log('Applications loaded:', data?.length || 0, 'apps');
+      console.log('Sample app:', data?.[0]);
+
+      if (error) {
+        console.error('Error loading applications:', error);
+        // Try a simpler query as fallback
+        const { data: fallbackData } = await supabase
+          .from('applications')
+          .select('id, status, created_at, property_id')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        setApplications(fallbackData || []);
+        setTotalCount(fallbackData?.length || 0);
+        return;
+      }
 
       setApplications(data || []);
       setTotalCount(count || 0);
+
+      // Load properties separately if we have property_ids
+      if (data && data.length > 0) {
+        const propertyIds = data
+          .map(app => app.property_id)
+          .filter(id => id && id !== null && id !== undefined);
+        
+        if (propertyIds.length > 0) {
+          const uniqueIds = [...new Set(propertyIds)];
+          console.log('Loading properties:', uniqueIds);
+          
+          const { data: propertiesData, error: propsError } = await supabase
+            .from('properties')
+            .select('*')
+            .in('id', uniqueIds);
+          
+          if (!propsError && propertiesData) {
+            const propertiesMap = {};
+            propertiesData.forEach(prop => {
+              propertiesMap[prop.id] = prop;
+            });
+            setProperties(propertiesMap);
+          }
+        }
+      }
+
     } catch (error) {
-      console.error('Error loading applications:', error);
+      console.error('Error in loadApplications:', error);
     } finally {
       setLoading(false);
     }
@@ -105,6 +138,12 @@ function Applications() {
         label: 'Rejected',
         description: 'Application not approved'
       },
+      payment_pending: {
+        color: 'bg-orange-100 text-orange-800 border-orange-200',
+        icon: <CreditCard className="w-4 h-4" />,
+        label: 'Payment Pending',
+        description: 'Waiting for payment'
+      }
     };
     return configs[status] || configs.submitted;
   };
@@ -119,18 +158,35 @@ function Applications() {
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return 'N/A';
+    if (!amount) return '';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
   };
 
+  const getPropertyInfo = (propertyId) => {
+    if (!propertyId) return { title: 'Unknown Property', location: '' };
+    const prop = properties[propertyId];
+    return {
+      title: prop?.title || `Property #${propertyId}`,
+      location: prop?.location || '',
+      image: prop?.main_image_url
+    };
+  };
+
+  const getApplicantName = (application) => {
+    if (application.first_name && application.last_name) {
+      return `${application.first_name} ${application.last_name}`;
+    }
+    return application.full_name || 'Applicant';
+  };
+
   const filteredApplications = applications.filter(app => {
     const matchesSearch = !searchTerm || 
-      (app.properties?.title?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (app.reference_number?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (app.properties?.location?.toLowerCase().includes(searchTerm.toLowerCase()));
+      getPropertyInfo(app.property_id).title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      getApplicantName(app).toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (app.reference_number && app.reference_number.toLowerCase().includes(searchTerm.toLowerCase()));
     
     return matchesSearch;
   });
@@ -181,7 +237,7 @@ function Applications() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by property name, location, or reference..."
+                placeholder="Search by property name, applicant name, or reference..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -203,6 +259,7 @@ function Applications() {
                 <option value="paid_under_review">Paid - Review</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
+                <option value="payment_pending">Payment Pending</option>
               </select>
             </div>
             
@@ -247,6 +304,8 @@ function Applications() {
           <div className="divide-y divide-gray-200">
             {filteredApplications.map((application) => {
               const status = getStatusConfig(application.status);
+              const property = getPropertyInfo(application.property_id);
+              const applicantName = getApplicantName(application);
 
               return (
                 <div key={application.id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
@@ -255,10 +314,10 @@ function Applications() {
                       <div className="flex items-start gap-4">
                         {/* Property Image */}
                         <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                          {application.properties?.main_image_url ? (
+                          {property.image ? (
                             <img
-                              src={application.properties.main_image_url}
-                              alt={application.properties.title}
+                              src={property.image}
+                              alt={property.title}
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -271,7 +330,7 @@ function Applications() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2">
                             <h4 className="font-bold text-gray-900 truncate">
-                              {application.properties?.title || 'Luxury Property'}
+                              {property.title}
                             </h4>
                             <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${status.color}`}>
                               {status.icon}
@@ -287,26 +346,42 @@ function Applications() {
                               Applied {formatDate(application.created_at)}
                             </span>
                             
-                            {application.properties?.location && (
+                            {property.location && (
                               <span className="flex items-center gap-1">
                                 <MapPin className="w-4 h-4" />
-                                {application.properties.location}
+                                {property.location}
                               </span>
                             )}
                             
-                            {application.properties?.price_per_week && (
+                            {application.application_fee && (
                               <span className="flex items-center gap-1 font-medium">
                                 <DollarSign className="w-4 h-4" />
-                                {formatCurrency(application.properties.price_per_week)}/week
+                                {formatCurrency(application.application_fee)}
                               </span>
                             )}
                           </div>
                           
-                          {application.reference_number && (
-                            <p className="text-sm text-gray-500 mt-2">
-                              Reference: #{application.reference_number}
-                            </p>
-                          )}
+                          <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
+                            <span className="text-gray-500">
+                              Applicant: {applicantName}
+                            </span>
+                            
+                            {application.reference_number && (
+                              <span className="text-gray-500">
+                                Reference: #{application.reference_number}
+                              </span>
+                            )}
+                            
+                            {application.property_id && (
+                              <Link
+                                to={`/properties/${application.property_id}`}
+                                className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
+                              >
+                                View Property
+                                <ExternalLink className="w-3 h-3" />
+                              </Link>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
