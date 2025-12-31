@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx (or move it to src/pages/dashboard/Dashboard.jsx)
+// src/pages/Dashboard.jsx
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
