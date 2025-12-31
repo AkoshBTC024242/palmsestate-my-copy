@@ -1,202 +1,165 @@
-// src/pages/Dashboard.jsx
+// pages/dashboard/Dashboard.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
-import { 
-  FileText, Clock, CheckCircle, Heart, Building2, MapPin,
-  CalendarDays, DollarSign, Eye, PlusCircle, Bell,
-  CreditCard, Trophy, Sparkles, ArrowRight, Users, Home,
-  AlertCircle
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+import {
+  FileText, Clock, CheckCircle, Building2, Heart, AlertCircle,
+  ArrowRight, CalendarDays, MapPin, DollarSign, Users, TrendingUp
 } from 'lucide-react';
 
 function Dashboard() {
-  const { user, userProfile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [applications, setApplications] = useState([]);
-  const [savedProperties, setSavedProperties] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
+
   const [stats, setStats] = useState({
     totalApplications: 0,
-    pending: 0,
-    approved: 0,
-    savedProperties: 0
+    pendingApplications: 0,
+    approvedApplications: 0,
+    savedProperties: 0,
+    upcomingPayments: 0
   });
+  
+  const [recentApplications, setRecentApplications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
     if (user) {
       loadDashboardData();
+      loadUserProfile();
     }
   }, [user]);
 
   const loadDashboardData = async () => {
-  try {
-    setLoading(true);
-    
-    // SIMPLE QUERY: Get applications without complex joins
-    const { data: appsData, error: appsError } = await supabase
-      .from('applications')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+    try {
+      setLoading(true);
 
-    if (appsError) {
-      console.error('Error loading applications:', appsError);
-      setApplications([]);
-      return;
-    }
+      // Fetch total applications
+      const { count: totalCount } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
 
-    console.log('Dashboard loaded applications:', appsData?.length || 0);
+      // Fetch pending applications
+      const { count: pendingCount } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'submitted');
 
-    // Load saved properties count
-    const { data: savedData } = await supabase
-      .from('saved_properties')
-      .select('id')
-      .eq('user_id', user.id);
+      // Fetch approved applications
+      const { count: approvedCount } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('status', 'approved');
 
-    if (appsData) {
-      setApplications(appsData);
-      
-      const pending = appsData.filter(app => 
-        app.status === 'submitted' || 
-        app.status === 'pre_approved' || 
-        app.status === 'paid_under_review' ||
-        app.status === 'payment_pending'
-      ).length;
-      
-      const approved = appsData.filter(app => 
-        app.status === 'approved'
-      ).length;
+      // Fetch saved properties count
+      const { count: savedCount } = await supabase
+        .from('saved_properties')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // Fetch recent applications (last 3)
+      const { data: recentApps } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          property:property_id (
+            title,
+            location,
+            main_image_url
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
 
       setStats({
-        totalApplications: appsData.length,
-        pending,
-        approved,
-        savedProperties: savedData?.length || 0
+        totalApplications: totalCount || 0,
+        pendingApplications: pendingCount || 0,
+        approvedApplications: approvedCount || 0,
+        savedProperties: savedCount || 0,
+        upcomingPayments: 0
       });
 
-      // Generate recent activity from applications
-      const activity = appsData.slice(0, 3).map(app => ({
-        id: app.id,
-        type: 'application',
-        status: app.status,
-        title: `Application #${app.id.toString().slice(-4)}`,
-        date: app.created_at,
-        icon: app.status === 'approved' ? CheckCircle : 
-              app.status === 'rejected' ? AlertCircle : Clock,
-        color: app.status === 'approved' ? 'green' :
-               app.status === 'rejected' ? 'red' : 'blue'
-      }));
-      
-      // Add saved properties to activity if exists
-      if (savedData && savedData.length > 0) {
-        activity.unshift({
-          id: savedData[0].id,
-          type: 'saved',
-          status: 'saved',
-          title: 'Property saved',
-          date: new Date().toISOString(),
-          icon: Heart,
-          color: 'pink'
-        });
-      }
-      
-      setRecentActivity(activity);
+      setRecentApplications(recentApps || []);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-  } catch (error) {
-    console.error('Error loading dashboard data:', error);
-  } finally {
-    setLoading(false);
-  }
-};
-  
-  const getStatusBadge = (status) => {
-    const statusConfig = {
+  const loadUserProfile = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data) {
+        setUserProfile(data);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
+  const getStatusConfig = (status) => {
+    const configs = {
       submitted: { 
-        icon: <Clock className="w-3 h-3" />, 
         color: 'bg-blue-100 text-blue-800 border-blue-200',
+        icon: <Clock className="w-4 h-4" />,
         label: 'Submitted'
       },
       pre_approved: { 
-        icon: <FileText className="w-3 h-3" />, 
         color: 'bg-amber-100 text-amber-800 border-amber-200',
+        icon: <AlertCircle className="w-4 h-4" />,
         label: 'Pre-Approved'
       },
       paid_under_review: { 
-        icon: <CreditCard className="w-3 h-3" />, 
         color: 'bg-purple-100 text-purple-800 border-purple-200',
-        label: 'Paid - Review'
+        icon: <FileText className="w-4 h-4" />,
+        label: 'Under Review'
       },
       approved: { 
-        icon: <CheckCircle className="w-3 h-3" />, 
-        color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        color: 'bg-green-100 text-green-800 border-green-200',
+        icon: <CheckCircle className="w-4 h-4" />,
         label: 'Approved'
       },
       rejected: { 
-        icon: <AlertCircle className="w-3 h-3" />, 
         color: 'bg-red-100 text-red-800 border-red-200',
+        icon: <AlertCircle className="w-4 h-4" />,
         label: 'Rejected'
       }
     };
-
-    const config = statusConfig[status] || statusConfig.submitted;
-    
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${config.color}`}>
-        {config.icon}
-        <span>{config.label}</span>
-      </span>
-    );
+    return configs[status] || configs.submitted;
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    
-    return date.toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric'
     });
   };
 
-  const getActivityIcon = (activity) => {
-    const Icon = activity.icon;
-    const colorClass = {
-      green: 'text-green-600 bg-green-100',
-      red: 'text-red-600 bg-red-100',
-      blue: 'text-blue-600 bg-blue-100',
-      pink: 'text-pink-600 bg-pink-100',
-      orange: 'text-orange-600 bg-orange-100'
-    }[activity.color] || 'text-gray-600 bg-gray-100';
-    
-    return (
-      <div className={`p-2 rounded-lg ${colorClass}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-    );
+  const getUserGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full border-4 border-orange-100 animate-spin"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-              <Sparkles className="w-8 h-8 text-orange-500 animate-pulse" />
-            </div>
-          </div>
-          <p className="mt-6 text-gray-600 font-medium">Loading dashboard...</p>
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="text-gray-600 mt-4">Loading dashboard...</p>
         </div>
       </div>
     );
@@ -204,304 +167,229 @@ function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Welcome Header */}
+      {/* Welcome Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back, {userProfile?.first_name || user?.email?.split('@')[0] || 'User'}!
+          {getUserGreeting()}, {userProfile?.full_name || user?.email?.split('@')[0] || 'User'}!
         </h1>
         <p className="text-gray-600 mt-2">
-          Here's an overview of your property applications and activities
+          Welcome back to your Palms Estate dashboard
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {[
-          { 
-            label: 'Total Applications', 
-            value: stats.totalApplications, 
-            icon: <FileText className="w-6 h-6" />,
-            color: 'from-blue-500 to-blue-600',
-            onClick: () => navigate('/dashboard/applications')
-          },
-          { 
-            label: 'Pending Review', 
-            value: stats.pending, 
-            icon: <Clock className="w-6 h-6" />,
-            color: 'from-amber-500 to-orange-500',
-            onClick: () => navigate('/dashboard/applications?status=pending')
-          },
-          { 
-            label: 'Approved', 
-            value: stats.approved, 
-            icon: <CheckCircle className="w-6 h-6" />,
-            color: 'from-emerald-500 to-green-600',
-            onClick: () => navigate('/dashboard/applications?status=approved')
-          },
-          { 
-            label: 'Saved Properties', 
-            value: stats.savedProperties, 
-            icon: <Heart className="w-6 h-6" />,
-            color: 'from-rose-500 to-pink-600',
-            onClick: () => navigate('/dashboard/saved')
-          },
-        ].map((stat, index) => (
-          <div 
-            key={index}
-            onClick={stat.onClick}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all duration-200 hover:-translate-y-1 cursor-pointer"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-lg bg-gradient-to-br ${stat.color} text-white`}>
-                {stat.icon}
-              </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Applications</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalApplications}</p>
             </div>
-            <p className="text-sm text-gray-600 mb-1">{stat.label}</p>
-            <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+            <div className="p-3 rounded-full bg-blue-50">
+              <FileText className="w-6 h-6 text-blue-600" />
+            </div>
           </div>
-        ))}
+          <Link 
+            to="/dashboard/applications" 
+            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 mt-4"
+          >
+            View All
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Pending Review</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.pendingApplications}</p>
+            </div>
+            <div className="p-3 rounded-full bg-amber-50">
+              <Clock className="w-6 h-6 text-amber-600" />
+            </div>
+          </div>
+          <div className="text-xs text-amber-600 mt-4">
+            Awaiting initial review
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Approved</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.approvedApplications}</p>
+            </div>
+            <div className="p-3 rounded-full bg-green-50">
+              <CheckCircle className="w-6 h-6 text-green-600" />
+            </div>
+          </div>
+          <div className="text-xs text-green-600 mt-4">
+            Successfully approved
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Saved Properties</p>
+              <p className="text-2xl font-bold text-gray-900">{stats.savedProperties}</p>
+            </div>
+            <div className="p-3 rounded-full bg-red-50">
+              <Heart className="w-6 h-6 text-red-600" />
+            </div>
+          </div>
+          <Link 
+            to="/dashboard/saved" 
+            className="inline-flex items-center gap-1 text-sm text-red-600 hover:text-red-800 mt-4"
+          >
+            View Saved
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Applications & Quick Actions */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Recent Applications */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Recent Applications</h2>
-                <p className="text-gray-600">Track your property applications and their status</p>
-              </div>
-              {applications.length > 0 && (
-                <button
-                  onClick={() => navigate('/dashboard/applications')}
-                  className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+        {/* Recent Applications */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Recent Applications</h2>
+                <Link 
+                  to="/dashboard/applications"
+                  className="text-sm text-orange-600 hover:text-orange-700 font-medium"
                 >
                   View All
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              )}
+                </Link>
+              </div>
             </div>
-
-            {applications.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
-                  <FileText className="w-8 h-8 text-orange-600" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Yet</h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  Start your luxury living journey by applying for one of our premium properties.
-                </p>
+            
+            {recentApplications.length === 0 ? (
+              <div className="p-8 text-center">
+                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">You haven't submitted any applications yet</p>
                 <button
                   onClick={() => navigate('/properties')}
-                  className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-300"
+                  className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-3 rounded-lg"
                 >
-                  <Building2 className="w-5 h-5" />
                   Browse Properties
                 </button>
               </div>
             ) : (
-              <div className="space-y-4">
-                {applications.slice(0, 3).map((application) => (
-                  <div 
-                    key={application.id}
-                    className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          {application.properties?.main_image_url ? (
-                            <img 
-                              src={application.properties.main_image_url} 
-                              alt={application.properties.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <Building2 className="w-6 h-6 text-gray-400" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium text-gray-900">
-                              {application.properties?.title || 'Property Application'}
-                            </h4>
-                            {getStatusBadge(application.status)}
+              <div className="divide-y divide-gray-200">
+                {recentApplications.map((application) => {
+                  const status = getStatusConfig(application.status);
+                  const property = application.property || { title: 'Property' };
+                  
+                  return (
+                    <div key={application.id} className="p-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-medium text-gray-900 truncate">
+                              {property.title}
+                            </h3>
+                            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${status.color}`}>
+                              {status.icon}
+                              <span>{status.label}</span>
+                            </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                          
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
                             <span className="flex items-center gap-1">
                               <CalendarDays className="w-4 h-4" />
                               Applied {formatDate(application.created_at)}
                             </span>
-                            {application.properties?.location && (
-                              <span className="text-gray-500">
-                                {application.properties.location}
-                              </span>
-                            )}
-                            {application.properties?.price_per_week && (
-                              <span className="font-medium">
-                                ${application.properties.price_per_week}/week
+                            
+                            {property.location && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {property.location}
                               </span>
                             )}
                           </div>
-                          {application.reference_number && (
-                            <p className="text-sm text-gray-500 mt-1">
-                              Reference: #{application.reference_number}
-                            </p>
-                          )}
                         </div>
+                        
+                        <button
+                          onClick={() => navigate(`/dashboard/applications/${application.id}`)}
+                          className="ml-4 text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+                        >
+                          View
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                    
-                    <div className="mt-3 md:mt-0">
-                      <button
-                        onClick={() => navigate(`/dashboard/applications/${application.id}`)}
-                        className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
-                      >
-                        View Details
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Quick Actions & Profile */}
+        <div className="space-y-6">
+          {/* Profile Card */}
+          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Your Profile</h3>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Email</p>
+                <p className="font-medium">{user?.email}</p>
+              </div>
+              {userProfile?.phone && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-1">Phone</p>
+                  <p className="font-medium">{userProfile.phone}</p>
+                </div>
+              )}
+              <Link 
+                to="/dashboard/profile"
+                className="inline-block text-orange-600 hover:text-orange-700 font-medium text-sm"
+              >
+                Update Profile →
+              </Link>
+            </div>
           </div>
 
           {/* Quick Actions */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[
-                {
-                  title: 'Browse Properties',
-                  description: 'Find your dream property',
-                  icon: <Building2 className="w-5 h-5" />,
-                  path: '/properties',
-                  color: 'bg-blue-500'
-                },
-                {
-                  title: 'Submit New Application',
-                  description: 'Apply for a property',
-                  icon: <PlusCircle className="w-5 h-5" />,
-                  path: '/properties',
-                  color: 'bg-orange-500'
-                },
-                {
-                  title: 'View Saved Properties',
-                  description: 'Your favorite listings',
-                  icon: <Heart className="w-5 h-5" />,
-                  path: '/dashboard/saved',
-                  color: 'bg-pink-500'
-                },
-                {
-                  title: 'Update Profile',
-                  description: 'Manage your information',
-                  icon: <Users className="w-5 h-5" />,
-                  path: '/dashboard/profile',
-                  color: 'bg-purple-500'
-                },
-              ].map((action, index) => (
-                <button
-                  key={index}
-                  onClick={() => navigate(action.path)}
-                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200 text-left"
-                >
-                  <div className={`${action.color} p-3 rounded-lg text-white`}>
-                    {action.icon}
-                  </div>
-                  <div className="ml-4">
-                    <h3 className="font-medium text-gray-900">{action.title}</h3>
-                    <p className="text-sm text-gray-500">{action.description}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - Profile & Activity */}
-        <div className="space-y-6">
-          {/* Profile Summary */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Profile Summary</h2>
-            <div className="flex items-center mb-4">
-              {userProfile?.avatar_url ? (
-                <img
-                  src={userProfile.avatar_url}
-                  alt="Profile"
-                  className="h-16 w-16 rounded-full object-cover border-2 border-orange-100"
-                />
-              ) : (
-                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
-                  <Users className="w-8 h-8 text-orange-600" />
-                </div>
-              )}
-              <div className="ml-4">
-                <h3 className="font-bold text-gray-900">
-                  {userProfile?.first_name || 'User'} {userProfile?.last_name || ''}
-                </h3>
-                <p className="text-gray-500">{user?.email}</p>
-                <p className="text-sm text-gray-500">
-                  Member since {user?.created_at ? new Date(user.created_at).getFullYear() : 'Recently'}
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+            <h3 className="font-bold text-gray-900 mb-4">Quick Actions</h3>
+            <div className="space-y-3">
               <button
-                onClick={() => navigate('/dashboard/profile')}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                onClick={() => navigate('/properties')}
+                className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 hover:border-orange-300 hover:bg-orange-50 transition-colors"
               >
-                <Users className="w-4 h-4" />
-                Profile
+                <span className="font-medium">Browse Properties</span>
+                <Building2 className="w-5 h-5 text-gray-500" />
               </button>
+              
               <button
-                onClick={() => navigate('/dashboard/settings')}
-                className="bg-orange-100 hover:bg-orange-200 text-orange-800 font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                onClick={() => navigate('/dashboard/applications')}
+                className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 hover:border-blue-300 hover:bg-blue-50 transition-colors"
               >
-                <FileText className="w-4 h-4" />
-                Settings
+                <span className="font-medium">View Applications</span>
+                <FileText className="w-5 h-5 text-gray-500" />
+              </button>
+              
+              <button
+                onClick={() => navigate('/dashboard/saved')}
+                className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 hover:border-red-300 hover:bg-red-50 transition-colors"
+              >
+                <span className="font-medium">Saved Properties</span>
+                <Heart className="w-5 h-5 text-gray-500" />
               </button>
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Activity</h2>
-            <div className="space-y-4">
-              {recentActivity.length === 0 ? (
-                <div className="text-center py-4">
-                  <p className="text-gray-500 text-sm">No recent activity</p>
-                </div>
-              ) : (
-                recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start">
-                    {getActivityIcon(activity)}
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900">
-                        {activity.type === 'saved' ? 'Property saved' : 
-                         activity.status === 'approved' ? 'Application approved' :
-                         activity.status === 'rejected' ? 'Application rejected' :
-                         'Application submitted'}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatDate(activity.date)}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Support Card */}
-          <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-6">
-            <h3 className="font-bold text-gray-900 mb-3">Need Help?</h3>
-            <p className="text-gray-700 mb-4 text-sm">
-              Our support team is here to help with your applications and property searches.
+          {/* Need Help? */}
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6">
+            <h3 className="font-bold text-gray-900 mb-4">Need Help?</h3>
+            <p className="text-gray-700 text-sm mb-4">
+              Our support team is available to assist with any questions.
             </p>
             <button
               onClick={() => navigate('/contact')}
-              className="w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-lg"
             >
               Contact Support
             </button>
