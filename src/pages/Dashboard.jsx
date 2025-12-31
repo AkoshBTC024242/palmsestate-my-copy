@@ -32,117 +32,87 @@ function Dashboard() {
   }, [user]);
 
   const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      // Load applications with property details
-      const { data: appsData, error: appsError } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          properties (
-            id,
-            title,
-            location,
-            price_per_week,
-            main_image_url
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+  try {
+    setLoading(true);
+    
+    // SIMPLE QUERY: Get applications without complex joins
+    const { data: appsData, error: appsError } = await supabase
+      .from('applications')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
 
-      if (appsError) throw appsError;
-
-      // Load saved properties with full property details
-      const { data: savedData, error: savedError } = await supabase
-        .from('saved_properties')
-        .select(`
-          id,
-          created_at,
-          properties (
-            id,
-            title,
-            location,
-            price_per_week,
-            property_type,
-            main_image_url
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (savedError) throw savedError;
-
-      // Transform saved properties data
-      const savedPropertiesList = savedData?.map(item => ({
-        savedId: item.id,
-        savedAt: item.created_at,
-        ...item.properties
-      })) || [];
-
-      // Calculate stats
-      if (appsData) {
-        setApplications(appsData);
-        
-        const pending = appsData.filter(app => 
-          app.status === 'submitted' || 
-          app.status === 'pre_approved' || 
-          app.status === 'paid_under_review'
-        ).length;
-        
-        const approved = appsData.filter(app => 
-          app.status === 'approved'
-        ).length;
-
-        setStats({
-          totalApplications: appsData.length,
-          pending,
-          approved,
-          savedProperties: savedPropertiesList.length
-        });
-
-        // Generate recent activity from applications
-        const activity = appsData.slice(0, 3).map(app => ({
-          id: app.id,
-          type: 'application',
-          status: app.status,
-          title: app.properties?.title || 'Property Application',
-          date: app.created_at,
-          icon: app.status === 'approved' ? CheckCircle : 
-                app.status === 'rejected' ? AlertCircle : Clock,
-          color: app.status === 'approved' ? 'green' :
-                 app.status === 'rejected' ? 'red' : 'blue'
-        }));
-        
-        // Add saved properties to activity if exists
-        if (savedPropertiesList.length > 0) {
-          const latestSaved = savedPropertiesList[0];
-          activity.unshift({
-            id: latestSaved.savedId,
-            type: 'saved',
-            status: 'saved',
-            title: latestSaved.title || 'Property',
-            date: latestSaved.savedAt,
-            icon: Heart,
-            color: 'pink'
-          });
-        }
-        
-        setRecentActivity(activity);
-      }
-
-      if (savedData) {
-        setSavedProperties(savedPropertiesList);
-      }
-
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-    } finally {
-      setLoading(false);
+    if (appsError) {
+      console.error('Error loading applications:', appsError);
+      setApplications([]);
+      return;
     }
-  };
 
+    console.log('Dashboard loaded applications:', appsData?.length || 0);
+
+    // Load saved properties count
+    const { data: savedData } = await supabase
+      .from('saved_properties')
+      .select('id')
+      .eq('user_id', user.id);
+
+    if (appsData) {
+      setApplications(appsData);
+      
+      const pending = appsData.filter(app => 
+        app.status === 'submitted' || 
+        app.status === 'pre_approved' || 
+        app.status === 'paid_under_review' ||
+        app.status === 'payment_pending'
+      ).length;
+      
+      const approved = appsData.filter(app => 
+        app.status === 'approved'
+      ).length;
+
+      setStats({
+        totalApplications: appsData.length,
+        pending,
+        approved,
+        savedProperties: savedData?.length || 0
+      });
+
+      // Generate recent activity from applications
+      const activity = appsData.slice(0, 3).map(app => ({
+        id: app.id,
+        type: 'application',
+        status: app.status,
+        title: `Application #${app.id.toString().slice(-4)}`,
+        date: app.created_at,
+        icon: app.status === 'approved' ? CheckCircle : 
+              app.status === 'rejected' ? AlertCircle : Clock,
+        color: app.status === 'approved' ? 'green' :
+               app.status === 'rejected' ? 'red' : 'blue'
+      }));
+      
+      // Add saved properties to activity if exists
+      if (savedData && savedData.length > 0) {
+        activity.unshift({
+          id: savedData[0].id,
+          type: 'saved',
+          status: 'saved',
+          title: 'Property saved',
+          date: new Date().toISOString(),
+          icon: Heart,
+          color: 'pink'
+        });
+      }
+      
+      setRecentActivity(activity);
+    }
+
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+  } finally {
+    setLoading(false);
+  }
+};
+  
   const getStatusBadge = (status) => {
     const statusConfig = {
       submitted: { 
