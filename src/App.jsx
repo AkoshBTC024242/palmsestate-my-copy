@@ -11,7 +11,7 @@ import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
 import ApplicationForm from './pages/ApplicationForm';
-import InitialApplyForm from './pages/InitialApplyForm'; // ADD THIS IMPORT
+import InitialApplyForm from './pages/InitialApplyForm';
 import PaymentPage from './pages/dashboard/PaymentPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminDashboard from './pages/AdminDashboard';
@@ -47,7 +47,7 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/properties" element={<Properties />} />
                     <Route path="/properties/:id" element={<PropertyDetails />} />
-                    <Route path="/properties/:id/initial-apply" element={<InitialApplyForm />} /> {/* NEW ROUTE */}
+                    <Route path="/properties/:id/initial-apply" element={<InitialApplyForm />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/signin" element={<SignIn />} />
@@ -57,7 +57,8 @@ function App() {
                 <Footer />
               </div>
             } />
-            {/* ===== USER DASHBOARD ROUTES (NO HEADER/FOOTER) ===== */}
+            
+            {/* ===== USER DASHBOARD ROUTES (SEPARATE LAYOUT) ===== */}
             <Route path="/dashboard/*" element={
               <ProtectedRoute>
                 <Routes>
@@ -71,7 +72,8 @@ function App() {
                 </Routes>
               </ProtectedRoute>
             } />
-            {/* ===== ADMIN DASHBOARD ROUTES (NO HEADER/FOOTER) ===== */}
+            
+            {/* ===== ADMIN DASHBOARD ROUTES (SEPARATE LAYOUT) ===== */}
             <Route path="/admin/*" element={
               <AdminProtectedRoute>
                 <Routes>
@@ -88,6 +90,7 @@ function App() {
                 </Routes>
               </AdminProtectedRoute>
             } />
+            
             {/* ===== PROTECTED APPLICATION FORM (OLD) - KEEP FOR BACKWARD COMPATIBILITY ===== */}
             <Route path="/properties/:id/apply" element={
               <ProtectedRoute>
@@ -100,12 +103,19 @@ function App() {
                 </div>
               </ProtectedRoute>
             } />
+            
             {/* ===== 404 PAGE ===== */}
             <Route path="*" element={
               <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
                 <Header />
-                <main className="flex-grow pt-16 md:pt-20">
-                  {/* your 404 JSX */}
+                <main className="flex-grow pt-16 md:pt-20 flex items-center justify-center">
+                  <div className="text-center">
+                    <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>
+                    <p className="text-xl text-gray-600 mb-8">Page not found</p>
+                    <a href="/" className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors">
+                      Return Home
+                    </a>
+                  </div>
                 </main>
                 <Footer />
               </div>
