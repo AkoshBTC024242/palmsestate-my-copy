@@ -1,40 +1,71 @@
-// src/pages/dashboard/Applications.jsx - REMOVE DashboardLayout
+// src/pages/dashboard/Applications.jsx
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import {
   FileText, Clock, CheckCircle, AlertCircle, CreditCard,
-  CalendarDays, ArrowRight, Building2, Search, Filter, Eye
+  CalendarDays, ArrowRight, Building2, Search, Filter, Eye,
+  DollarSign, MapPin, XCircle
 } from 'lucide-react';
 
 function Applications() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Get status filter from URL if present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const status = params.get('status');
+    if (status) {
+      setStatusFilter(status);
+    }
+  }, [location]);
 
   useEffect(() => {
     if (user) {
       loadApplications();
     }
-  }, [user]);
+  }, [user, statusFilter]);
 
   const loadApplications = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('applications')
-        .select('*, properties(title, location, price_per_week, main_image_url)')
+        .select(`
+          *,
+          properties (
+            id,
+            title,
+            location,
+            price_per_week,
+            property_type,
+            main_image_url
+          )
+        `, { count: 'exact' })
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+      // Apply status filter
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data, error, count } = await query;
 
       if (error) throw error;
 
       setApplications(data || []);
+      setTotalCount(count || 0);
     } catch (error) {
       console.error('Error loading applications:', error);
     } finally {
@@ -47,27 +78,32 @@ function Applications() {
       submitted: { 
         color: 'bg-blue-100 text-blue-800 border-blue-200', 
         icon: <Clock className="w-4 h-4" />, 
-        label: 'Submitted' 
+        label: 'Submitted',
+        description: 'Application submitted and awaiting review'
       },
       pre_approved: { 
         color: 'bg-amber-100 text-amber-800 border-amber-200', 
         icon: <AlertCircle className="w-4 h-4" />, 
-        label: 'Pre-Approved' 
+        label: 'Pre-Approved',
+        description: 'Initial approval pending fee payment'
       },
       paid_under_review: { 
         color: 'bg-purple-100 text-purple-800 border-purple-200', 
         icon: <CreditCard className="w-4 h-4" />, 
-        label: 'Paid - Review' 
+        label: 'Paid - Review',
+        description: 'Fee paid, under final review'
       },
       approved: { 
         color: 'bg-green-100 text-green-800 border-green-200', 
         icon: <CheckCircle className="w-4 h-4" />, 
-        label: 'Approved' 
+        label: 'Approved',
+        description: 'Application approved'
       },
       rejected: { 
         color: 'bg-red-100 text-red-800 border-red-200', 
-        icon: <AlertCircle className="w-4 h-4" />, 
-        label: 'Rejected' 
+        icon: <XCircle className="w-4 h-4" />, 
+        label: 'Rejected',
+        description: 'Application not approved'
       },
     };
     return configs[status] || configs.submitted;
@@ -82,23 +118,59 @@ function Applications() {
     });
   };
 
+  const formatCurrency = (amount) => {
+    if (!amount) return 'N/A';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
   const filteredApplications = applications.filter(app => {
     const matchesSearch = !searchTerm || 
       (app.properties?.title?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (app.reference_number?.toLowerCase().includes(searchTerm.toLowerCase()));
+      (app.reference_number?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (app.properties?.location?.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
+  const getStatusCount = (status) => {
+    return applications.filter(app => app.status === status).length;
+  };
+
   return (
-    // REMOVED DashboardLayout wrapper - it's now in App.jsx
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">My Applications</h1>
-        <p className="text-gray-600 mt-2">Track and manage all your property applications</p>
+        <p className="text-gray-600 mt-2">
+          Track and manage all your property applications ({totalCount})
+        </p>
+      </div>
+
+      {/* Status Summary */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        {[
+          { status: 'all', label: 'All', count: totalCount, color: 'bg-gray-100 text-gray-800' },
+          { status: 'submitted', label: 'Submitted', count: getStatusCount('submitted'), color: 'bg-blue-100 text-blue-800' },
+          { status: 'pre_approved', label: 'Pre-Approved', count: getStatusCount('pre_approved'), color: 'bg-amber-100 text-amber-800' },
+          { status: 'paid_under_review', label: 'Under Review', count: getStatusCount('paid_under_review'), color: 'bg-purple-100 text-purple-800' },
+          { status: 'approved', label: 'Approved', count: getStatusCount('approved'), color: 'bg-green-100 text-green-800' },
+        ].map((stat) => (
+          <button
+            key={stat.status}
+            onClick={() => setStatusFilter(stat.status)}
+            className={`p-4 rounded-xl border transition-all duration-200 ${
+              statusFilter === stat.status 
+                ? 'border-orange-300 shadow-sm scale-[1.02]' 
+                : 'border-gray-200 hover:border-gray-300'
+            } ${stat.color}`}
+          >
+            <div className="text-2xl font-bold mb-1">{stat.count}</div>
+            <div className="text-sm font-medium">{stat.label}</div>
+          </button>
+        ))}
       </div>
 
       {/* Filters */}
@@ -109,7 +181,7 @@ function Applications() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search applications..."
+                placeholder="Search by property name, location, or reference..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
@@ -207,6 +279,8 @@ function Applications() {
                             </div>
                           </div>
                           
+                          <p className="text-sm text-gray-600 mb-2">{status.description}</p>
+                          
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                             <span className="flex items-center gap-1">
                               <CalendarDays className="w-4 h-4" />
@@ -214,14 +288,16 @@ function Applications() {
                             </span>
                             
                             {application.properties?.location && (
-                              <span className="text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
                                 {application.properties.location}
                               </span>
                             )}
                             
                             {application.properties?.price_per_week && (
-                              <span className="font-medium text-gray-900">
-                                ${application.properties.price_per_week}/week
+                              <span className="flex items-center gap-1 font-medium">
+                                <DollarSign className="w-4 h-4" />
+                                {formatCurrency(application.properties.price_per_week)}/week
                               </span>
                             )}
                           </div>
@@ -250,7 +326,7 @@ function Applications() {
                           className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors duration-200"
                         >
                           <CreditCard className="w-4 h-4" />
-                          Pay $50 Fee
+                          Pay Fee
                         </button>
                       )}
                     </div>
