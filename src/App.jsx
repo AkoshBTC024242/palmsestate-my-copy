@@ -10,7 +10,7 @@ import Contact from './pages/Contact';
 import About from './pages/About';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
-import Dashboard from './pages/dashboard/Dashboard';
+import Dashboard from './pages/Dashboard';
 import ApplicationForm from './pages/ApplicationForm';
 import InitialApplyForm from './pages/InitialApplyForm';
 import DashboardLayout from './components/DashboardLayout';
