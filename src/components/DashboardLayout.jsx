@@ -39,19 +39,11 @@ const DashboardLayout = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar backdrop */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar - Fixed position */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform lg:translate-x-0 lg:static lg:inset-0 transition-transform duration-300 ease-in-out ${
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar - Fixed on left side */}
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      } lg:translate-x-0 lg:static lg:inset-0`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-4 border-b">
@@ -114,8 +106,8 @@ const DashboardLayout = ({ children }) => {
         </div>
       </div>
 
-      {/* Main content area */}
-      <div className="lg:pl-64 min-h-screen">
+      {/* Main content area - Takes remaining space */}
+      <div className="flex-1 flex flex-col min-h-screen">
         {/* Top navbar - Fixed */}
         <header className="sticky top-0 z-30 bg-white shadow-sm border-b">
           <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
@@ -192,10 +184,18 @@ const DashboardLayout = ({ children }) => {
         </header>
 
         {/* Main content - Scrollable area */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           {children}
         </main>
       </div>
+
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };
