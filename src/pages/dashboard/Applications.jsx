@@ -1,17 +1,18 @@
 // src/pages/dashboard/Applications.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import DashboardLayout from '../../components/DashboardLayout';
-import { 
-  FileText, Clock, CheckCircle, XCircle, Eye, 
-  Search, Filter, CalendarDays, DollarSign, Building2
+import {
+  FileText, Clock, CheckCircle, AlertCircle, CreditCard,
+  CalendarDays, ArrowRight, Building2, Search, Filter, Eye
 } from 'lucide-react';
 
-const Applications = () => {
+function Applications() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,15 +27,14 @@ const Applications = () => {
   const loadApplications = async () => {
     try {
       setLoading(true);
-      let query = supabase
+      const { data, error } = await supabase
         .from('applications')
-        .select('*')
+        .select('*, properties(title, location, price_per_week, main_image_url)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      const { data, error } = await query;
-      
       if (error) throw error;
+
       setApplications(data || []);
     } catch (error) {
       console.error('Error loading applications:', error);
@@ -43,38 +43,35 @@ const Applications = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      pending: { 
-        icon: <Clock className="w-3 h-3" />, 
-        color: 'bg-amber-100 text-amber-800 border-amber-200',
-        label: 'Pending'
+  const getStatusConfig = (status) => {
+    const configs = {
+      submitted: { 
+        color: 'bg-blue-100 text-blue-800 border-blue-200', 
+        icon: <Clock className="w-4 h-4" />, 
+        label: 'Submitted' 
       },
-      under_review: { 
-        icon: <Clock className="w-3 h-3" />, 
-        color: 'bg-blue-100 text-blue-800 border-blue-200',
-        label: 'Under Review'
+      pre_approved: { 
+        color: 'bg-amber-100 text-amber-800 border-amber-200', 
+        icon: <AlertCircle className="w-4 h-4" />, 
+        label: 'Pre-Approved' 
+      },
+      paid_under_review: { 
+        color: 'bg-purple-100 text-purple-800 border-purple-200', 
+        icon: <CreditCard className="w-4 h-4" />, 
+        label: 'Paid - Review' 
       },
       approved: { 
-        icon: <CheckCircle className="w-3 h-3" />, 
-        color: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-        label: 'Approved'
+        color: 'bg-green-100 text-green-800 border-green-200', 
+        icon: <CheckCircle className="w-4 h-4" />, 
+        label: 'Approved' 
       },
       rejected: { 
-        icon: <XCircle className="w-3 h-3" />, 
-        color: 'bg-red-100 text-red-800 border-red-200',
-        label: 'Rejected'
+        color: 'bg-red-100 text-red-800 border-red-200', 
+        icon: <AlertCircle className="w-4 h-4" />, 
+        label: 'Rejected' 
       },
     };
-
-    const config = statusConfig[status] || statusConfig.pending;
-    
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${config.color}`}>
-        {config.icon}
-        <span>{config.label}</span>
-      </span>
-    );
+    return configs[status] || configs.submitted;
   };
 
   const formatDate = (dateString) => {
@@ -88,7 +85,8 @@ const Applications = () => {
 
   const filteredApplications = applications.filter(app => {
     const matchesSearch = !searchTerm || 
-      (app.reference_number && app.reference_number.toLowerCase().includes(searchTerm.toLowerCase()));
+      (app.properties?.title?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (app.reference_number?.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
     
@@ -98,6 +96,7 @@ const Applications = () => {
   return (
     <DashboardLayout>
       <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">My Applications</h1>
           <p className="text-gray-600 mt-2">Track and manage all your property applications</p>
@@ -111,10 +110,10 @@ const Applications = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search by reference number..."
+                  placeholder="Search applications..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
             </div>
@@ -125,11 +124,12 @@ const Applications = () => {
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="all">All Status</option>
-                  <option value="pending">Pending</option>
-                  <option value="under_review">Under Review</option>
+                  <option value="submitted">Submitted</option>
+                  <option value="pre_approved">Pre-Approved</option>
+                  <option value="paid_under_review">Paid - Review</option>
                   <option value="approved">Approved</option>
                   <option value="rejected">Rejected</option>
                 </select>
@@ -137,7 +137,7 @@ const Applications = () => {
               
               <button
                 onClick={() => navigate('/properties')}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+                className="bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium px-6 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-2"
               >
                 <Building2 className="h-5 w-5" />
                 New Application
@@ -150,13 +150,13 @@ const Applications = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {loading ? (
             <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
               <p className="text-gray-600 mt-4">Loading applications...</p>
             </div>
           ) : filteredApplications.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
-                <FileText className="w-8 h-8 text-blue-600" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center">
+                <FileText className="w-8 h-8 text-orange-600" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Found</h3>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
@@ -166,70 +166,105 @@ const Applications = () => {
               </p>
               <button
                 onClick={() => navigate('/properties')}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-300"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-300"
               >
                 <Building2 className="w-5 h-5" />
                 Browse Properties
               </button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Reference
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Submitted
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Last Updated
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredApplications.map((application) => (
-                    <tr key={application.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">
-                          #{application.reference_number || application.id.slice(-8)}
+            <div className="divide-y divide-gray-200">
+              {filteredApplications.map((application) => {
+                const status = getStatusConfig(application.status);
+
+                return (
+                  <div key={application.id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                      <div className="flex-1">
+                        <div className="flex items-start gap-4">
+                          {/* Property Image */}
+                          <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                            {application.properties?.main_image_url ? (
+                              <img
+                                src={application.properties.main_image_url}
+                                alt={application.properties.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Building2 className="w-8 h-8 text-gray-400" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h4 className="font-bold text-gray-900 truncate">
+                                {application.properties?.title || 'Luxury Property'}
+                              </h4>
+                              <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${status.color}`}>
+                                {status.icon}
+                                <span>{status.label}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                              <span className="flex items-center gap-1">
+                                <CalendarDays className="w-4 h-4" />
+                                Applied {formatDate(application.created_at)}
+                              </span>
+                              
+                              {application.properties?.location && (
+                                <span className="text-gray-500">
+                                  {application.properties.location}
+                                </span>
+                              )}
+                              
+                              {application.properties?.price_per_week && (
+                                <span className="font-medium text-gray-900">
+                                  ${application.properties.price_per_week}/week
+                                </span>
+                              )}
+                            </div>
+                            
+                            {application.reference_number && (
+                              <p className="text-sm text-gray-500 mt-2">
+                                Reference: #{application.reference_number}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(application.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(application.created_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(application.updated_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </div>
+                      
+                      <div className="flex items-center gap-4">
                         <button
                           onClick={() => navigate(`/dashboard/applications/${application.id}`)}
-                          className="text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
+                          className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
                         >
-                          <Eye className="h-4 w-4" />
-                          View
+                          View Details
+                          <Eye className="w-4 h-4" />
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        
+                        {application.status === 'pre_approved' && (
+                          <button
+                            onClick={() => navigate(`/dashboard/applications/${application.id}/payment`)}
+                            className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors duration-200"
+                          >
+                            <CreditCard className="w-4 h-4" />
+                            Pay $50 Fee
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
     </DashboardLayout>
   );
-};
+}
 
 export default Applications;
