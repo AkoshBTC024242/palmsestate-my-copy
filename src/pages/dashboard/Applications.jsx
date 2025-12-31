@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import {
   FileText, Clock, CheckCircle, AlertCircle, CreditCard,
-  ArrowRight
+  CalendarDays, ArrowRight
 } from 'lucide-react';
 
 function Applications() {
@@ -75,42 +75,59 @@ function Applications() {
       </div>
 
       {applications.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow p-12 text-center">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6 text-center py-12">
           <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-xl text-gray-600 mb-6">No applications yet</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Yet</h3>
+          <p className="text-gray-600 mb-6">Start your luxury living journey by applying for one of our premium properties.</p>
           <button
             onClick={() => navigate('/properties')}
-            className="bg-amber-600 text-white px-8 py-4 rounded-xl font-bold"
+            className="bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl"
           >
             Browse Properties
           </button>
         </div>
       ) : (
-        <div className="space-y-6">
-          {applications.map((app) => {
-            const status = getStatusConfig(app.status);
+        <div className="space-y-4">
+          {applications.map((application) => {
+            const status = getStatusConfig(application.status);
 
             return (
-              <div key={app.id} className="bg-white rounded-2xl shadow p-6">
-                <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      {app.properties?.title || 'Luxury Property'}
-                    </h3>
-                    <p className="text-gray-600 mt-1">{app.properties?.location}</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Applied {formatDate(app.created_at)}
-                    </p>
+              <div key={application.id} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-6">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                  <div className="flex-1">
+                    <div className="flex items-start gap-4">
+                      <div className="w-16 h-16 rounded-xl bg-gray-200 flex-shrink-0" />
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h4 className="font-serif font-bold text-gray-900">
+                            {application.properties?.title || 'Luxury Property'}
+                          </h4>
+                          <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${status.color}`}>
+                            {status.icon}
+                            <span>{status.label}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          <span className="flex items-center gap-1">
+                            <CalendarDays className="w-4 h-4" />
+                            Applied {formatDate(application.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${status.color}`}>
-                      {status.icon}
-                      <span className="font-medium">{status.label}</span>
-                    </div>
-                    {app.status === 'pre_approved' && (
+                    <button
+                      onClick={() => navigate(`/dashboard/applications/${application.id}`)}
+                      className="text-sm text-gray-700 hover:text-amber-600 font-medium flex items-center gap-1"
+                    >
+                      View Details
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                    {application.status === 'pre_approved' && (
                       <Link
-                        to={`/applications/${app.id}/pay`}
-                        className="bg-amber-600 text-white px-6 py-3 rounded-xl font-medium"
+                        to={`/applications/${application.id}/pay`}
+                        className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
                       >
                         Pay $50 Fee
                       </Link>
