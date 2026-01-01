@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
+import { supabase, submitApplication } from '../lib/supabase'; // ADD submitApplication import
 import { sendApplicationConfirmation } from '../lib/emailService';
-import { User, Mail, Phone, Calendar, FileText, CheckCircle, Loader, ArrowLeft, Home } from 'lucide-react';
+import { User, Mail, Phone, Calendar, FileText, CheckCircle, Loader, ArrowLeft, Home, AlertCircle } from 'lucide-react';
 
 function InitialApplyForm() {
   const { id } = useParams();
@@ -11,6 +11,7 @@ function InitialApplyForm() {
   const navigate = useNavigate();
 
   const [property, setProperty] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     fullName: user?.user_metadata?.full_name || '',
     email: user?.email || '',
@@ -22,20 +23,47 @@ function InitialApplyForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [applicationResult, setApplicationResult] = useState(null);
 
   // Load property details
   useEffect(() => {
     const loadProperty = async () => {
-      if (id) {
-        const { data, error } = await supabase
-          .from('properties')
-          .select('*')
-          .eq('id', Number(id))
-          .single();
+      try {
+        setLoading(true);
+        console.log('Loading property ID:', id);
         
-        if (!error && data) {
-          setProperty(data);
+        if (id) {
+          // Convert id to number
+          const propertyId = Number(id);
+          console.log('Converted property ID:', propertyId);
+          
+          if (isNaN(propertyId)) {
+            throw new Error('Invalid property ID');
+          }
+          
+          const { data, error } = await supabase
+            .from('properties')
+            .select('*')
+            .eq('id', propertyId)
+            .single();
+          
+          if (error) {
+            console.error('Property fetch error:', error);
+            throw error;
+          }
+          
+          if (data) {
+            console.log('Property loaded:', data);
+            setProperty(data);
+          } else {
+            throw new Error('Property not found');
+          }
         }
+      } catch (err) {
+        console.error('Error loading property:', err);
+        setError(`Failed to load property: ${err.message}`);
+      } finally {
+        setLoading(false);
       }
     };
     
@@ -44,79 +72,124 @@ function InitialApplyForm() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError(''); // Clear error when user types
+  };
+
+  const validateForm = () => {
+    if (!formData.fullName.trim()) {
+      setError('Full name is required');
+      return false;
+    }
+    if (!formData.email.trim() || !/\S+@\S+\.\S+/.test(formData.email)) {
+      setError('Valid email is required');
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      setError('Phone number is required');
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
     setSubmitting(true);
     setError('');
 
     try {
-      // Split full name into first and last name
-      const nameParts = formData.fullName.trim().split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-
+      console.log('Starting application submission...');
+      console.log('Property ID from URL:', id);
+      console.log('Form data:', formData);
+      
+      // Prepare data for submitApplication function
       const applicationData = {
-        property_id: Number(id),
-        user_id: user?.id,
-        first_name: firstName,
-        last_name: lastName,
+        property_id: id, // Will be converted to number in submitApplication
         full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
-        preferred_date: formData.preferredDate || null,
-        message: formData.message,
-        status: 'submitted',
-        application_type: 'rental',
-        application_fee: 50.00,
-        fee_status: 'unpaid',
-        payment_status: 'pending',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        preferred_tour_date: formData.preferredDate || null,
+        notes: formData.message,
+        employment_status: 'not_specified', // Default value
+        monthly_income: '0', // Default value
+        occupants: '1', // Default value
+        has_pets: false, // Default value
+        application_type: 'rental'
       };
 
-      console.log('Inserting application:', applicationData);
+      console.log('Prepared application data:', applicationData);
 
-      const { data, error } = await supabase
-        .from('applications')
-        .insert([applicationData])
-        .select()
-        .single();
+      // Use the submitApplication function from supabase.js
+      const result = await submitApplication(applicationData);
 
-      if (error) {
-        console.error('Insert error:', error);
-        throw error;
+      console.log('Application result:', result);
+
+      if (result.success) {
+        // Send confirmation email
+        try {
+          await sendApplicationConfirmation(formData.email, {
+            propertyTitle: property?.title || 'Property',
+            applicationId: result.data.id,
+            message: 'Your application has been submitted. We will review and contact you soon.',
+            referenceNumber: result.referenceNumber
+          });
+          console.log('Confirmation email sent');
+        } catch (emailError) {
+          console.warn('Email sending failed:', emailError);
+          // Don't throw - application was still created
+        }
+
+        setApplicationResult(result);
+        setSuccess(true);
+        
+        // Redirect to applications page after 3 seconds
+        setTimeout(() => {
+          navigate('/dashboard/applications');
+        }, 3000);
+        
+      } else {
+        console.error('Application failed:', result.error);
+        setError(result.error || 'Failed to submit application. Please try again.');
       }
-
-      console.log('Application inserted successfully:', data);
-
-      // Optional: Send confirmation email
-      try {
-        await sendApplicationConfirmation(formData.email, {
-          propertyTitle: property?.title || 'Property',
-          applicationId: data.id,
-          message: 'Your application has been submitted. We will review and contact you soon.'
-        });
-      } catch (emailError) {
-        console.warn('Email sending failed:', emailError);
-        // Don't throw - application was still created
-      }
-
-      setSuccess(true);
-      
-      // Redirect to applications page after 3 seconds
-      setTimeout(() => {
-        navigate('/dashboard/applications');
-      }, 3000);
       
     } catch (err) {
       console.error('Submission error:', err);
-      setError(err.message || 'Failed to submit application. Please try again.');
+      setError(err.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading property details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !property) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-white to-gray-50">
+        <div className="text-center p-8 max-w-md mx-auto bg-white rounded-2xl shadow-xl">
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Property Not Found</h2>
+          <p className="text-gray-600 mb-6">{error}</p>
+          <Link 
+            to="/properties" 
+            className="inline-flex items-center bg-orange-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-orange-700 transition-all"
+          >
+            Browse Properties
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (success) {
     return (
@@ -124,21 +197,31 @@ function InitialApplyForm() {
         <div className="text-center p-8 max-w-md mx-auto bg-white rounded-2xl shadow-xl">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Application Submitted!</h2>
+          
+          {applicationResult?.referenceNumber && (
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <p className="text-sm text-gray-600">Reference Number</p>
+              <p className="font-mono font-bold text-lg text-gray-900">{applicationResult.referenceNumber}</p>
+            </div>
+          )}
+          
           <p className="text-gray-600 mb-6">
-            Your application #{Date.now().toString().slice(-6)} has been submitted successfully.
+            Your application has been submitted successfully.
+            {applicationResult?.referenceNumber && ` Reference: ${applicationResult.referenceNumber}`}
+            <br />
             You will be redirected to your applications page shortly.
           </p>
-          <div className="flex gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link 
               to="/properties" 
-              className="inline-flex items-center bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-sans font-semibold hover:bg-gray-300 transition-all"
+              className="inline-flex items-center justify-center bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Properties
             </Link>
             <Link 
               to="/dashboard/applications" 
-              className="inline-flex items-center bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl font-sans font-semibold hover:shadow-lg transition-all"
+              className="inline-flex items-center justify-center bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
             >
               View Applications
             </Link>
@@ -166,6 +249,10 @@ function InitialApplyForm() {
                     src={property.main_image_url} 
                     alt={property.title}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
@@ -187,15 +274,20 @@ function InitialApplyForm() {
         )}
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h1 className="text-3xl font-serif font-bold text-gray-800 mb-2">Apply for Property</h1>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Apply for Property</h1>
           <p className="text-gray-600 mb-8">Submit your interest — our team will review and notify you for next steps.</p>
 
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
-              <p className="text-red-700 font-medium">Error: {error}</p>
-              <p className="text-red-600 text-sm mt-1">
-                Please check your information and try again. If the problem persists, contact support.
-              </p>
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-red-700 font-medium">Error: {error}</p>
+                  <p className="text-red-600 text-sm mt-1">
+                    Please check your information and try again. If the problem persists, contact support.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -292,7 +384,7 @@ function InitialApplyForm() {
             >
               {submitting ? (
                 <>
-                  <Loader className="w-5 h-5 animate-spin" />
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   Submitting...
                 </>
               ) : (
