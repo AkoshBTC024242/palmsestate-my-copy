@@ -1,3 +1,4 @@
+// src/lib/supabase.js - UPDATED VERSION
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -32,200 +33,183 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// NEW: Function to submit application with better error handling
+// UPDATED: Function to submit application with proper data type handling
 export const submitApplication = async (applicationData) => {
   console.log('📝 Submitting application:', applicationData);
   
   try {
-    // First validate the data
-    const requiredFields = ['property_id', 'full_name', 'email', 'phone', 'employment_status', 'monthly_income'];
+    // Get current user session
+    const { data: { session } } = await supabase.auth.getSession();
+    const currentUserId = session?.user?.id || null;
+    
+    console.log('Current user ID:', currentUserId);
+    
+    // Validate required fields
+    const requiredFields = ['property_id', 'full_name', 'email', 'phone'];
     const missingFields = requiredFields.filter(field => !applicationData[field]);
     
     if (missingFields.length > 0) {
       throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
     }
     
-    // Prepare the data with all required columns
-    const completeData = {
-      property_id: applicationData.property_id,
-      user_id: applicationData.user_id || null,
-      full_name: applicationData.full_name,
-      email: applicationData.email,
-      phone: applicationData.phone,
-      employment_status: applicationData.employment_status,
+    // CRITICAL FIX: Convert property_id to number
+    const propertyId = parseInt(applicationData.property_id);
+    if (isNaN(propertyId)) {
+      throw new Error(`Invalid property ID: ${applicationData.property_id}. Must be a number.`);
+    }
+    
+    // Generate a reference number
+    const referenceNumber = 'APP-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+    
+    // Build the data object with proper data types
+    const applicationPayload = {
+      // CRITICAL: property_id must be a number (bigint)
+      property_id: propertyId,
+      
+      // User info
+      user_id: currentUserId,
+      full_name: applicationData.full_name || '',
+      email: applicationData.email || '',
+      phone: applicationData.phone || '',
+      
+      // Optional fields with defaults
+      first_name: applicationData.first_name || '',
+      last_name: applicationData.last_name || '',
+      employment_status: applicationData.employment_status || 'not_specified',
       monthly_income: parseInt(applicationData.monthly_income) || 0,
       occupants: parseInt(applicationData.occupants) || 1,
       has_pets: Boolean(applicationData.has_pets) || false,
       pet_details: applicationData.pet_details || '',
       preferred_tour_date: applicationData.preferred_tour_date || null,
       notes: applicationData.notes || '',
-      status: 'payment_pending',
+      
+      // Application metadata
+      status: 'submitted',
+      reference_number: referenceNumber,
       application_fee: 50,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
     
-    console.log('📋 Prepared application data:', completeData);
+    console.log('📋 Prepared application payload:', applicationPayload);
+    console.log('property_id type:', typeof applicationPayload.property_id);
+    console.log('property_id value:', applicationPayload.property_id);
     
-    // Insert into database
+    // Insert the application
     const { data, error } = await supabase
       .from('applications')
-      .insert([completeData])
+      .insert([applicationPayload])
       .select()
       .single();
     
     if (error) {
       console.error('❌ Database error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       
-      // Provide specific guidance based on error
-      if (error.message.includes('column') && error.message.includes('does not exist')) {
-        const columnMatch = error.message.match(/column "([^"]+)" of/);
-        if (columnMatch) {
-          const missingColumn = columnMatch[1];
-          console.log(`💡 Missing column detected: ${missingColumn}`);
-          console.log(`📝 SQL to fix: ALTER TABLE applications ADD COLUMN IF NOT EXISTS ${missingColumn} ${getColumnType(missingColumn)};`);
-        }
+      if (error.message.includes('row-level security')) {
+        throw new Error('Security policy error. Please try again or contact support.');
       }
       
       throw error;
     }
     
-    console.log('✅ Application submitted successfully:', data.id);
-    return { success: true, data };
+    console.log('✅ Application submitted successfully! ID:', data.id);
+    console.log('Full response:', data);
+    
+    // Update user profile if logged in
+    if (currentUserId) {
+      try {
+        await supabase
+          .from('profiles')
+          .upsert({
+            id: currentUserId,
+            full_name: applicationData.full_name,
+            phone: applicationData.phone,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'id'
+          });
+        console.log('✅ User profile updated');
+      } catch (profileError) {
+        console.warn('⚠️ Could not update profile:', profileError);
+        // Not critical, continue
+      }
+    }
+    
+    return { 
+      success: true, 
+      data,
+      message: 'Application submitted successfully!',
+      referenceNumber: referenceNumber
+    };
     
   } catch (error) {
     console.error('❌ Application submission failed:', error);
     return { 
       success: false, 
       error: error.message,
-      fixSQL: generateFixSQL(error.message)
+      userMessage: 'Please check your information and try again. If the problem persists, contact support.'
     };
   }
 };
 
-// Helper to determine column type
-const getColumnType = (columnName) => {
-  const typeMap = {
-    'has_pets': 'BOOLEAN DEFAULT FALSE',
-    'pet_details': 'TEXT',
-    'employment_status': 'TEXT',
-    'monthly_income': 'INTEGER',
-    'occupants': 'INTEGER DEFAULT 1',
-    'preferred_tour_date': 'DATE',
-    'notes': 'TEXT',
-    'status': 'TEXT DEFAULT \'payment_pending\'',
-    'payment_id': 'TEXT',
-    'stripe_payment_id': 'TEXT',
-    'payment_status': 'TEXT DEFAULT \'pending\'',
-    'application_fee': 'INTEGER DEFAULT 50',
-    'paid_at': 'TIMESTAMPTZ',
-    'updated_at': 'TIMESTAMPTZ DEFAULT NOW()'
-  };
-  
-  return typeMap[columnName] || 'TEXT';
+// Helper function to check if property_id is valid
+export const validatePropertyId = (propertyId) => {
+  const id = parseInt(propertyId);
+  return !isNaN(id) && id > 0;
 };
 
-// Generate fix SQL based on error
-const generateFixSQL = (errorMessage) => {
-  if (errorMessage.includes('column') && errorMessage.includes('does not exist')) {
-    const columnMatch = errorMessage.match(/column "([^"]+)" of/);
-    if (columnMatch) {
-      const column = columnMatch[1];
-      return `ALTER TABLE applications ADD COLUMN IF NOT EXISTS ${column} ${getColumnType(column)};`;
-    }
-  }
-  return `-- Complete table creation SQL:
-CREATE TABLE IF NOT EXISTS applications (
-  id BIGSERIAL PRIMARY KEY,
-  property_id TEXT NOT NULL,
-  user_id TEXT,
-  full_name TEXT NOT NULL,
-  email TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  employment_status TEXT,
-  monthly_income INTEGER,
-  occupants INTEGER DEFAULT 1,
-  has_pets BOOLEAN DEFAULT FALSE,
-  pet_details TEXT,
-  preferred_tour_date DATE,
-  notes TEXT,
-  status TEXT DEFAULT 'payment_pending',
-  payment_id TEXT,
-  stripe_payment_id TEXT,
-  payment_status TEXT DEFAULT 'pending',
-  application_fee INTEGER DEFAULT 50,
-  paid_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);`;
-};
-
-// Function to check table structure
-export const checkApplicationsTable = async () => {
-  console.log('🔍 Checking applications table structure...');
-  
+// Function to fetch applications for current user
+export const fetchUserApplications = async (userId) => {
   try {
-    // Try to get table schema by selecting all columns
+    console.log('Fetching applications for user:', userId);
+    
     const { data, error } = await supabase
       .from('applications')
       .select('*')
-      .limit(0); // Just get schema, no rows
+      .or(`user_id.eq.${userId},user_id.is.null`)
+      .order('created_at', { ascending: false });
     
     if (error) {
-      console.error('❌ Cannot access applications table:', error.message);
-      return { 
-        exists: false, 
-        error: error.message,
-        fixSQL: generateFixSQL(error.message)
-      };
+      console.error('Error fetching applications:', error);
+      throw error;
     }
     
-    // Try to insert a test record to verify all columns exist
-    const testData = {
-      property_id: 'test-schema-check',
-      full_name: 'Test User',
-      email: 'test@example.com',
-      phone: '+1234567890',
-      employment_status: 'employed',
-      monthly_income: 3000,
-      occupants: 1,
-      has_pets: false,
-      pet_details: '',
-      status: 'test',
-      application_fee: 50,
-      created_at: new Date().toISOString()
-    };
-    
-    const { error: testError } = await supabase
-      .from('applications')
-      .insert([testData]);
-    
-    if (testError) {
-      console.error('❌ Schema mismatch:', testError.message);
-      return { 
-        exists: true, 
-        complete: false, 
-        error: testError.message,
-        fixSQL: generateFixSQL(testError.message)
-      };
-    }
-    
-    // Clean up test record
-    await supabase
-      .from('applications')
-      .delete()
-      .eq('property_id', 'test-schema-check');
-    
-    console.log('✅ Applications table exists with all required columns');
-    return { exists: true, complete: true };
+    console.log(`Fetched ${data?.length || 0} applications`);
+    return data || [];
     
   } catch (error) {
-    console.error('❌ Error checking table:', error);
-    return { exists: false, error: error.message };
+    console.error('Error in fetchUserApplications:', error);
+    return [];
   }
 };
 
-// Rest of your existing functions remain the same...
+// Function to fetch single application by ID
+export const fetchApplicationById = async (applicationId, userId) => {
+  try {
+    console.log('Fetching application:', applicationId, 'for user:', userId);
+    
+    const { data, error } = await supabase
+      .from('applications')
+      .select('*')
+      .eq('id', applicationId)
+      .or(`user_id.eq.${userId},user_id.is.null`)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching application:', error);
+      throw error;
+    }
+    
+    return data;
+    
+  } catch (error) {
+    console.error('Error in fetchApplicationById:', error);
+    return null;
+  }
+};
+
+// Rest of your existing functions (keep them as they are)
 export const fetchProperties = async () => {
   console.log('📡 Starting properties fetch...');
   
@@ -355,7 +339,12 @@ export const testConnection = async () => {
     console.log('🔐 Auth session:', authData?.session ? 'Exists' : 'None');
     
     // Check applications table
-    const tableCheck = await checkApplicationsTable();
+    const { data: apps, error: appsError } = await supabase
+      .from('applications')
+      .select('count')
+      .limit(1);
+    
+    console.log('📋 Applications table:', appsError ? `Error: ${appsError.message}` : 'Accessible');
     
     // Check properties table
     const { data: properties } = await supabase
@@ -366,8 +355,8 @@ export const testConnection = async () => {
     console.log('🏠 Properties table:', properties ? 'Exists' : 'Missing');
     
     return {
-      success: tableCheck.exists && properties,
-      applications: tableCheck,
+      success: !appsError && properties,
+      applications: { accessible: !appsError },
       properties: { exists: !!properties, count: properties?.length || 0 },
       auth: { hasSession: !!authData?.session }
     };
@@ -376,4 +365,21 @@ export const testConnection = async () => {
     console.error('❌ Connection test crashed:', error);
     return { success: false, error: error.message };
   }
+};
+
+// Debug: Test application submission
+export const testApplicationSubmission = async () => {
+  console.log('🧪 Testing application submission...');
+  
+  const testData = {
+    property_id: "1", // String that will be parsed to number
+    full_name: "Test User",
+    email: "test@example.com",
+    phone: "+1234567890",
+    employment_status: "employed",
+    monthly_income: "3000",
+    occupants: "2"
+  };
+  
+  return await submitApplication(testData);
 };
