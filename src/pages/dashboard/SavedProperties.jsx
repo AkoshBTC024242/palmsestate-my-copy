@@ -1,4 +1,4 @@
-// src/pages/dashboard/SavedProperties.jsx - COMPLETE FIXED VERSION
+// src/pages/dashboard/SavedProperties.jsx - COMPLETE FINAL FIXED VERSION
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -33,19 +33,25 @@ function SavedProperties() {
       if (result.success) {
         const properties = result.data?.map(item => {
           const property = item.properties || {};
+          
+          // Generate category based on price (since it doesn't exist in database)
+          const price = property.price || 0;
+          const category = price > 50000 ? 'Exclusive' : 
+                          price > 35000 ? 'Premium' : 'Luxury';
+          
           return {
             savedId: item.id,
             savedAt: item.created_at,
             id: property.id,
             title: property.title,
             location: property.location,
-            price: property.price || 0,
+            price: price,
             bedrooms: property.bedrooms,
             bathrooms: property.bathrooms,
             sqft: property.sqft || 0,
             image_url: property.image_url || null,
             created_at: property.created_at,
-            category: property.category,
+            category: category, // Generated, not from database
             status: property.status
           };
         }) || [];
