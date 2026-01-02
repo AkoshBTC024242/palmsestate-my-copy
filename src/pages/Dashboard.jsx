@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, fetchUserApplications, getSavedPropertiesCount } from '../lib/supabase';
-import { supabase, fetchUserApplications } from '../lib/supabase'; // Add fetchUserApplications import
 import {
   FileText, Clock, CheckCircle, Building2, Heart, AlertCircle,
   ArrowRight, CalendarDays, MapPin, DollarSign, Users, TrendingUp,
@@ -56,9 +55,9 @@ function Dashboard() {
         app.status === 'approved'
       ).length || 0;
 
-      // Fetch saved properties count
-     const savedCountResult = await getSavedPropertiesCount(user.id);
-     const savedCount = savedCountResult.success ? savedCountResult.count : 0;
+      // Fetch saved properties count using the helper function
+      const savedCountResult = await getSavedPropertiesCount(user.id);
+      const savedCount = savedCountResult.success ? savedCountResult.count : 0;
 
       // Get recent applications (last 5)
       const recentApps = applications?.slice(0, 5) || [];
