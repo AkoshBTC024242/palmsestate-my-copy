@@ -1,4 +1,4 @@
-// src/lib/supabase.js - COMPLETE UPDATED FILE
+// src/lib/supabase.js - COMPLETE FIXED VERSION
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -34,12 +34,10 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // ============ submitApplication FUNCTION ============
-// THIS IS THE FUNCTION YOUR FORMS SHOULD USE
 export const submitApplication = async (applicationData) => {
   console.log('📝 Submitting application:', applicationData);
   
   try {
-    // Get current session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -49,7 +47,6 @@ export const submitApplication = async (applicationData) => {
     const currentUserId = session?.user?.id || null;
     console.log('Current user ID:', currentUserId);
     
-    // Validate required fields
     const requiredFields = ['property_id', 'full_name', 'email', 'phone'];
     const missingFields = requiredFields.filter(field => !applicationData[field]);
     
@@ -57,25 +54,19 @@ export const submitApplication = async (applicationData) => {
       throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
     }
     
-    // Convert property_id to number
     const propertyId = parseInt(applicationData.property_id);
     if (isNaN(propertyId)) {
       throw new Error(`Invalid property ID: ${applicationData.property_id}. Must be a number.`);
     }
     
-    // Generate reference number
     const referenceNumber = 'APP-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
     
-    // Build payload with ALL required columns from your table
     const payload = {
-      // Required columns (NOT NULL)
       property_id: propertyId,
       full_name: applicationData.full_name || '',
       email: applicationData.email || '',
-      
-      // Optional columns with defaults
       phone: applicationData.phone || '',
-      user_id: currentUserId, // Can be null
+      user_id: currentUserId,
       property_title: applicationData.property_title || null,
       message: applicationData.message || applicationData.notes || null,
       preferred_date: applicationData.preferred_tour_date || applicationData.preferred_date || null,
@@ -99,9 +90,7 @@ export const submitApplication = async (applicationData) => {
     };
     
     console.log('📋 Final payload:', payload);
-    console.log('Payload property_id type:', typeof payload.property_id);
     
-    // Try the insert
     const { data, error } = await supabase
       .from('applications')
       .insert([payload])
@@ -110,11 +99,7 @@ export const submitApplication = async (applicationData) => {
     
     if (error) {
       console.error('❌ Database error:', error);
-      console.error('Error code:', error.code);
-      console.error('Error details:', error.details);
-      console.error('Error hint:', error.hint);
       
-      // Try one more time with minimal data
       console.log('🔄 Trying minimal data approach...');
       const minimalPayload = {
         property_id: propertyId,
@@ -153,15 +138,12 @@ export const submitApplication = async (applicationData) => {
     };
   }
 };
-// ============ END submitApplication FUNCTION ============
 
-// Helper function to check if property_id is valid
 export const validatePropertyId = (propertyId) => {
   const id = parseInt(propertyId);
   return !isNaN(id) && id > 0;
 };
 
-// Function to fetch applications for current user
 export const fetchUserApplications = async (userId) => {
   try {
     console.log('Fetching applications for user:', userId);
@@ -186,7 +168,6 @@ export const fetchUserApplications = async (userId) => {
   }
 };
 
-// Function to fetch single application by ID
 export const fetchApplicationById = async (applicationId, userId) => {
   try {
     console.log('Fetching application:', applicationId, 'for user:', userId);
@@ -211,7 +192,6 @@ export const fetchApplicationById = async (applicationId, userId) => {
   }
 };
 
-// Function to fetch properties
 export const fetchProperties = async () => {
   console.log('📡 Starting properties fetch...');
   
@@ -252,7 +232,6 @@ export const fetchProperties = async () => {
   }
 };
 
-// Function to fetch single property by ID
 export const fetchPropertyById = async (propertyId) => {
   console.log('📡 Fetching property by ID:', propertyId);
   
@@ -287,11 +266,12 @@ const transformProperties = (data) => {
     price_per_week: property.price || property.price_per_week || 35000,
     bedrooms: property.bedrooms || 3,
     bathrooms: property.bathrooms || 3,
+    // Use sqft instead of square_feet
     square_feet: property.sqft || property.square_feet || 5000,
+    sqft: property.sqft || property.square_feet || 5000,
     image_url: property.image_url || property.main_image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
     status: property.status || 'available',
     category: property.category || 'Premium',
-    property_type: property.property_type || 'Luxury Villa',
     created_at: property.created_at || new Date().toISOString()
   }));
 };
@@ -307,10 +287,10 @@ const transformProperty = (property) => {
     bedrooms: property.bedrooms || 3,
     bathrooms: property.bathrooms || 3,
     square_feet: property.sqft || property.square_feet || 5000,
+    sqft: property.sqft || property.square_feet || 5000,
     image_url: property.image_url || property.main_image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
     status: property.status || 'available',
     category: property.category || 'Premium',
-    property_type: property.property_type || 'Luxury Villa',
     created_at: property.created_at || new Date().toISOString()
   };
 };
@@ -325,7 +305,7 @@ const getSampleProperties = () => {
       price_per_week: 35000,
       bedrooms: 5,
       bathrooms: 6,
-      square_feet: 12500,
+      sqft: 12500,
       image_url: 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
       status: 'available',
       category: 'Exclusive'
@@ -338,7 +318,7 @@ const getSampleProperties = () => {
       price_per_week: 45000,
       bedrooms: 4,
       bathrooms: 5,
-      square_feet: 8500,
+      sqft: 8500,
       image_url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00',
       status: 'available',
       category: 'Premium'
@@ -378,7 +358,6 @@ export const sendPasswordResetEmail = async (email) => {
   }
 };
 
-// Test function
 export const testConnection = async () => {
   console.log('🔄 Testing Supabase connection...');
   
@@ -386,7 +365,6 @@ export const testConnection = async () => {
     const { data: authData } = await supabase.auth.getSession();
     console.log('🔐 Auth session:', authData?.session ? 'Exists' : 'None');
     
-    // Check applications table
     const { data: apps, error: appsError } = await supabase
       .from('applications')
       .select('count')
@@ -394,7 +372,6 @@ export const testConnection = async () => {
     
     console.log('📋 Applications table:', appsError ? `Error: ${appsError.message}` : 'Accessible');
     
-    // Check properties table
     const { data: properties } = await supabase
       .from('properties')
       .select('*')
@@ -415,12 +392,11 @@ export const testConnection = async () => {
   }
 };
 
-// Debug: Test application submission
 export const testApplicationSubmission = async () => {
   console.log('🧪 Testing application submission...');
   
   const testData = {
-    property_id: "1", // String that will be parsed to number
+    property_id: "1",
     full_name: "Test User",
     email: "test@example.com",
     phone: "+1234567890",
@@ -432,18 +408,15 @@ export const testApplicationSubmission = async () => {
   return await submitApplication(testData);
 };
 
-// Temporary fix: Try different approaches
 export const submitApplicationWithFallback = async (applicationData) => {
   console.log('🔄 Trying submission with fallback...');
   
   try {
-    // Try the normal way first
     const result = await submitApplication(applicationData);
     if (result.success) return result;
     
     console.log('First attempt failed, trying fallback...');
     
-    // Fallback 1: Try without user_id
     const dataWithoutUserId = { ...applicationData };
     delete dataWithoutUserId.user_id;
     
@@ -458,7 +431,6 @@ export const submitApplicationWithFallback = async (applicationData) => {
       return { success: true, data: data1, anonymous: true };
     }
     
-    // Fallback 2: Try with minimal data
     const minimalData = {
       property_id: parseInt(applicationData.property_id) || 1,
       full_name: applicationData.full_name || '',
@@ -480,7 +452,6 @@ export const submitApplicationWithFallback = async (applicationData) => {
       return { success: true, data: data2, minimal: true };
     }
     
-    // All attempts failed
     console.error('All fallbacks failed:', error1, error2);
     return { 
       success: false, 
@@ -496,17 +467,14 @@ export const submitApplicationWithFallback = async (applicationData) => {
 
 // ============ SAVED PROPERTIES FUNCTIONS ============
 
-// Save a property to user's saved list
 export const saveProperty = async (userId, propertyId) => {
   console.log('💾 Saving property:', { userId, propertyId });
   
   try {
-    // Validate input
     if (!userId || !propertyId) {
       throw new Error('User ID and Property ID are required');
     }
 
-    // Check if already saved first
     const { data: existing } = await supabase
       .from('saved_properties')
       .select('id')
@@ -519,7 +487,6 @@ export const saveProperty = async (userId, propertyId) => {
       return { success: true, data: existing, alreadySaved: true };
     }
 
-    // Save the property
     const { data, error } = await supabase
       .from('saved_properties')
       .insert({
@@ -548,7 +515,6 @@ export const saveProperty = async (userId, propertyId) => {
   }
 };
 
-// Remove a property from saved list
 export const unsaveProperty = async (userId, propertyId) => {
   console.log('🗑️ Unsaving property:', { userId, propertyId });
   
@@ -581,7 +547,6 @@ export const unsaveProperty = async (userId, propertyId) => {
   }
 };
 
-// Fetch user's saved properties with property details
 export const fetchSavedProperties = async (userId) => {
   console.log('📥 Fetching saved properties for user:', userId);
   
@@ -590,7 +555,7 @@ export const fetchSavedProperties = async (userId) => {
       throw new Error('User ID is required');
     }
 
-    // FIXED: Removed property_type from select query
+    // FIXED: Use sqft instead of square_feet, removed property_type
     const { data, error } = await supabase
       .from('saved_properties')
       .select(`
@@ -606,7 +571,7 @@ export const fetchSavedProperties = async (userId) => {
           price,
           bedrooms,
           bathrooms,
-          square_feet,
+          sqft,
           image_url,
           main_image_url,
           status,
@@ -624,7 +589,6 @@ export const fetchSavedProperties = async (userId) => {
 
     console.log(`✅ Successfully fetched ${data?.length || 0} saved properties`);
     
-    // Filter out any null properties (in case property was deleted)
     const validProperties = data?.filter(item => item.properties !== null) || [];
     
     return { 
@@ -644,13 +608,12 @@ export const fetchSavedProperties = async (userId) => {
   }
 };
 
-// Check if a property is already saved by the user
 export const isPropertySaved = async (userId, propertyId) => {
   console.log('🔍 Checking if property is saved:', { userId, propertyId });
   
   try {
     if (!userId || !propertyId) {
-      return { success: true, isSaved: false }; // Not an error, just return false
+      return { success: true, isSaved: false };
     }
 
     const { data, error } = await supabase
@@ -658,9 +621,9 @@ export const isPropertySaved = async (userId, propertyId) => {
       .select('id')
       .eq('user_id', userId)
       .eq('property_id', propertyId)
-      .maybeSingle(); // Use maybeSingle instead of single to handle no rows
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found"
+    if (error && error.code !== 'PGRST116') {
       console.error('❌ Error checking saved status:', error);
       throw error;
     }
@@ -674,12 +637,11 @@ export const isPropertySaved = async (userId, propertyId) => {
     return { 
       success: false, 
       error: error.message,
-      isSaved: false // Default to false on error
+      isSaved: false
     };
   }
 };
 
-// Get count of saved properties for a user
 export const getSavedPropertiesCount = async (userId) => {
   console.log('📊 Getting saved properties count for user:', userId);
   
@@ -710,5 +672,3 @@ export const getSavedPropertiesCount = async (userId) => {
     };
   }
 };
-
-// ============ END SAVED PROPERTIES FUNCTIONS ============
