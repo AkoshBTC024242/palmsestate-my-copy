@@ -1,4 +1,4 @@
-// src/pages/dashboard/SavedProperties.jsx - UPDATED
+// src/pages/dashboard/SavedProperties.jsx - COMPLETE FIXED VERSION
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,27 +30,32 @@ function SavedProperties() {
       
       console.log('Loading saved properties for user:', user.id);
       
-      // Use the helper function from supabase.jsx
+      // FIXED: Use the helper function which handles the column names correctly
       const result = await fetchSavedProperties(user.id);
       
       if (result.success) {
-        console.log('Saved properties result:', result);
+        console.log('Saved properties loaded:', result.data?.length || 0);
         
         // Transform the data to match your component structure
-        const properties = result.data?.map(item => ({
-          savedId: item.id,
-          savedAt: item.created_at,
-          id: item.properties?.id,
-          title: item.properties?.title,
-          location: item.properties?.location,
-          price: item.properties?.price || item.properties?.price_per_week || 0,
-          property_type: item.properties?.property_type,
-          bedrooms: item.properties?.bedrooms,
-          bathrooms: item.properties?.bathrooms,
-          square_feet: item.properties?.square_feet,
-          main_image_url: item.properties?.image_url || item.properties?.main_image_url,
-          created_at: item.properties?.created_at
-        })) || [];
+        const properties = result.data?.map(item => {
+          const property = item.properties || {};
+          return {
+            savedId: item.id,
+            savedAt: item.created_at,
+            id: property.id,
+            title: property.title,
+            location: property.location,
+            // Use price (not price_per_week)
+            price: property.price || 0,
+            property_type: property.property_type,
+            bedrooms: property.bedrooms,
+            bathrooms: property.bathrooms,
+            square_feet: property.square_feet,
+            // Try multiple image URL fields
+            main_image_url: property.image_url || property.main_image_url || null,
+            created_at: property.created_at
+          };
+        }) || [];
         
         console.log('Transformed properties:', properties);
         setSavedProperties(properties);
@@ -69,7 +74,6 @@ function SavedProperties() {
     try {
       setRemovingId(savedId);
       
-      // Use the helper function
       const result = await unsaveProperty(user.id, propertyId);
       
       if (result.success) {
@@ -202,7 +206,7 @@ function SavedProperties() {
                   </div>
                 </div>
 
-                {/* Price Badge */}
+                {/* Price Badge - FIXED: Using price not price_per_week */}
                 <div className="absolute top-12 left-3">
                   <div className="px-2 py-1 bg-black/60 backdrop-blur-sm text-white font-sans font-bold rounded-full text-sm">
                     {formatPrice(property.price)}/week
@@ -241,6 +245,7 @@ function SavedProperties() {
                   </div>
                   <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
                     <DollarSign className="w-4 h-4 text-gray-500 mb-1" />
+                    {/* FIXED: Using price not price_per_week */}
                     <span className="text-xs font-medium">{property.price ? `${property.price}/wk` : 'N/A'}</span>
                     <span className="text-xs text-gray-500">Rent</span>
                   </div>
