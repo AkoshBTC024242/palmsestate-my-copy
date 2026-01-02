@@ -1,14 +1,18 @@
-// src/pages/dashboard/Profile.jsx - FINAL FIX
+// src/pages/dashboard/Profile.jsx - CLEAN STYLED VERSION
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
+import { supabase, saveUserProfile, loadUserProfile } from '../../lib/supabase';
+import {
+  User, Mail, Phone, Home, Calendar,
+  Save, Camera, CheckCircle, AlertCircle,
+  Shield, Edit2, Upload
+} from 'lucide-react';
 
 function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [status, setStatus] = useState('');
-  const [debugInfo, setDebugInfo] = useState('');
+  const [message, setMessage] = useState({ type: '', text: '' });
   
   const [formData, setFormData] = useState({
     first_name: '',
@@ -20,109 +24,50 @@ function Profile() {
     avatar_url: ''
   });
 
-  // Test database connection and permissions
-  const testDatabase = async () => {
-    try {
-      setDebugInfo('Testing database connection...\n');
-      
-      // Test 1: Basic connection
-      const { data: connData, error: connError } = await supabase
-        .from('profiles')
-        .select('count(*)', { count: 'exact', head: true });
-      
-      if (connError) {
-        setDebugInfo(prev => prev + `❌ Connection failed: ${connError.code} - ${connError.message}\n`);
-        return false;
-      }
-      
-      setDebugInfo(prev => prev + '✅ Database connection OK\n');
-      
-      // Test 2: Try to create a test profile
-      const testData = {
-        id: user.id,
-        email: user.email,
-        first_name: 'Test',
-        last_name: 'User',
-        updated_at: new Date().toISOString()
-      };
-      
-      setDebugInfo(prev => prev + `Attempting test upsert for user ${user.id.substring(0, 8)}...\n`);
-      
-      const { error: testError } = await supabase
-        .from('profiles')
-        .upsert(testData, { 
-          onConflict: 'id',
-          returning: 'minimal'
-        });
-      
-      if (testError) {
-        setDebugInfo(prev => prev + `❌ Test upsert failed: ${testError.code} - ${testError.message}\n`);
-        
-        // Check if it's a specific RLS issue
-        if (testError.code === '42501') {
-          setDebugInfo(prev => prev + '\n🔍 RLS Issue Detected!\n');
-          setDebugInfo(prev => prev + 'Even though policies are set, the JWT might not be reaching the database.\n');
-          setDebugInfo(prev => prev + 'Possible causes:\n');
-          setDebugInfo(prev => prev + '1. Supabase client not properly configured\n');
-          setDebugInfo(prev => prev + '2. Auth token expired\n');
-          setDebugInfo(prev => prev + '3. Database session context issue\n');
-        }
-        return false;
-      }
-      
-      setDebugInfo(prev => prev + '✅ Test upsert succeeded!\n');
-      setDebugInfo(prev => prev + '✅ RLS is working correctly!\n');
-      return true;
-      
-    } catch (error) {
-      setDebugInfo(prev => prev + `❌ Unexpected test error: ${error.message}\n`);
-      return false;
-    }
-  };
-
   useEffect(() => {
     if (user) {
       loadProfile();
-      testDatabase();
     }
   }, [user]);
 
   const loadProfile = async () => {
     try {
       setLoading(true);
-      setStatus('');
+      setMessage({ type: '', text: '' });
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No profile exists yet
-          setStatus('info:No existing profile found. Create one below.');
+      const result = await loadUserProfile(user.id);
+      
+      if (result.success) {
+        if (result.data) {
+          setFormData({
+            first_name: result.data.first_name || '',
+            last_name: result.data.last_name || '',
+            email: result.data.email || user.email || '',
+            phone: result.data.phone || '',
+            address: result.data.address || '',
+            date_of_birth: result.data.date_of_birth || '',
+            avatar_url: result.data.avatar_url || ''
+          });
+          setMessage({ type: 'success', text: 'Profile loaded successfully' });
         } else {
-          console.error('Load error:', error);
-          setStatus(`error:Failed to load profile: ${error.message}`);
+          // New user - set email only
+          setFormData(prev => ({
+            ...prev,
+            email: user.email || ''
+          }));
         }
-      }
-
-      if (data) {
-        setFormData({
-          first_name: data.first_name || '',
-          last_name: data.last_name || '',
-          email: data.email || user.email || '',
-          phone: data.phone || '',
-          address: data.address || '',
-          date_of_birth: data.date_of_birth || '',
-          avatar_url: data.avatar_url || ''
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: `Failed to load profile: ${result.error}` 
         });
-        setStatus('success:Profile loaded successfully');
       }
     } catch (error) {
-      console.error('Unexpected error:', error);
-      setStatus('error:Unexpected error loading profile');
+      console.error('Load error:', error);
+      setMessage({ 
+        type: 'error', 
+        text: 'Unexpected error loading profile' 
+      });
     } finally {
       setLoading(false);
     }
@@ -131,52 +76,41 @@ function Profile() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setStatus('');
+    setMessage({ type: '', text: '' });
 
     try {
-      const updates = {
-        id: user.id,
-        email: user.email,
-        first_name: formData.first_name || '',
-        last_name: formData.last_name || '',
-        phone: formData.phone || null,
-        address: formData.address || null,
-        date_of_birth: formData.date_of_birth || null,
-        avatar_url: formData.avatar_url || null,
-        updated_at: new Date().toISOString()
-      };
-
-      // IMPORTANT: Log what we're sending
-      console.log('Profile update payload:', updates);
-      console.log('Current user:', user.id);
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert(updates, { 
-          onConflict: 'id'
+      const result = await saveUserProfile(user.id, formData);
+      
+      if (result.success) {
+        setMessage({ 
+          type: 'success', 
+          text: 'Profile saved successfully!' 
         });
-
-      if (error) {
-        console.error('Save error details:', error);
         
-        // Check for specific error types
-        if (error.code === '42501') {
-          setStatus('error:RLS Permission denied. The database policy exists but your session token might be invalid. Try logging out and back in.');
-        } else if (error.code === 'PGRST301') {
-          setStatus('error:Missing authorization header. Supabase client might not be sending the JWT.');
-        } else {
-          setStatus(`error:Save failed: ${error.message}`);
-        }
+        // Auto-clear success message after 3 seconds
+        setTimeout(() => {
+          setMessage({ type: '', text: '' });
+        }, 3000);
       } else {
-        console.log('Save successful:', data);
-        setStatus('success:Profile saved successfully!');
-        
-        // Refresh the profile
-        setTimeout(() => loadProfile(), 1000);
+        // Check error type
+        if (result.code === '42501') {
+          setMessage({ 
+            type: 'error', 
+            text: 'Permission denied. Please try logging out and back in.' 
+          });
+        } else {
+          setMessage({ 
+            type: 'error', 
+            text: `Save failed: ${result.error}` 
+          });
+        }
       }
     } catch (error) {
       console.error('Unexpected error:', error);
-      setStatus('error:Unexpected error saving profile');
+      setMessage({ 
+        type: 'error', 
+        text: 'Unexpected error saving profile' 
+      });
     } finally {
       setSaving(false);
     }
@@ -190,221 +124,397 @@ function Profile() {
     }));
   };
 
-  const handleLogoutLogin = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/signin';
-  };
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const refreshSession = async () => {
-    const { data, error } = await supabase.auth.refreshSession();
-    if (error) {
-      setStatus(`error:Failed to refresh session: ${error.message}`);
-    } else {
-      setStatus('success:Session refreshed. Try saving again.');
+    try {
+      // Simple base64 conversion for demo
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({
+          ...prev,
+          avatar_url: reader.result
+        }));
+        setMessage({
+          type: 'success',
+          text: 'Profile picture updated. Save your profile to keep the changes.'
+        });
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Image upload error:', error);
+      setMessage({
+        type: 'error',
+        text: 'Failed to upload image.'
+      });
     }
   };
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading profile...</p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center py-20">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-600 mx-auto"></div>
+          <p className="text-gray-600 mt-4 text-lg">Loading your profile...</p>
         </div>
       </div>
     );
   }
 
-  const [statusType, statusMessage] = status.split(':');
-  
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-2">Profile Settings</h1>
-      <p className="text-gray-600 mb-6">Update your personal information</p>
-
-      {/* Debug Panel */}
-      <div className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-medium text-gray-800">Database Status</h3>
-          <div className="flex gap-2">
-            <button
-              onClick={testDatabase}
-              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-            >
-              Test Connection
-            </button>
-            <button
-              onClick={refreshSession}
-              className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-            >
-              Refresh Session
-            </button>
-          </div>
-        </div>
-        <div className="h-40 overflow-y-auto bg-black text-green-400 p-3 rounded font-mono text-xs">
-          {debugInfo || 'Run test to see debug info...'}
-        </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900">My Profile</h1>
+        <p className="text-gray-600 mt-2 text-lg">Manage your personal information and account settings</p>
       </div>
 
       {/* Status Message */}
-      {status && (
-        <div className={`mb-6 p-4 rounded-lg ${
-          statusType === 'error' ? 'bg-red-50 border border-red-200 text-red-800' :
-          statusType === 'success' ? 'bg-green-50 border border-green-200 text-green-800' :
-          'bg-blue-50 border border-blue-200 text-blue-800'
+      {message.text && (
+        <div className={`mb-6 p-4 rounded-xl shadow-sm flex items-start gap-3 ${
+          message.type === 'success' 
+            ? 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 text-green-800' 
+            : message.type === 'error'
+            ? 'bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 text-red-800'
+            : 'bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 text-blue-800'
         }`}>
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="font-medium">{statusMessage}</p>
-              {statusType === 'error' && statusMessage.includes('RLS') && (
-                <div className="mt-3">
-                  <h4 className="font-medium mb-2">Quick Fixes:</h4>
-                  <ol className="text-sm list-decimal pl-5 space-y-1">
-                    <li>Click "Refresh Session" button above</li>
-                    <li>If that doesn't work, <button onClick={handleLogoutLogin} className="text-blue-600 underline">logout and login again</button></li>
-                    <li>Check your Supabase client configuration</li>
-                  </ol>
-                </div>
-              )}
-            </div>
-            {statusType === 'error' && (
-              <button
-                onClick={() => setStatus('')}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            )}
+          {message.type === 'success' ? (
+            <CheckCircle className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
+          ) : message.type === 'error' ? (
+            <AlertCircle className="w-6 h-6 text-red-600 mt-0.5 flex-shrink-0" />
+          ) : (
+            <Shield className="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0" />
+          )}
+          <div className="flex-1">
+            <p className="font-semibold text-lg">{message.text}</p>
           </div>
+          <button
+            onClick={() => setMessage({ type: '', text: '' })}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {/* Profile Form */}
-      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
-        <div className="grid md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">First Name *</label>
-            <input
-              type="text"
-              name="first_name"
-              value={formData.first_name}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              required
-            />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column - Profile Picture & Account Info */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Profile Card */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+            <div className="flex flex-col items-center">
+              <div className="relative mb-4">
+                <div className="w-40 h-40 rounded-full overflow-hidden bg-gradient-to-br from-orange-100 to-amber-100 border-4 border-white shadow-lg">
+                  {formData.avatar_url ? (
+                    <img
+                      src={formData.avatar_url}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = `
+                          <div class="w-full h-full flex items-center justify-center">
+                            <div class="w-20 h-20 text-orange-500">
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                          </div>
+                        `;
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-20 h-20 text-orange-500" />
+                    </div>
+                  )}
+                </div>
+                
+                <label 
+                  htmlFor="avatar-upload"
+                  className="absolute bottom-4 right-4 w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center cursor-pointer hover:from-orange-600 hover:to-amber-600 transition-all shadow-xl transform hover:scale-105"
+                  title="Upload profile picture"
+                >
+                  <Camera className="w-6 h-6 text-white" />
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              
+              <h2 className="text-2xl font-bold text-gray-900 text-center">
+                {formData.first_name || 'Welcome,'} {formData.last_name || 'User'}
+              </h2>
+              <p className="text-gray-600 flex items-center gap-2 mt-1">
+                <Mail className="w-4 h-4" />
+                {user?.email}
+              </p>
+              
+              <div className="mt-6 w-full">
+                <div className="text-sm text-gray-500 mb-1">Profile Completion</div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-500"
+                    style={{ 
+                      width: `${(
+                        (formData.first_name ? 20 : 0) +
+                        (formData.last_name ? 20 : 0) +
+                        (formData.phone ? 15 : 0) +
+                        (formData.address ? 15 : 0) +
+                        (formData.date_of_birth ? 15 : 0) +
+                        (formData.avatar_url ? 15 : 0)
+                      )}%` 
+                    }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-2 text-right">
+                  {(
+                    (formData.first_name ? 20 : 0) +
+                    (formData.last_name ? 20 : 0) +
+                    (formData.phone ? 15 : 0) +
+                    (formData.address ? 15 : 0) +
+                    (formData.date_of_birth ? 15 : 0) +
+                    (formData.avatar_url ? 15 : 0)
+                  )}% Complete
+                </div>
+              </div>
+            </div>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">Last Name *</label>
-            <input
-              type="text"
-              name="last_name"
-              value={formData.last_name}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-              required
-            />
+
+          {/* Account Info Card */}
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-gray-500" />
+              Account Information
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500">Account Created</p>
+                <p className="font-medium text-gray-900">
+                  {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  }) : 'N/A'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Last Login</p>
+                <p className="font-medium text-gray-900">
+                  {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) : 'Recently'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">User ID</p>
+                <p className="font-medium text-sm text-gray-600 truncate">
+                  {user?.id?.substring(0, 16)}...
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Email</label>
-          <input
-            type="email"
-            value={formData.email}
-            disabled
-            className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
-          />
-          <p className="text-xs text-gray-500 mt-1">Contact support to change email</p>
+        {/* Right Column - Profile Form */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            <div className="px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                <Edit2 className="w-6 h-6 text-orange-600" />
+                Personal Information
+              </h3>
+              <p className="text-gray-600 mt-1">Update your contact details and personal information</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* First Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        name="first_name"
+                        value={formData.first_name}
+                        onChange={handleChange}
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                        placeholder="Enter your first name"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                      <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        name="last_name"
+                        value={formData.last_name}
+                        onChange={handleChange}
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                        placeholder="Enter your last name"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      value={formData.email}
+                      disabled
+                      className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2 italic">
+                    Contact support to change your email address
+                  </p>
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Phone Number
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                        placeholder="(123) 456-7890"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Date of Birth */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Date of Birth
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="date"
+                        name="date_of_birth"
+                        value={formData.date_of_birth}
+                        onChange={handleChange}
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Address */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Address
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                      <Home className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+                      <textarea
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        rows="3"
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200 resize-none"
+                        placeholder="Enter your complete address"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8 border-t border-gray-200">
+                <div className="text-sm text-gray-500">
+                  <p className="flex items-center gap-2">
+                    <span className="text-red-500">*</span> Required fields
+                  </p>
+                  <p className="mt-1 text-xs">All information is securely stored and protected</p>
+                </div>
+                
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={loadProfile}
+                    className="px-8 py-3.5 text-gray-700 hover:text-gray-900 font-semibold border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
+                    disabled={saving}
+                  >
+                    Cancel
+                  </button>
+                  
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="group relative overflow-hidden inline-flex items-center gap-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white font-semibold px-10 py-3.5 rounded-xl hover:shadow-xl hover:from-orange-700 hover:to-amber-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="absolute inset-0 bg-white/20 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-500"></div>
+                    <span className="relative flex items-center gap-3">
+                      {saving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-5 h-5" />
+                          Save Changes
+                        </>
+                      )}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          {/* Help Card */}
+          <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-2xl">
+            <h4 className="font-bold text-blue-900 mb-2">Need Help?</h4>
+            <p className="text-blue-700 text-sm">
+              If you're having trouble updating your profile or need to change your email address, 
+              please contact our support team at support@palmsestate.org
+            </p>
+          </div>
         </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Phone</label>
-          <input
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="(123) 456-7890"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Address</label>
-          <textarea
-            name="address"
-            value={formData.address}
-            onChange={handleChange}
-            rows="3"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="Enter your complete address"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-2">Date of Birth</label>
-          <input
-            type="date"
-            name="date_of_birth"
-            value={formData.date_of_birth}
-            onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-          />
-        </div>
-
-        <div className="flex justify-end space-x-3 pt-6 border-t">
-          <button
-            type="button"
-            onClick={loadProfile}
-            className="px-6 py-3 text-gray-700 font-medium border border-gray-300 rounded-lg hover:bg-gray-50"
-            disabled={saving}
-          >
-            Reset
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="px-6 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50"
-          >
-            {saving ? (
-              <span className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
-              </span>
-            ) : 'Save Changes'}
-          </button>
-        </div>
-      </form>
-
-      {/* Check Supabase Client Configuration */}
-      <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <h3 className="font-medium text-yellow-800 mb-2">If still having issues, check:</h3>
-        <ol className="text-sm text-yellow-700 list-decimal pl-5 space-y-1">
-          <li>
-            <strong>Supabase Client Config</strong> - Make sure your `lib/supabase.js` is properly configured:
-            <pre className="mt-1 p-2 bg-black text-white rounded text-xs overflow-x-auto">
-{`import { createClient } from '@supabase/supabase-js'
-
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-})`}
-            </pre>
-          </li>
-          <li>
-            <strong>Environment Variables</strong> - Check that REACT_APP_SUPABASE_URL and REACT_APP_SUPABASE_ANON_KEY are set
-          </li>
-          <li>
-            <strong>Browser Console</strong> - Check for any auth errors in the console
-          </li>
-        </ol>
       </div>
     </div>
   );
