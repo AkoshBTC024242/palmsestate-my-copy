@@ -1,11 +1,11 @@
-// src/pages/dashboard/Profile.jsx - CLEAN STYLED VERSION
+// src/pages/dashboard/Profile.jsx - FINAL CLEAN VERSION
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, saveUserProfile, loadUserProfile } from '../../lib/supabase';
 import {
-  User, Mail, Phone, Home, Calendar,
+  User, Mail, Phone, Home, Calendar, MapPin,
   Save, Camera, CheckCircle, AlertCircle,
-  Shield, Edit2, Upload
+  Shield, Edit2, Upload, Building
 } from 'lucide-react';
 
 function Profile() {
@@ -19,7 +19,11 @@ function Profile() {
     last_name: '',
     email: '',
     phone: '',
-    address: '',
+    street_address: '',
+    city: '',
+    state: '',
+    zip_code: '',
+    country: '',
     date_of_birth: '',
     avatar_url: ''
   });
@@ -39,16 +43,41 @@ function Profile() {
       
       if (result.success) {
         if (result.data) {
+          // Parse address if it's stored as a single field
+          let street_address = '';
+          let city = '';
+          let state = '';
+          let zip_code = '';
+          let country = '';
+          
+          if (result.data.address) {
+            // Try to parse address string
+            const addressParts = result.data.address.split(',');
+            if (addressParts.length >= 4) {
+              street_address = addressParts[0].trim();
+              city = addressParts[1].trim();
+              state = addressParts[2].trim();
+              zip_code = addressParts[3].trim();
+              country = addressParts[4]?.trim() || '';
+            } else {
+              // If not parsable, put entire address in street field
+              street_address = result.data.address;
+            }
+          }
+          
           setFormData({
             first_name: result.data.first_name || '',
             last_name: result.data.last_name || '',
             email: result.data.email || user.email || '',
             phone: result.data.phone || '',
-            address: result.data.address || '',
+            street_address: street_address,
+            city: city,
+            state: state,
+            zip_code: zip_code,
+            country: country,
             date_of_birth: result.data.date_of_birth || '',
             avatar_url: result.data.avatar_url || ''
           });
-          setMessage({ type: 'success', text: 'Profile loaded successfully' });
         } else {
           // New user - set email only
           setFormData(prev => ({
@@ -79,12 +108,22 @@ function Profile() {
     setMessage({ type: '', text: '' });
 
     try {
-      const result = await saveUserProfile(user.id, formData);
+      // Combine address fields
+      const address = formData.street_address ? 
+        `${formData.street_address}, ${formData.city}, ${formData.state} ${formData.zip_code}${formData.country ? `, ${formData.country}` : ''}`.trim() : 
+        null;
+      
+      const profileData = {
+        ...formData,
+        address: address
+      };
+      
+      const result = await saveUserProfile(user.id, profileData);
       
       if (result.success) {
         setMessage({ 
           type: 'success', 
-          text: 'Profile saved successfully!' 
+          text: 'Profile updated successfully!' 
         });
         
         // Auto-clear success message after 3 seconds
@@ -262,24 +301,30 @@ function Profile() {
                     className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-500"
                     style={{ 
                       width: `${(
-                        (formData.first_name ? 20 : 0) +
-                        (formData.last_name ? 20 : 0) +
-                        (formData.phone ? 15 : 0) +
-                        (formData.address ? 15 : 0) +
-                        (formData.date_of_birth ? 15 : 0) +
-                        (formData.avatar_url ? 15 : 0)
+                        (formData.first_name ? 10 : 0) +
+                        (formData.last_name ? 10 : 0) +
+                        (formData.phone ? 10 : 0) +
+                        (formData.street_address ? 15 : 0) +
+                        (formData.city ? 5 : 0) +
+                        (formData.state ? 5 : 0) +
+                        (formData.zip_code ? 5 : 0) +
+                        (formData.date_of_birth ? 10 : 0) +
+                        (formData.avatar_url ? 10 : 0)
                       )}%` 
                     }}
                   ></div>
                 </div>
                 <div className="text-xs text-gray-500 mt-2 text-right">
                   {(
-                    (formData.first_name ? 20 : 0) +
-                    (formData.last_name ? 20 : 0) +
-                    (formData.phone ? 15 : 0) +
-                    (formData.address ? 15 : 0) +
-                    (formData.date_of_birth ? 15 : 0) +
-                    (formData.avatar_url ? 15 : 0)
+                    (formData.first_name ? 10 : 0) +
+                    (formData.last_name ? 10 : 0) +
+                    (formData.phone ? 10 : 0) +
+                    (formData.street_address ? 15 : 0) +
+                    (formData.city ? 5 : 0) +
+                    (formData.state ? 5 : 0) +
+                    (formData.zip_code ? 5 : 0) +
+                    (formData.date_of_birth ? 10 : 0) +
+                    (formData.avatar_url ? 10 : 0)
                   )}% Complete
                 </div>
               </div>
@@ -441,22 +486,114 @@ function Profile() {
                   </div>
                 </div>
 
-                {/* Address */}
+                {/* Address Section Header */}
+                <div className="md:col-span-2 pt-4">
+                  <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-orange-600" />
+                    Address Information
+                  </h4>
+                </div>
+
+                {/* Street Address */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Address
+                    Street Address
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
                     <div className="relative">
                       <Home className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                      <textarea
-                        name="address"
-                        value={formData.address}
+                      <input
+                        type="text"
+                        name="street_address"
+                        value={formData.street_address}
                         onChange={handleChange}
-                        rows="3"
-                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200 resize-none"
-                        placeholder="Enter your complete address"
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                        placeholder="123 Main St, Apt 4B"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* City */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    City
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                      <Building className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleChange}
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                        placeholder="Los Angeles"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* State/Province */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    State / Province
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleChange}
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                        placeholder="California"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ZIP/Postal Code */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    ZIP / Postal Code
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        name="zip_code"
+                        value={formData.zip_code}
+                        onChange={handleChange}
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                        placeholder="90210"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Country */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Country
+                  </label>
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        name="country"
+                        value={formData.country}
+                        onChange={handleChange}
+                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                        placeholder="United States"
                       />
                     </div>
                   </div>
@@ -496,7 +633,7 @@ function Profile() {
                       ) : (
                         <>
                           <Save className="w-5 h-5" />
-                          Save Changes
+                          Update Profile
                         </>
                       )}
                     </span>
