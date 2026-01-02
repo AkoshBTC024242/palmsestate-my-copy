@@ -1,4 +1,4 @@
-// src/pages/dashboard/Profile.jsx
+// Updated Profile.jsx with detailed debugging
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
@@ -7,9 +7,7 @@ function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  
+  const [debugLog, setDebugLog] = useState([]);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -20,17 +18,86 @@ function Profile() {
     avatar_url: ''
   });
 
+  const addLog = (message, type = 'info') => {
+    const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+    setDebugLog(prev => [...prev, { timestamp, message, type }]);
+    console.log(`[${type.toUpperCase()}] ${message}`);
+  };
+
   useEffect(() => {
     if (user) {
+      addLog(`User loaded: ${user.id} (${user.email})`, 'info');
+      testRLS();
       loadProfile();
     }
   }, [user]);
 
+  const testRLS = async () => {
+    addLog('Testing RLS policies...', 'debug');
+    
+    try {
+      // Test 1: Simple select to see if we can query
+      const { data: testData, error: testError } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1);
+      
+      if (testError) {
+        addLog(`SELECT test failed: ${testError.code} - ${testError.message}`, 'error');
+      } else {
+        addLog('✅ SELECT test passed', 'success');
+      }
+
+      // Test 2: Try to insert/update own profile
+      if (user) {
+        const testUpdate = {
+          id: user.id,
+          email: user.email,
+          updated_at: new Date().toISOString()
+        };
+        
+        addLog(`Attempting upsert for user ${user.id}`, 'debug');
+        
+        const { error: upsertError } = await supabase
+          .from('profiles')
+          .upsert(testUpdate, { 
+            onConflict: 'id',
+            returning: 'minimal'
+          });
+        
+        if (upsertError) {
+          addLog(`UPSERT test failed: ${upsertError.code} - ${upsertError.message}`, 'error');
+          
+          // Check if it's an RLS issue
+          if (upsertError.code === '42501') {
+            addLog('⚠️ RLS Permission denied. Checking policy setup...', 'warning');
+            
+            // Try to get current policies via REST API
+            try {
+              const { data: policies, error: policiesError } = await supabase
+                .from('pg_policies')
+                .select('policyname, cmd')
+                .eq('tablename', 'profiles');
+              
+              if (!policiesError && policies) {
+                addLog(`Current policies: ${JSON.stringify(policies)}`, 'info');
+              }
+            } catch (e) {
+              addLog(`Cannot query policies table: ${e.message}`, 'error');
+            }
+          }
+        } else {
+          addLog('✅ UPSERT test passed - RLS is working!', 'success');
+        }
+      }
+    } catch (error) {
+      addLog(`Test error: ${error.message}`, 'error');
+    }
+  };
+
   const loadProfile = async () => {
     try {
-      setLoading(true);
-      setError('');
-      
+      addLog('Loading profile...', 'debug');
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -38,35 +105,26 @@ function Profile() {
         .single();
 
       if (error) {
+        addLog(`Load error: ${error.code} - ${error.message}`, 'error');
+        
+        // If profile doesn't exist, that's okay
         if (error.code === 'PGRST116') {
-          // No profile exists yet - this is fine
-          console.log('No existing profile');
-        } else {
-          console.error('Load error:', error);
-          setError(`Load failed: ${error.message}`);
+          addLog('No existing profile found (this is normal for new users)', 'info');
         }
-      }
-
-      if (data) {
+      } else {
+        addLog('Profile loaded successfully', 'success');
         setFormData({
           first_name: data.first_name || '',
           last_name: data.last_name || '',
-          email: user.email || data.email || '',
+          email: data.email || user.email || '',
           phone: data.phone || '',
           address: data.address || '',
           date_of_birth: data.date_of_birth || '',
           avatar_url: data.avatar_url || ''
         });
-      } else {
-        // Initialize with user email
-        setFormData(prev => ({
-          ...prev,
-          email: user.email || ''
-        }));
       }
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setError('Unexpected error loading profile');
+    } catch (error) {
+      addLog(`Unexpected load error: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -75,8 +133,7 @@ function Profile() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setError('');
-    setSuccess('');
+    addLog('Starting save...', 'debug');
 
     try {
       const updates = {
@@ -91,32 +148,56 @@ function Profile() {
         updated_at: new Date().toISOString()
       };
 
-      console.log('Saving profile:', updates);
+      addLog(`Sending update: ${JSON.stringify(updates)}`, 'debug');
 
       const { data, error } = await supabase
         .from('profiles')
         .upsert(updates, { 
           onConflict: 'id',
-          returning: 'minimal'
+          returning: 'representation'
         });
 
       if (error) {
-        console.error('Save error:', error);
+        addLog(`Save error: ${error.code} - ${error.message}`, 'error');
         
+        // Try alternative method if RLS fails
         if (error.code === '42501') {
-          setError('Permission denied. RLS policies need to be fixed. Run the cleanup SQL.');
-        } else {
-          setError(`Save failed: ${error.message}`);
+          addLog('Attempting alternative save via auth API...', 'warning');
+          await tryAlternativeSave(updates);
         }
       } else {
-        setSuccess('Profile saved successfully!');
-        console.log('Profile saved:', data);
+        addLog('✅ Profile saved successfully!', 'success');
       }
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setError('Unexpected error saving profile');
+    } catch (error) {
+      addLog(`Unexpected save error: ${error.message}`, 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const tryAlternativeSave = async (updates) => {
+    try {
+      // Try to update user metadata
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          first_name: updates.first_name,
+          last_name: updates.last_name,
+          phone: updates.phone,
+          address: updates.address
+        }
+      });
+
+      if (authError) {
+        addLog(`Auth update failed: ${authError.message}`, 'error');
+        
+        // Last resort: localStorage
+        localStorage.setItem('user_profile_backup', JSON.stringify(updates));
+        addLog('Saved to localStorage as backup', 'warning');
+      } else {
+        addLog('✅ Saved to auth user metadata', 'success');
+      }
+    } catch (error) {
+      addLog(`Alternative save failed: ${error.message}`, 'error');
     }
   };
 
@@ -128,47 +209,76 @@ function Profile() {
     }));
   };
 
+  const runQuickFix = async () => {
+    addLog('Running quick RLS fix...', 'info');
+    
+    // This is the SQL to run in Supabase
+    const fixSql = `-- Quick RLS Fix
+BEGIN;
+ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
+DO $$ 
+DECLARE policy_name TEXT;
+BEGIN
+    FOR policy_name IN SELECT policyname FROM pg_policies WHERE tablename = 'profiles'
+    LOOP
+        EXECUTE 'DROP POLICY IF EXISTS "' || policy_name || '" ON profiles';
+    END LOOP;
+END $$;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "user_full_access" ON profiles FOR ALL USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+COMMIT;`;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(fixSql);
+    addLog('SQL copied to clipboard. Run it in Supabase SQL Editor.', 'info');
+    
+    // Test again after suggesting fix
+    setTimeout(() => testRLS(), 2000);
+  };
+
   if (loading) {
-    return (
-      <div className="max-w-2xl mx-auto p-6">
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading profile...</p>
-        </div>
-      </div>
-    );
+    return <div className="p-6">Loading...</div>;
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-2">Profile Settings</h1>
-      <p className="text-gray-600 mb-6">Update your personal information</p>
+      <p className="text-gray-600 mb-6">Manage your profile information</p>
 
-      {/* Debug Info */}
-      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-800">
-          <strong>Database Status:</strong> RLS is enabled. After cleanup, you should have 1 policy.
-          {error && error.includes('42501') && (
-            <span className="block mt-1 text-red-600">
-              ⚠️ Still getting permission errors? Refresh the page and try again.
-            </span>
-          )}
-        </p>
+      {/* Debug Panel */}
+      <div className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-medium text-gray-800">Debug Log</h3>
+          <button
+            onClick={runQuickFix}
+            className="px-3 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700"
+          >
+            Copy Fix SQL
+          </button>
+        </div>
+        <div className="h-64 overflow-y-auto bg-black text-green-400 p-3 rounded font-mono text-sm">
+          {debugLog.map((log, idx) => (
+            <div key={idx} className={`mb-1 ${log.type === 'error' ? 'text-red-400' : 
+                                          log.type === 'warning' ? 'text-yellow-400' : 
+                                          log.type === 'success' ? 'text-green-400' : 'text-gray-400'}`}>
+              [{log.timestamp}] {log.message}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Messages */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800">
-          {error}
-        </div>
-      )}
-      
-      {success && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800">
-          {success}
-        </div>
-      )}
+      {/* Quick Instructions */}
+      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 className="font-medium text-blue-800 mb-2">Quick Fix Instructions:</h3>
+        <ol className="text-sm text-blue-700 list-decimal pl-5 space-y-1">
+          <li>Click "Copy Fix SQL" button above</li>
+          <li>Go to Supabase Dashboard → SQL Editor</li>
+          <li>Paste and run the SQL</li>
+          <li>Refresh this page and try saving again</li>
+        </ol>
+      </div>
 
+      {/* Profile Form */}
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-lg shadow">
         <div className="grid md:grid-cols-2 gap-6">
           <div>
@@ -178,11 +288,10 @@ function Profile() {
               name="first_name"
               value={formData.first_name}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="w-full p-3 border rounded"
               required
             />
           </div>
-          
           <div>
             <label className="block text-sm font-medium mb-2">Last Name *</label>
             <input
@@ -190,7 +299,7 @@ function Profile() {
               name="last_name"
               value={formData.last_name}
               onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              className="w-full p-3 border rounded"
               required
             />
           </div>
@@ -202,9 +311,8 @@ function Profile() {
             type="email"
             value={formData.email}
             disabled
-            className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+            className="w-full p-3 border rounded bg-gray-50"
           />
-          <p className="text-xs text-gray-500 mt-1">Contact support to change email</p>
         </div>
 
         <div>
@@ -214,8 +322,7 @@ function Profile() {
             name="phone"
             value={formData.phone}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="(123) 456-7890"
+            className="w-full p-3 border rounded"
           />
         </div>
 
@@ -225,9 +332,8 @@ function Profile() {
             name="address"
             value={formData.address}
             onChange={handleChange}
-            rows="3"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="Enter your complete address"
+            rows="2"
+            className="w-full p-3 border rounded"
           />
         </div>
 
@@ -238,43 +344,27 @@ function Profile() {
             name="date_of_birth"
             value={formData.date_of_birth}
             onChange={handleChange}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            className="w-full p-3 border rounded"
           />
         </div>
 
-        <div className="flex justify-end space-x-3 pt-6 border-t">
+        <div className="flex justify-end space-x-3 pt-4">
           <button
             type="button"
             onClick={loadProfile}
-            className="px-6 py-3 text-gray-700 font-medium border border-gray-300 rounded-lg hover:bg-gray-50"
-            disabled={saving}
+            className="px-4 py-2 border rounded"
           >
             Reset
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-3 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50"
+            className="px-4 py-2 bg-orange-600 text-white rounded disabled:opacity-50"
           >
-            {saving ? (
-              <span className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
-              </span>
-            ) : 'Save Changes'}
+            {saving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </form>
-
-      {/* Quick Fix Reminder */}
-      <div className="mt-8 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-        <h3 className="font-medium text-gray-800 mb-2">If you still get permission errors:</h3>
-        <ol className="text-sm text-gray-600 list-decimal pl-5 space-y-1">
-          <li>Make sure you ran the cleanup SQL above</li>
-          <li>Refresh this page and try saving again</li>
-          <li>Check browser console for detailed error messages</li>
-        </ol>
-      </div>
     </div>
   );
 }
