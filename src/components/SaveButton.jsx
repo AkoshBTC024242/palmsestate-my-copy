@@ -37,8 +37,10 @@ const SaveButton = ({ propertyId, size = 'md', showLabel = false, className = ''
   };
 
   const handleSaveToggle = async (e) => {
-    e.stopPropagation();
-    e.preventDefault();
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
     
     if (!user) {
       navigate('/signin');
