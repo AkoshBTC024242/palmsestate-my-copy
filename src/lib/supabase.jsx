@@ -447,3 +447,220 @@ export const submitApplicationWithFallback = async (applicationData) => {
     return { success: false, error: error.message };
   }
 };
+
+// ============ SAVED PROPERTIES FUNCTIONS ============
+
+// Save a property to user's saved list
+export const saveProperty = async (userId, propertyId) => {
+  console.log('💾 Saving property:', { userId, propertyId });
+  
+  try {
+    // Validate input
+    if (!userId || !propertyId) {
+      throw new Error('User ID and Property ID are required');
+    }
+
+    // Check if already saved first
+    const { data: existing } = await supabase
+      .from('saved_properties')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('property_id', propertyId)
+      .single();
+
+    if (existing) {
+      console.log('✅ Property already saved');
+      return { success: true, data: existing, alreadySaved: true };
+    }
+
+    // Save the property
+    const { data, error } = await supabase
+      .from('saved_properties')
+      .insert({
+        user_id: userId,
+        property_id: propertyId,
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ Error saving property:', error);
+      throw error;
+    }
+
+    console.log('✅ Property saved successfully');
+    return { success: true, data };
+
+  } catch (error) {
+    console.error('❌ Save property failed:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      userMessage: 'Failed to save property. Please try again.'
+    };
+  }
+};
+
+// Remove a property from saved list
+export const unsaveProperty = async (userId, propertyId) => {
+  console.log('🗑️ Unsaving property:', { userId, propertyId });
+  
+  try {
+    if (!userId || !propertyId) {
+      throw new Error('User ID and Property ID are required');
+    }
+
+    const { error } = await supabase
+      .from('saved_properties')
+      .delete()
+      .eq('user_id', userId)
+      .eq('property_id', propertyId);
+
+    if (error) {
+      console.error('❌ Error unsaving property:', error);
+      throw error;
+    }
+
+    console.log('✅ Property removed from saved list');
+    return { success: true };
+
+  } catch (error) {
+    console.error('❌ Unsave property failed:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      userMessage: 'Failed to remove property. Please try again.'
+    };
+  }
+};
+
+// Fetch user's saved properties with property details
+export const fetchSavedProperties = async (userId) => {
+  console.log('📥 Fetching saved properties for user:', userId);
+  
+  try {
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
+
+    const { data, error } = await supabase
+      .from('saved_properties')
+      .select(`
+        id,
+        created_at,
+        property_id,
+        user_id,
+        properties:property_id (
+          id,
+          title,
+          description,
+          location,
+          price_per_week,
+          bedrooms,
+          bathrooms,
+          square_feet,
+          image_url,
+          status,
+          category,
+          created_at
+        )
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ Error fetching saved properties:', error);
+      throw error;
+    }
+
+    console.log(`✅ Successfully fetched ${data?.length || 0} saved properties`);
+    
+    // Filter out any null properties (in case property was deleted)
+    const validProperties = data?.filter(item => item.properties !== null) || [];
+    
+    return { 
+      success: true, 
+      data: validProperties,
+      count: validProperties.length
+    };
+
+  } catch (error) {
+    console.error('❌ Fetch saved properties failed:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      data: [],
+      count: 0
+    };
+  }
+};
+
+// Check if a property is already saved by the user
+export const isPropertySaved = async (userId, propertyId) => {
+  console.log('🔍 Checking if property is saved:', { userId, propertyId });
+  
+  try {
+    if (!userId || !propertyId) {
+      return { success: true, isSaved: false }; // Not an error, just return false
+    }
+
+    const { data, error } = await supabase
+      .from('saved_properties')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('property_id', propertyId)
+      .maybeSingle(); // Use maybeSingle instead of single to handle no rows
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows found"
+      console.error('❌ Error checking saved status:', error);
+      throw error;
+    }
+
+    const isSaved = !!data;
+    console.log(`✅ Property ${isSaved ? 'is' : 'is not'} saved`);
+    return { success: true, isSaved };
+
+  } catch (error) {
+    console.error('❌ Check saved status failed:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      isSaved: false // Default to false on error
+    };
+  }
+};
+
+// Get count of saved properties for a user
+export const getSavedPropertiesCount = async (userId) => {
+  console.log('📊 Getting saved properties count for user:', userId);
+  
+  try {
+    if (!userId) {
+      return { success: true, count: 0 };
+    }
+
+    const { count, error } = await supabase
+      .from('saved_properties')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('❌ Error getting saved count:', error);
+      throw error;
+    }
+
+    console.log(`✅ User has ${count || 0} saved properties`);
+    return { success: true, count: count || 0 };
+
+  } catch (error) {
+    console.error('❌ Get saved count failed:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      count: 0 
+    };
+  }
+};
+
+// ============ END SAVED PROPERTIES FUNCTIONS ============
