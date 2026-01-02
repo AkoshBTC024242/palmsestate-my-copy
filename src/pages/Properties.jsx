@@ -1,7 +1,9 @@
+// src/pages/Properties.jsx - UPDATED
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Square, Loader } from 'lucide-react';
 import { fetchProperties } from '../lib/supabase';
+import SaveButton from '../components/SaveButton'; // Add this import
 
 function Properties() {
   const [properties, setProperties] = useState([]);
@@ -88,6 +90,11 @@ function Properties() {
                     ${property.price_per_week?.toLocaleString()}/week
                   </span>
                 </div>
+                
+                {/* ADD SAVE BUTTON HERE */}
+                <div className="absolute top-20 right-4">
+                  <SaveButton propertyId={property.id} size="md" />
+                </div>
               </div>
 
               {/* Property Details */}
@@ -129,7 +136,7 @@ function Properties() {
                   </span>
                 </div>
 
-                {/* Action Button - FIXED: Changed /property/ to /properties/ */}
+                {/* Action Button */}
                 <Link
                   to={`/properties/${property.id}`}
                   className="block w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white font-sans font-semibold py-3 px-6 rounded-xl text-center hover:shadow-lg transition-all duration-300 mt-4"
