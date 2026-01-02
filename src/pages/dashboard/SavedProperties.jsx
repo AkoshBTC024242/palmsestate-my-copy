@@ -30,13 +30,11 @@ function SavedProperties() {
       
       console.log('Loading saved properties for user:', user.id);
       
-      // Use the helper function
       const result = await fetchSavedProperties(user.id);
       
       if (result.success) {
         console.log('Saved properties loaded:', result.data?.length || 0);
         
-        // Transform the data to match your component structure
         const properties = result.data?.map(item => {
           const property = item.properties || {};
           return {
@@ -46,14 +44,14 @@ function SavedProperties() {
             title: property.title,
             location: property.location,
             price: property.price || 0,
-            // Removed property_type - not in your database
             bedrooms: property.bedrooms,
             bathrooms: property.bathrooms,
-            square_feet: property.square_feet,
-            // Try multiple image URL fields
+            // Use sqft instead of square_feet
+            square_feet: property.sqft || 0,
+            sqft: property.sqft || 0,
             main_image_url: property.image_url || property.main_image_url || null,
             created_at: property.created_at,
-            category: property.category // Use category instead of property_type
+            category: property.category
           };
         }) || [];
         
@@ -77,7 +75,6 @@ function SavedProperties() {
       const result = await unsaveProperty(user.id, propertyId);
       
       if (result.success) {
-        // Remove from local state
         setSavedProperties(prev => prev.filter(p => p.savedId !== savedId));
       } else {
         alert('Failed to remove property: ' + (result.error || 'Unknown error'));
@@ -141,7 +138,6 @@ function SavedProperties() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Saved Properties</h1>
         <p className="text-gray-600 mt-2">
@@ -171,7 +167,6 @@ function SavedProperties() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {savedProperties.map((property) => (
             <div key={property.savedId} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition-shadow duration-300">
-              {/* Property Image */}
               <div className="relative h-48 overflow-hidden bg-gray-100">
                 {property.main_image_url ? (
                   <img
@@ -185,7 +180,6 @@ function SavedProperties() {
                   </div>
                 )}
                 
-                {/* Unsave Button */}
                 <button
                   onClick={() => handleUnsave(property.savedId, property.id)}
                   disabled={removingId === property.savedId}
@@ -198,7 +192,6 @@ function SavedProperties() {
                   )}
                 </button>
                 
-                {/* Saved Badge */}
                 <div className="absolute top-3 left-3">
                   <div className="flex items-center gap-1 px-2 py-1 bg-pink-600 text-white text-xs font-medium rounded-full">
                     <Heart className="w-3 h-3" />
@@ -206,7 +199,6 @@ function SavedProperties() {
                   </div>
                 </div>
 
-                {/* Price Badge */}
                 <div className="absolute top-12 left-3">
                   <div className="px-2 py-1 bg-black/60 backdrop-blur-sm text-white font-sans font-bold rounded-full text-sm">
                     {formatPrice(property.price)}/week
@@ -214,7 +206,6 @@ function SavedProperties() {
                 </div>
               </div>
 
-              {/* Property Details */}
               <div className="p-5">
                 <div className="flex justify-between items-start mb-3">
                   <div>
@@ -226,7 +217,6 @@ function SavedProperties() {
                   </div>
                 </div>
 
-                {/* Property Features */}
                 <div className="grid grid-cols-4 gap-2 mb-4">
                   <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
                     <BedDouble className="w-4 h-4 text-gray-500 mb-1" />
@@ -240,7 +230,8 @@ function SavedProperties() {
                   </div>
                   <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
                     <Square className="w-4 h-4 text-gray-500 mb-1" />
-                    <span className="text-xs font-medium">{property.square_feet ? `${property.square_feet.toLocaleString()}` : 'N/A'}</span>
+                    {/* Use sqft instead of square_feet */}
+                    <span className="text-xs font-medium">{property.sqft ? `${property.sqft.toLocaleString()}` : 'N/A'}</span>
                     <span className="text-xs text-gray-500">Sq Ft</span>
                   </div>
                   <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
@@ -250,7 +241,6 @@ function SavedProperties() {
                   </div>
                 </div>
 
-                {/* Category (replacing property_type) */}
                 {property.category && (
                   <div className="mb-4">
                     <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
@@ -259,7 +249,6 @@ function SavedProperties() {
                   </div>
                 )}
 
-                {/* Actions */}
                 <div className="flex items-center justify-between pt-4 border-t">
                   <div className="text-xs text-gray-500 flex items-center gap-1">
                     <CalendarDays className="w-3 h-3" />
