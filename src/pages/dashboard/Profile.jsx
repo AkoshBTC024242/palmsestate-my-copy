@@ -5,7 +5,8 @@ import { supabase } from '../../lib/supabase';
 import {
   User, Mail, Phone, MapPin, Calendar,
   Save, Upload, Camera, Shield, CheckCircle,
-  Home, Navigation, AlertCircle, Info
+  Home, Navigation, AlertCircle, Info,
+  Database
 } from 'lucide-react';
 
 function Profile() {
@@ -36,6 +37,7 @@ function Profile() {
   useEffect(() => {
     if (user) {
       loadProfileData();
+      checkDatabaseSchema();
     }
   }, [user]);
 
@@ -50,8 +52,8 @@ function Profile() {
         .eq('id', user.id)
         .single();
 
-      if (profileError) {
-        console.log('Profile load error (may be expected if no profile yet):', profileError.message);
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Profile load error:', profileError);
       }
 
       // Set form data with safe defaults
@@ -65,8 +67,15 @@ function Profile() {
         avatar_url: profileData?.avatar_url || ''
       });
 
-      // Check which fields are available in the database
-      await checkAvailableFields();
+      // Update available fields based on actual data
+      if (profileData) {
+        setAvailableFields(prev => ({
+          ...prev,
+          phone: profileData.phone !== undefined,
+          address: profileData.address !== undefined,
+          date_of_birth: profileData.date_of_birth !== undefined,
+        }));
+      }
 
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -79,42 +88,53 @@ function Profile() {
     }
   };
 
-  const checkAvailableFields = async () => {
+  const checkDatabaseSchema = async () => {
     try {
-      // We'll test each field by trying to update with a dummy value
-      const testFields = ['phone', 'address', 'date_of_birth'];
-      const fieldResults = {};
+      // Instead of trying to update, let's check if we can query the table schema
+      // We'll do this by making a minimal safe query
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1);
 
-      for (const field of testFields) {
-        try {
-          // Try a minimal update with just the field we're testing
-          const testUpdate = { 
-            id: user.id,
-            updated_at: new Date().toISOString()
-          };
-          
-          // Add test value for the field
-          if (field === 'phone') testUpdate.phone = '123';
-          if (field === 'address') testUpdate.address = 'test';
-          if (field === 'date_of_birth') testUpdate.date_of_birth = '2000-01-01';
-
-          const { error } = await supabase
-            .from('profiles')
-            .upsert(testUpdate, { onConflict: 'id' });
-
-          fieldResults[field] = !error;
-        } catch (e) {
-          fieldResults[field] = false;
-        }
+      if (error) {
+        console.error('Database connection error:', error);
+        return;
       }
 
-      setAvailableFields(prev => ({
-        ...prev,
-        ...fieldResults
-      }));
+      // If we get here, the table exists
+      // Now let's check specific columns by trying a broader query
+      try {
+        const { data: schemaData, error: schemaError } = await supabase
+          .from('profiles')
+          .select('phone, address, date_of_birth')
+          .limit(0); // Limit 0 to get metadata without data
+
+        if (!schemaError) {
+          // These fields exist in the database
+          setAvailableFields(prev => ({
+            ...prev,
+            phone: true,
+            address: true,
+            date_of_birth: true
+          }));
+        } else if (schemaError && schemaError.message) {
+          // Parse error message to see which fields are missing
+          const errorMessage = schemaError.message.toLowerCase();
+          
+          setAvailableFields(prev => ({
+            ...prev,
+            phone: !errorMessage.includes('phone'),
+            address: !errorMessage.includes('address'),
+            date_of_birth: !errorMessage.includes('date_of_birth')
+          }));
+        }
+      } catch (schemaCheckError) {
+        console.log('Schema check error (this is expected for missing columns):', schemaCheckError.message);
+      }
 
     } catch (error) {
-      console.log('Field check error:', error.message);
+      console.log('Database schema check error:', error.message);
     }
   };
 
@@ -139,102 +159,55 @@ function Profile() {
         email: user.email
       };
 
-      // Add basic fields (should exist in most setups)
-      if (formData.first_name !== undefined) updates.first_name = formData.first_name;
-      if (formData.last_name !== undefined) updates.last_name = formData.last_name;
+      // Add basic fields
+      updates.first_name = formData.first_name || '';
+      updates.last_name = formData.last_name || '';
       
-      // Add optional fields only if they're available and have values
-      if (availableFields.phone && formData.phone) {
-        updates.phone = formData.phone;
-      }
-      
-      if (availableFields.avatar_url && formData.avatar_url) {
-        updates.avatar_url = formData.avatar_url;
-      }
-      
-      // These fields might not exist in the database
-      if (availableFields.address && formData.address) {
-        updates.address = formData.address;
-      }
-      
-      if (availableFields.date_of_birth && formData.date_of_birth) {
-        updates.date_of_birth = formData.date_of_birth;
-      }
+      // Add optional fields only if they're enabled in the form
+      if (availableFields.phone) updates.phone = formData.phone || null;
+      if (availableFields.avatar_url) updates.avatar_url = formData.avatar_url || null;
+      if (availableFields.address) updates.address = formData.address || null;
+      if (availableFields.date_of_birth) updates.date_of_birth = formData.date_of_birth || null;
 
-      console.log('Attempting to update profile with:', updates);
+      console.log('Updating profile with:', updates);
       console.log('Available fields:', availableFields);
 
-      // First, check if profile exists
-      const { data: existingProfile, error: checkError } = await supabase
+      // Use upsert to handle both insert and update
+      const { data, error } = await supabase
         .from('profiles')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-
-      let result;
-      
-      if (checkError && checkError.code === 'PGRST116') {
-        // Profile doesn't exist yet, try to insert
-        console.log('Profile does not exist, attempting INSERT...');
-        result = await supabase
-          .from('profiles')
-          .insert([updates])
-          .select()
-          .single();
-      } else {
-        // Profile exists, update it
-        console.log('Profile exists, attempting UPDATE...');
-        result = await supabase
-          .from('profiles')
-          .update(updates)
-          .eq('id', user.id)
-          .select()
-          .single();
-      }
-
-      const { data, error } = result;
-
-      if (error) {
-        console.error('Supabase error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
+        .upsert(updates, { 
+          onConflict: 'id',
+          returning: 'minimal'
         });
 
+      if (error) {
+        console.error('Supabase error:', error);
+        
         // Handle specific error cases
         if (error.code === '42501') {
-          // RLS policy violation
           setMessage({
             type: 'error',
-            text: 'Permission denied. Database security policy is blocking this action.'
-          });
-          console.error('RLS Policy Error: User does not have permission to perform this action.');
-        } else if (error.code === '23505') {
-          // Unique violation
-          setMessage({
-            type: 'error',
-            text: 'Profile already exists with this information.'
-          });
-        } else if (error.code === '23502') {
-          // Not null violation
-          setMessage({
-            type: 'error',
-            text: 'Required field is missing. Please fill in all required fields.'
+            text: 'Permission denied. Please contact support.'
           });
         } else if (error.message.includes('column') && error.message.includes('does not exist')) {
-          // Column doesn't exist
-          const columnName = error.message.match(/column "([^"]+)"/)?.[1];
+          // Extract column name from error
+          const columnMatch = error.message.match(/column "([^"]+)"/);
+          const columnName = columnMatch ? columnMatch[1] : 'unknown';
+          
           setMessage({
             type: 'warning',
-            text: `Field "${columnName}" is not available in the database. Some features may be limited.`
+            text: `Field "${columnName}" is not available in your database.`
           });
           
-          // Remove the problematic field and retry
+          // Update available fields to disable this field
+          setAvailableFields(prev => ({
+            ...prev,
+            [columnName]: false
+          }));
+          
+          // Retry without the problematic field
           const safeUpdates = { ...updates };
           delete safeUpdates[columnName];
-          
-          console.log('Retrying with safe updates (without', columnName, '):', safeUpdates);
           
           const { error: retryError } = await supabase
             .from('profiles')
@@ -242,47 +215,36 @@ function Profile() {
             
           if (retryError) throw retryError;
           
-          // Update available fields
-          setAvailableFields(prev => ({
-            ...prev,
-            [columnName]: false
-          }));
-          
-          // Show success message for partial update
+          // Show success message
           setMessage({
             type: 'success',
-            text: `Profile updated successfully! (Note: ${columnName} field is not available)`
+            text: 'Profile updated successfully! (Some fields were skipped)'
           });
           
-          // Update local state with successful updates
           updateUserProfile(safeUpdates);
           setSaving(false);
           return;
         } else {
-          // Generic error
           throw error;
         }
-        return;
+      } else {
+        // Success
+        console.log('Profile updated successfully');
+        
+        // Update local state with all submitted data
+        updateUserProfile(updates);
+        
+        setMessage({
+          type: 'success',
+          text: 'Profile updated successfully!'
+        });
       }
-
-      console.log('Profile updated successfully:', data);
-      
-      // Update local state
-      updateUserProfile(data);
-      
-      // Refresh available fields
-      await checkAvailableFields();
-      
-      setMessage({
-        type: 'success',
-        text: 'Profile updated successfully!'
-      });
       
     } catch (error) {
       console.error('Error updating profile:', error);
       setMessage({
         type: 'error',
-        text: `Failed to update profile: ${error.message || 'Unknown error occurred'}`
+        text: error.message || 'Failed to update profile. Please try again.'
       });
     } finally {
       setSaving(false);
@@ -293,19 +255,18 @@ function Profile() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file
     if (!file.type.startsWith('image/')) {
       setMessage({
         type: 'error',
-        text: 'Please upload an image file (JPG, PNG, etc.)'
+        text: 'Please upload an image file'
       });
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file.size > 5 * 1024 * 1024) {
       setMessage({
         type: 'error',
-        text: 'Image file size must be less than 5MB'
+        text: 'Image must be less than 5MB'
       });
       return;
     }
@@ -313,12 +274,36 @@ function Profile() {
     try {
       setLoading(true);
       
-      // Create a unique file name
       const fileExt = file.name.split('.').pop();
       const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
-      // Upload to Supabase Storage
+      // Check if avatars bucket exists by listing buckets
+      try {
+        const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
+        
+        if (bucketError) {
+          setMessage({
+            type: 'error',
+            text: 'Storage service unavailable. Please contact support.'
+          });
+          return;
+        }
+
+        const avatarBucketExists = buckets?.some(bucket => bucket.name === 'avatars');
+        
+        if (!avatarBucketExists) {
+          setMessage({
+            type: 'error',
+            text: 'Profile pictures are not configured. Please contact support.'
+          });
+          return;
+        }
+      } catch (bucketCheckError) {
+        console.log('Bucket check error:', bucketCheckError);
+      }
+
+      // Upload file
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
@@ -330,11 +315,12 @@ function Profile() {
         if (uploadError.message.includes('bucket')) {
           setMessage({
             type: 'error',
-            text: 'Storage bucket not configured. Please contact support.'
+            text: 'Profile pictures storage not available.'
           });
-          return;
+        } else {
+          throw uploadError;
         }
-        throw uploadError;
+        return;
       }
 
       // Get public URL
@@ -348,55 +334,39 @@ function Profile() {
         avatar_url: publicUrl
       }));
 
-      // Auto-save the avatar URL
+      // Auto-save if avatar field is available
       if (availableFields.avatar_url) {
         const { error: saveError } = await supabase
           .from('profiles')
-          .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
+          .update({ 
+            avatar_url: publicUrl, 
+            updated_at: new Date().toISOString() 
+          })
           .eq('id', user.id);
 
-        if (saveError) {
-          console.error('Error saving avatar URL:', saveError);
-          setMessage({
-            type: 'warning',
-            text: 'Image uploaded but failed to save to profile. Please try saving again.'
-          });
-        } else {
+        if (!saveError) {
           updateUserProfile({ avatar_url: publicUrl });
           setMessage({
             type: 'success',
-            text: 'Profile picture updated successfully!'
+            text: 'Profile picture updated!'
           });
         }
       }
 
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Upload error:', error);
       setMessage({
         type: 'error',
-        text: error.message.includes('permission') 
-          ? 'Permission denied for file upload. Please contact support.'
-          : 'Failed to upload image. Please try again.'
+        text: 'Failed to upload image. Please try again.'
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const getFieldStatus = (fieldName) => {
-    if (!availableFields[fieldName]) {
-      return {
-        available: false,
-        message: 'This field is not available in your current database setup.',
-        icon: <Info className="w-4 h-4 text-amber-500" />
-      };
-    }
-    return {
-      available: true,
-      message: '',
-      icon: null
-    };
-  };
+  // Count available fields for status display
+  const availableFieldCount = Object.values(availableFields).filter(Boolean).length;
+  const totalFields = Object.keys(availableFields).length;
 
   if (loading && !saving) {
     return (
@@ -435,33 +405,61 @@ function Profile() {
           )}
           <div className="flex-1">
             <p className="font-medium">{message.text}</p>
-            {message.type === 'error' && (
-              <p className="text-sm mt-1">
-                If this continues, please contact support or try again later.
-              </p>
-            )}
           </div>
         </div>
       )}
 
-      {/* Database Status Info */}
-      <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      {/* Database Status Card */}
+      <div className={`mb-6 rounded-lg p-4 border ${
+        availableFieldCount === totalFields 
+          ? 'bg-green-50 border-green-200' 
+          : 'bg-blue-50 border-blue-200'
+      }`}>
         <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-blue-800 font-medium">Database Status</p>
-            <p className="text-xs text-blue-700 mt-1">
-              Some fields may not be available in your current database setup.
-              {!availableFields.phone && ' Phone field is disabled.'}
-              {!availableFields.address && ' Address field is disabled.'}
-              {!availableFields.date_of_birth && ' Date of Birth field is disabled.'}
+          <Database className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+            availableFieldCount === totalFields ? 'text-green-600' : 'text-blue-600'
+          }`} />
+          <div className="flex-1">
+            <div className="flex justify-between items-center">
+              <p className="text-sm font-medium text-gray-800">Database Status</p>
+              <span className={`text-xs font-medium px-2 py-1 rounded ${
+                availableFieldCount === totalFields 
+                  ? 'bg-green-100 text-green-800' 
+                  : 'bg-blue-100 text-blue-800'
+              }`}>
+                {availableFieldCount}/{totalFields} fields available
+              </span>
+            </div>
+            <p className="text-sm text-gray-700 mt-2">
+              {availableFieldCount === totalFields 
+                ? 'All profile fields are available in your database.'
+                : 'Some fields may not be available in your current database setup:'}
             </p>
+            {availableFieldCount !== totalFields && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {!availableFields.phone && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">
+                    <Phone className="w-3 h-3" /> Phone
+                  </span>
+                )}
+                {!availableFields.address && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">
+                    <Home className="w-3 h-3" /> Address
+                  </span>
+                )}
+                {!availableFields.date_of_birth && (
+                  <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded">
+                    <Calendar className="w-3 h-3" /> Date of Birth
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Profile Picture Section */}
+        {/* Profile Picture */}
         <div className="p-8 border-b border-gray-200">
           <div className="flex flex-col md:flex-row md:items-center gap-6">
             <div className="relative">
@@ -490,25 +488,27 @@ function Profile() {
                   </div>
                 )}
                 
-                <label 
-                  htmlFor="avatar-upload"
-                  className="absolute bottom-0 right-0 w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-700 transition-colors shadow-lg"
-                  title="Upload profile picture"
-                >
-                  {loading ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  ) : (
-                    <Camera className="w-5 h-5 text-white" />
-                  )}
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    disabled={loading || !availableFields.avatar_url}
-                  />
-                </label>
+                {availableFields.avatar_url && (
+                  <label 
+                    htmlFor="avatar-upload"
+                    className="absolute bottom-0 right-0 w-10 h-10 bg-orange-600 rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-700 transition-colors shadow-lg"
+                    title="Upload profile picture"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      <Camera className="w-5 h-5 text-white" />
+                    )}
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      disabled={loading}
+                    />
+                  </label>
+                )}
               </div>
             </div>
             
@@ -520,14 +520,12 @@ function Profile() {
                 <Mail className="w-4 h-4" />
                 {user?.email}
               </p>
-              <div className="flex items-center gap-4 mt-4">
-                <span className="text-sm text-gray-500">
-                  {availableFields.avatar_url ? (
-                    'Click the camera icon to upload a profile picture'
-                  ) : (
-                    <span className="text-amber-600">Profile pictures not available</span>
-                  )}
-                </span>
+              <div className="mt-4">
+                <p className="text-sm text-gray-500">
+                  {availableFields.avatar_url 
+                    ? 'Click the camera icon to upload a profile picture'
+                    : 'Profile pictures are not available in your current setup'}
+                </p>
               </div>
             </div>
           </div>
@@ -574,7 +572,7 @@ function Profile() {
               </div>
             </div>
 
-            {/* Email (read-only) */}
+            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -585,7 +583,7 @@ function Profile() {
                   type="email"
                   value={formData.email}
                   disabled
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
                 />
               </div>
               <p className="text-xs text-gray-500 mt-2">
@@ -595,12 +593,14 @@ function Profile() {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Phone Number
+                </label>
                 {!availableFields.phone && (
-                  <span className="text-xs text-amber-600 ml-2">(Not Available)</span>
+                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">Unavailable</span>
                 )}
-              </label>
+              </div>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -609,29 +609,26 @@ function Profile() {
                   value={formData.phone}
                   onChange={handleChange}
                   disabled={!availableFields.phone}
-                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg ${
                     !availableFields.phone 
-                      ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed' 
-                      : 'border-gray-300'
+                      ? 'bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed' 
+                      : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
                   }`}
-                  placeholder={availableFields.phone ? "(123) 456-7890" : "Field not available"}
+                  placeholder={availableFields.phone ? "(123) 456-7890" : "Field unavailable"}
                 />
               </div>
-              {!availableFields.phone && (
-                <p className="text-xs text-amber-600 mt-2">
-                  Phone field is not available in your database setup
-                </p>
-              )}
             </div>
 
             {/* Address */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Address
+                </label>
                 {!availableFields.address && (
-                  <span className="text-xs text-amber-600 ml-2">(Not Available)</span>
+                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">Unavailable</span>
                 )}
-              </label>
+              </div>
               <div className="relative">
                 <Home className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                 <textarea
@@ -640,29 +637,26 @@ function Profile() {
                   onChange={handleChange}
                   disabled={!availableFields.address}
                   rows="2"
-                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none ${
+                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg resize-none ${
                     !availableFields.address 
-                      ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed' 
-                      : 'border-gray-300'
+                      ? 'bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed' 
+                      : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
                   }`}
-                  placeholder={availableFields.address ? "Enter your complete address" : "Field not available"}
+                  placeholder={availableFields.address ? "Enter your complete address" : "Field unavailable"}
                 />
               </div>
-              {!availableFields.address && (
-                <p className="text-xs text-amber-600 mt-2">
-                  Address field is not available in your database setup
-                </p>
-              )}
             </div>
 
             {/* Date of Birth */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date of Birth
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Date of Birth
+                </label>
                 {!availableFields.date_of_birth && (
-                  <span className="text-xs text-amber-600 ml-2">(Not Available)</span>
+                  <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">Unavailable</span>
                 )}
-              </label>
+              </div>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -671,40 +665,39 @@ function Profile() {
                   value={formData.date_of_birth}
                   onChange={handleChange}
                   disabled={!availableFields.date_of_birth}
-                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${
+                  className={`w-full pl-10 pr-4 py-2.5 border rounded-lg ${
                     !availableFields.date_of_birth 
-                      ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed' 
-                      : 'border-gray-300'
+                      ? 'bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed' 
+                      : 'border-gray-300 focus:ring-2 focus:ring-orange-500 focus:border-orange-500'
                   }`}
                 />
               </div>
-              {!availableFields.date_of_birth && (
-                <p className="text-xs text-amber-600 mt-2">
-                  Date of Birth field is not available in your database setup
-                </p>
-              )}
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
             <div className="text-sm text-gray-500">
               <p>Fields marked with * are required</p>
-              <p className="mt-1">Some fields may be unavailable due to database configuration</p>
+              {availableFieldCount !== totalFields && (
+                <p className="mt-1 text-amber-600">
+                  Some fields are disabled due to database configuration
+                </p>
+              )}
             </div>
             
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => window.location.reload()}
-                className="px-4 py-2.5 text-gray-700 hover:text-gray-900 font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                onClick={loadProfileData}
+                className="px-4 py-2.5 text-gray-700 hover:text-gray-900 font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                Cancel
+                Reset
               </button>
               
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium px-8 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium px-8 py-2.5 rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? (
                   <>
@@ -748,18 +741,23 @@ function Profile() {
               }) : 'Recently'}
             </p>
           </div>
-          <div>
-            <h4 className="text-sm font-medium text-gray-500 mb-1">User ID</h4>
-            <p className="font-medium text-sm font-mono text-gray-600 truncate">
-              {user?.id || 'N/A'}
-            </p>
-          </div>
-          <div>
-            <h4 className="text-sm font-medium text-gray-500 mb-1">Database Status</h4>
-            <p className="font-medium">
-              {availableFields.phone && availableFields.address && availableFields.date_of_birth 
-                ? 'All fields available' 
-                : 'Limited fields available'}
+          <div className="md:col-span-2">
+            <h4 className="text-sm font-medium text-gray-500 mb-1">Database Compatibility</h4>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-orange-500 to-orange-600"
+                  style={{ width: `${(availableFieldCount / totalFields) * 100}%` }}
+                ></div>
+              </div>
+              <span className="text-sm font-medium text-gray-700">
+                {Math.round((availableFieldCount / totalFields) * 100)}%
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {availableFieldCount === totalFields 
+                ? 'All profile fields are available'
+                : `${totalFields - availableFieldCount} field(s) are not available in your database`}
             </p>
           </div>
         </div>
