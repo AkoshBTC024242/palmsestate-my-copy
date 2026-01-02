@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase, fetchUserApplications, getSavedPropertiesCount } from '../lib/supabase';
 import { supabase, fetchUserApplications } from '../lib/supabase'; // Add fetchUserApplications import
 import {
   FileText, Clock, CheckCircle, Building2, Heart, AlertCircle,
@@ -56,10 +57,8 @@ function Dashboard() {
       ).length || 0;
 
       // Fetch saved properties count
-      const { count: savedCount } = await supabase
-        .from('saved_properties')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+     const savedCountResult = await getSavedPropertiesCount(user.id);
+     const savedCount = savedCountResult.success ? savedCountResult.count : 0;
 
       // Get recent applications (last 5)
       const recentApps = applications?.slice(0, 5) || [];
