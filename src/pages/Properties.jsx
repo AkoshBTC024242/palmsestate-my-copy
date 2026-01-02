@@ -1,9 +1,9 @@
-// src/pages/Properties.jsx - UPDATED
+// src/pages/Properties.jsx - COMPLETE UPDATED VERSION
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Bed, Bath, Square, Loader } from 'lucide-react';
 import { fetchProperties } from '../lib/supabase';
-import SaveButton from '../components/SaveButton'; // Add this import
+import SaveButton from '../components/SaveButton';
 
 function Properties() {
   const [properties, setProperties] = useState([]);
@@ -91,7 +91,7 @@ function Properties() {
                   </span>
                 </div>
                 
-                {/* ADD SAVE BUTTON HERE */}
+                {/* Save Button */}
                 <div className="absolute top-20 right-4">
                   <SaveButton propertyId={property.id} size="md" />
                 </div>
