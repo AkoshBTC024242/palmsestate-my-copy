@@ -1,18 +1,77 @@
-// src/pages/dashboard/Profile.jsx - FINAL CLEAN VERSION
+// src/pages/dashboard/Profile.jsx - WITH COUNTRY & STATE DROPDOWNS
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase, saveUserProfile, loadUserProfile } from '../../lib/supabase';
 import {
-  User, Mail, Phone, Home, Calendar, MapPin,
+  User, Mail, Phone, Home, Calendar, MapPin, Globe,
   Save, Camera, CheckCircle, AlertCircle,
-  Shield, Edit2, Upload, Building
+  Shield, Edit2, Building, ChevronDown
 } from 'lucide-react';
+
+// Country list (most common countries first)
+const COUNTRIES = [
+  { code: 'US', name: 'United States' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'IT', name: 'Italy' },
+  { code: 'ES', name: 'Spain' },
+  { code: 'JP', name: 'Japan' },
+  { code: 'CN', name: 'China' },
+  { code: 'IN', name: 'India' },
+  { code: 'BR', name: 'Brazil' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'RU', name: 'Russia' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'KE', name: 'Kenya' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'SA', name: 'Saudi Arabia' },
+  { code: 'SG', name: 'Singapore' },
+];
+
+// US States
+const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
+  'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho',
+  'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana',
+  'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota',
+  'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
+  'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+  'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon',
+  'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
+  'West Virginia', 'Wisconsin', 'Wyoming'
+];
+
+// Canada Provinces
+const CA_PROVINCES = [
+  'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick',
+  'Newfoundland and Labrador', 'Nova Scotia', 'Ontario',
+  'Prince Edward Island', 'Quebec', 'Saskatchewan', 'Northwest Territories',
+  'Nunavut', 'Yukon'
+];
+
+// UK Countries
+const UK_COUNTRIES = [
+  'England', 'Scotland', 'Wales', 'Northern Ireland'
+];
+
+// Australia States/Territories
+const AU_STATES = [
+  'New South Wales', 'Queensland', 'South Australia', 'Tasmania',
+  'Victoria', 'Western Australia', 'Australian Capital Territory',
+  'Northern Territory'
+];
 
 function Profile() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [showStateDropdown, setShowStateDropdown] = useState(false);
   
   const [formData, setFormData] = useState({
     first_name: '',
@@ -23,10 +82,29 @@ function Profile() {
     city: '',
     state: '',
     zip_code: '',
-    country: '',
+    country: 'US',
     date_of_birth: '',
     avatar_url: ''
   });
+
+  // Get states/provinces based on selected country
+  const getStatesForCountry = () => {
+    switch (formData.country) {
+      case 'US':
+        return US_STATES;
+      case 'CA':
+        return CA_PROVINCES;
+      case 'GB':
+        return UK_COUNTRIES;
+      case 'AU':
+        return AU_STATES;
+      default:
+        return []; // For other countries, show free text input
+    }
+  };
+
+  const states = getStatesForCountry();
+  const hasStateList = states.length > 0;
 
   useEffect(() => {
     if (user) {
@@ -48,7 +126,7 @@ function Profile() {
           let city = '';
           let state = '';
           let zip_code = '';
-          let country = '';
+          let country = 'US';
           
           if (result.data.address) {
             // Try to parse address string
@@ -58,7 +136,7 @@ function Profile() {
               city = addressParts[1].trim();
               state = addressParts[2].trim();
               zip_code = addressParts[3].trim();
-              country = addressParts[4]?.trim() || '';
+              country = addressParts[4]?.trim() || 'US';
             } else {
               // If not parsable, put entire address in street field
               street_address = result.data.address;
@@ -109,8 +187,9 @@ function Profile() {
 
     try {
       // Combine address fields
+      const selectedCountry = COUNTRIES.find(c => c.code === formData.country)?.name || formData.country;
       const address = formData.street_address ? 
-        `${formData.street_address}, ${formData.city}, ${formData.state} ${formData.zip_code}${formData.country ? `, ${formData.country}` : ''}`.trim() : 
+        `${formData.street_address}, ${formData.city}, ${formData.state} ${formData.zip_code}, ${selectedCountry}`.trim() : 
         null;
       
       const profileData = {
@@ -161,6 +240,22 @@ function Profile() {
       ...prev,
       [name]: value
     }));
+    
+    // Reset state when country changes
+    if (name === 'country') {
+      setFormData(prev => ({
+        ...prev,
+        state: ''
+      }));
+    }
+  };
+
+  const handleSelectState = (state) => {
+    setFormData(prev => ({
+      ...prev,
+      state: state
+    }));
+    setShowStateDropdown(false);
   };
 
   const handleImageUpload = async (e) => {
@@ -308,6 +403,7 @@ function Profile() {
                         (formData.city ? 5 : 0) +
                         (formData.state ? 5 : 0) +
                         (formData.zip_code ? 5 : 0) +
+                        (formData.country ? 5 : 0) +
                         (formData.date_of_birth ? 10 : 0) +
                         (formData.avatar_url ? 10 : 0)
                       )}%` 
@@ -323,6 +419,7 @@ function Profile() {
                     (formData.city ? 5 : 0) +
                     (formData.state ? 5 : 0) +
                     (formData.zip_code ? 5 : 0) +
+                    (formData.country ? 5 : 0) +
                     (formData.date_of_birth ? 10 : 0) +
                     (formData.avatar_url ? 10 : 0)
                   )}% Complete
@@ -536,31 +633,108 @@ function Profile() {
                   </div>
                 </div>
 
-                {/* State/Province */}
+                {/* Country */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    State / Province
+                    Country
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
                     <div className="relative">
-                      <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        name="state"
-                        value={formData.state}
+                      <Globe className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
+                      <select
+                        name="country"
+                        value={formData.country}
                         onChange={handleChange}
-                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
-                        placeholder="California"
-                      />
+                        className="w-full pl-12 pr-10 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200 appearance-none cursor-pointer"
+                      >
+                        {COUNTRIES.map((country) => (
+                          <option key={country.code} value={country.code}>
+                            {country.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
                     </div>
                   </div>
+                </div>
+
+                {/* State/Province - Conditional Input */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    {formData.country === 'US' ? 'State' : 
+                     formData.country === 'CA' ? 'Province' : 
+                     formData.country === 'GB' ? 'Country' : 
+                     formData.country === 'AU' ? 'State/Territory' : 
+                     'State/Province'}
+                  </label>
+                  
+                  {hasStateList ? (
+                    <div className="relative">
+                      <div className="relative group">
+                        <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                        <div className="relative">
+                          <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
+                          <div
+                            onClick={() => setShowStateDropdown(!showStateDropdown)}
+                            className="w-full pl-12 pr-10 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200 cursor-pointer flex items-center justify-between"
+                          >
+                            <span className={formData.state ? 'text-gray-900' : 'text-gray-400'}>
+                              {formData.state || `Select ${formData.country === 'US' ? 'State' : 'Province'}`}
+                            </span>
+                            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${showStateDropdown ? 'rotate-180' : ''}`} />
+                          </div>
+                          
+                          {/* Dropdown */}
+                          {showStateDropdown && (
+                            <>
+                              <div 
+                                className="fixed inset-0 z-20" 
+                                onClick={() => setShowStateDropdown(false)}
+                              />
+                              <div className="absolute z-30 mt-1 w-full max-h-60 bg-white border border-gray-200 rounded-xl shadow-lg overflow-y-auto">
+                                {states.map((state) => (
+                                  <div
+                                    key={state}
+                                    onClick={() => handleSelectState(state)}
+                                    className={`px-4 py-3 cursor-pointer hover:bg-orange-50 transition-colors ${
+                                      formData.state === state ? 'bg-orange-50 text-orange-600' : 'text-gray-700'
+                                    }`}
+                                  >
+                                    {state}
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
+                      <div className="relative">
+                        <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          name="state"
+                          value={formData.state}
+                          onChange={handleChange}
+                          className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
+                          placeholder="Enter state/province"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* ZIP/Postal Code */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    ZIP / Postal Code
+                    {formData.country === 'US' ? 'ZIP Code' : 
+                     formData.country === 'GB' ? 'Postcode' : 
+                     formData.country === 'CA' ? 'Postal Code' : 
+                     'Postal Code'}
                   </label>
                   <div className="relative group">
                     <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
@@ -572,28 +746,9 @@ function Profile() {
                         value={formData.zip_code}
                         onChange={handleChange}
                         className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
-                        placeholder="90210"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Country */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Country
-                  </label>
-                  <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
-                    <div className="relative">
-                      <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        name="country"
-                        value={formData.country}
-                        onChange={handleChange}
-                        className="w-full pl-12 pr-4 py-3.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white/50 backdrop-blur-sm transition-all duration-200"
-                        placeholder="United States"
+                        placeholder={formData.country === 'US' ? '90210' : 
+                                  formData.country === 'GB' ? 'SW1A 1AA' : 
+                                  formData.country === 'CA' ? 'M5V 2T6' : 'Postal Code'}
                       />
                     </div>
                   </div>
