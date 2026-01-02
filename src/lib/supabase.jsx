@@ -590,6 +590,7 @@ export const fetchSavedProperties = async (userId) => {
       throw new Error('User ID is required');
     }
 
+    // FIXED: Removed property_type from select query
     const { data, error } = await supabase
       .from('saved_properties')
       .select(`
@@ -603,7 +604,6 @@ export const fetchSavedProperties = async (userId) => {
           description,
           location,
           price,
-          property_type,
           bedrooms,
           bathrooms,
           square_feet,
@@ -711,3 +711,4 @@ export const getSavedPropertiesCount = async (userId) => {
   }
 };
 
+// ============ END SAVED PROPERTIES FUNCTIONS ============
