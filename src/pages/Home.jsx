@@ -1,6 +1,8 @@
+// src/pages/Home.jsx - COMPLETE UPDATED VERSION
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchProperties, testConnection } from '../lib/supabase';
+import SaveButton from '../components/SaveButton';
 import { 
   ArrowRight, Shield, Clock, Users, Search, Filter,
   Building2, MapPin, Bed, Bath, Maximize, Eye, Heart,
@@ -84,7 +86,7 @@ function Home() {
 
   return (
     <div className="min-h-screen">
-      {/* ===== PREMIUM HERO SECTION - FIXED FOR READABILITY ===== */}
+      {/* ===== PREMIUM HERO SECTION ===== */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Full-screen luxury villa background with DARK OVERLAY */}
         <div className="absolute inset-0">
@@ -98,7 +100,7 @@ function Home() {
           />
         </div>
 
-        {/* Hero Content with BETTER CONTRAST */}
+        {/* Hero Content */}
         <div className="container-fluid relative z-20 px-4">
           <div className={`max-w-4xl mx-auto text-center transition-all duration-1000 ${
             heroLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
@@ -110,12 +112,12 @@ function Home() {
               </span>
             </div>
 
-            {/* Main Headline with TEXT SHADOW for readability */}
+            {/* Main Headline */}
             <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-bold text-white mb-8 leading-[1.1] drop-shadow-2xl">
               Exceptional <span className="text-amber-300">Living</span> Awaits
             </h1>
 
-            {/* Subtitle with BETTER CONTRAST */}
+            {/* Subtitle */}
             <p className="text-xl md:text-2xl text-gray-100 mb-12 max-w-2xl mx-auto leading-relaxed font-sans tracking-wide drop-shadow-lg">
               Access premium residences through our exclusive property portfolio. 
               Experience unparalleled service and discretion in every detail.
@@ -152,7 +154,7 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== STATS SECTION - Clean and Minimal ===== */}
+      {/* ===== STATS SECTION ===== */}
       <section className="py-20 bg-white">
         <div className="container-fluid">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
@@ -183,7 +185,7 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== FEATURED PROPERTIES - Premium Showcase ===== */}
+      {/* ===== FEATURED PROPERTIES ===== */}
       <section className="py-24 bg-gray-50">
         <div className="container-fluid">
           <div className="text-center mb-16 max-w-3xl mx-auto">
@@ -201,9 +203,9 @@ function Home() {
             </p>
           </div>
 
-          {/* Premium Property Grid */}
+          {/* Premium Property Grid - USING REAL DATA */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-            {luxuryShowcase.map((property) => (
+            {featuredProperties.map((property) => (
               <div 
                 key={property.id}
                 className="group bg-white overflow-hidden transition-all duration-500 hover:shadow-2xl"
@@ -211,7 +213,7 @@ function Home() {
                 {/* Property Image */}
                 <div className="relative h-72 overflow-hidden">
                   <img
-                    src={property.image}
+                    src={property.image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4'}
                     alt={property.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
@@ -220,15 +222,15 @@ function Home() {
                   {/* Price Tag */}
                   <div className="absolute top-6 left-6">
                     <div className="bg-white px-4 py-2 shadow-lg">
-                      <span className="font-bold text-gray-900">{property.price}</span>
-                      <span className="text-gray-600 text-sm">{property.period}</span>
+                      <span className="font-bold text-gray-900">${property.price_per_week?.toLocaleString() || '0'}</span>
+                      <span className="text-gray-600 text-sm">/week</span>
                     </div>
                   </div>
                   
-                  {/* Favorite Button - KEPT AS STATIC FOR NOW */}
-                  <button className="absolute top-6 right-6 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-colors">
-                    <Heart className="w-5 h-5 text-gray-700" />
-                  </button>
+                  {/* Save Button */}
+                  <div className="absolute top-6 right-6">
+                    <SaveButton propertyId={property.id} size="sm" className="bg-white/90 hover:bg-white" />
+                  </div>
                 </div>
                 
                 {/* Property Details */}
@@ -244,21 +246,21 @@ function Home() {
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-2">
                         <Bed className="w-4 h-4 text-gray-500" />
-                        <span className="font-bold text-gray-900">{property.beds}</span>
+                        <span className="font-bold text-gray-900">{property.bedrooms || 'N/A'}</span>
                       </div>
                       <span className="text-xs text-gray-500 uppercase tracking-wider">Beds</span>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-2">
                         <Bath className="w-4 h-4 text-gray-500" />
-                        <span className="font-bold text-gray-900">{property.baths}</span>
+                        <span className="font-bold text-gray-900">{property.bathrooms || 'N/A'}</span>
                       </div>
                       <span className="text-xs text-gray-500 uppercase tracking-wider">Baths</span>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-2">
                         <Maximize className="w-4 h-4 text-gray-500" />
-                        <span className="font-bold text-gray-900">{property.sqft}</span>
+                        <span className="font-bold text-gray-900">{property.square_feet?.toLocaleString() || 'N/A'}</span>
                       </div>
                       <span className="text-xs text-gray-500 uppercase tracking-wider">Sq Ft</span>
                     </div>
@@ -292,7 +294,7 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== WHY CHOOSE US - Clean and Professional ===== */}
+      {/* ===== WHY CHOOSE US ===== */}
       <section className="py-24 bg-white">
         <div className="container-fluid">
           <div className="text-center mb-16 max-w-3xl mx-auto">
@@ -340,7 +342,7 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== SEARCH FORM - Elegant and Functional ===== */}
+      {/* ===== SEARCH FORM ===== */}
       <section className="py-20 bg-gray-900">
         <div className="container-fluid">
           <div className="max-w-4xl mx-auto">
@@ -400,7 +402,7 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== FINAL CTA - Premium Call to Action ===== */}
+      {/* ===== FINAL CTA ===== */}
       <section className="py-24 bg-white">
         <div className="container-fluid">
           <div className="max-w-3xl mx-auto text-center">
