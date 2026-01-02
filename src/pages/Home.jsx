@@ -226,9 +226,9 @@ function Home() {
                   </div>
                   
                   {/* Favorite Button */}
-                  <button className="absolute top-6 right-6 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-gray-50 transition-colors">
-                    <Heart className="w-5 h-5 text-gray-700" />
-                  </button>
+                 <div className="absolute top-6 right-6">
+                   <SaveButton propertyId={property.id} size="sm" className="bg-white/90 hover:bg-white" />
+                 </div>
                 </div>
                 
                 {/* Property Details */}
