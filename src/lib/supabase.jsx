@@ -252,21 +252,67 @@ export const fetchProperties = async () => {
   }
 };
 
+// Function to fetch single property by ID
+export const fetchPropertyById = async (propertyId) => {
+  console.log('📡 Fetching property by ID:', propertyId);
+  
+  try {
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('id', propertyId)
+      .single();
+    
+    if (error) {
+      console.error('❌ Error fetching property:', error);
+      throw error;
+    }
+    
+    console.log('✅ Property fetched successfully:', data?.title);
+    return transformProperty(data);
+    
+  } catch (error) {
+    console.error('❌ Error fetching property by ID:', error);
+    return null;
+  }
+};
+
 const transformProperties = (data) => {
   return data.map(property => ({
     id: property.id || Math.random(),
     title: property.title || 'Luxury Residence',
     description: property.description || 'Premium property with exceptional features',
     location: property.location || 'Premium Location',
+    price: property.price || property.price_per_week || 35000,
     price_per_week: property.price || property.price_per_week || 35000,
     bedrooms: property.bedrooms || 3,
     bathrooms: property.bathrooms || 3,
     square_feet: property.sqft || property.square_feet || 5000,
-    image_url: property.image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
+    image_url: property.image_url || property.main_image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
     status: property.status || 'available',
-    category: 'Premium',
+    category: property.category || 'Premium',
+    property_type: property.property_type || 'Luxury Villa',
     created_at: property.created_at || new Date().toISOString()
   }));
+};
+
+const transformProperty = (property) => {
+  return {
+    id: property.id || Math.random(),
+    title: property.title || 'Luxury Residence',
+    description: property.description || 'Premium property with exceptional features',
+    location: property.location || 'Premium Location',
+    price: property.price || property.price_per_week || 35000,
+    price_per_week: property.price || property.price_per_week || 35000,
+    bedrooms: property.bedrooms || 3,
+    bathrooms: property.bathrooms || 3,
+    square_feet: property.sqft || property.square_feet || 5000,
+    image_url: property.image_url || property.main_image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
+    status: property.status || 'available',
+    category: property.category || 'Premium',
+    property_type: property.property_type || 'Luxury Villa',
+    created_at: property.created_at || new Date().toISOString()
+  };
 };
 
 const getSampleProperties = () => {
@@ -556,11 +602,13 @@ export const fetchSavedProperties = async (userId) => {
           title,
           description,
           location,
-          price_per_week,
+          price,
+          property_type,
           bedrooms,
           bathrooms,
           square_feet,
           image_url,
+          main_image_url,
           status,
           category,
           created_at
@@ -664,3 +712,5 @@ export const getSavedPropertiesCount = async (userId) => {
 };
 
 // ============ END SAVED PROPERTIES FUNCTIONS ============
+
+export { fetchPropertyById };
