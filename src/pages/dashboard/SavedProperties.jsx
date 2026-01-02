@@ -28,13 +28,9 @@ function SavedProperties() {
       setLoading(true);
       setError(null);
       
-      console.log('Loading saved properties for user:', user.id);
-      
       const result = await fetchSavedProperties(user.id);
       
       if (result.success) {
-        console.log('Saved properties loaded:', result.data?.length || 0);
-        
         const properties = result.data?.map(item => {
           const property = item.properties || {};
           return {
@@ -46,23 +42,21 @@ function SavedProperties() {
             price: property.price || 0,
             bedrooms: property.bedrooms,
             bathrooms: property.bathrooms,
-            // Use sqft instead of square_feet
-            square_feet: property.sqft || 0,
             sqft: property.sqft || 0,
-            main_image_url: property.image_url || property.main_image_url || null,
+            image_url: property.image_url || null,
             created_at: property.created_at,
-            category: property.category
+            category: property.category,
+            status: property.status
           };
         }) || [];
         
-        console.log('Transformed properties:', properties);
         setSavedProperties(properties);
       } else {
         setError(result.error || 'Failed to load saved properties');
       }
     } catch (err) {
       console.error('Error loading saved properties:', err);
-      setError(err.message || 'An unexpected error occurred');
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -168,9 +162,9 @@ function SavedProperties() {
           {savedProperties.map((property) => (
             <div key={property.savedId} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition-shadow duration-300">
               <div className="relative h-48 overflow-hidden bg-gray-100">
-                {property.main_image_url ? (
+                {property.image_url ? (
                   <img
-                    src={property.main_image_url}
+                    src={property.image_url}
                     alt={property.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
@@ -204,6 +198,18 @@ function SavedProperties() {
                     {formatPrice(property.price)}/week
                   </div>
                 </div>
+
+                {property.status && (
+                  <div className="absolute bottom-3 left-3">
+                    <div className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      property.status === 'available' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-amber-600 text-white'
+                    }`}>
+                      {property.status === 'available' ? 'Available' : 'Pending'}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="p-5">
@@ -230,7 +236,6 @@ function SavedProperties() {
                   </div>
                   <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
                     <Square className="w-4 h-4 text-gray-500 mb-1" />
-                    {/* Use sqft instead of square_feet */}
                     <span className="text-xs font-medium">{property.sqft ? `${property.sqft.toLocaleString()}` : 'N/A'}</span>
                     <span className="text-xs text-gray-500">Sq Ft</span>
                   </div>
