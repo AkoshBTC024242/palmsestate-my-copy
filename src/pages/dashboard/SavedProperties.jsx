@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase, fetchSavedProperties, unsaveProperty } from '../../lib/supabase';
+import { fetchSavedProperties, unsaveProperty } from '../../lib/supabase';
 import {
   Heart, Building2, MapPin, DollarSign, BedDouble,
   Bath, Square, X, Eye, CalendarDays, Loader2, AlertCircle
@@ -30,7 +30,7 @@ function SavedProperties() {
       
       console.log('Loading saved properties for user:', user.id);
       
-      // FIXED: Use the helper function which handles the column names correctly
+      // Use the helper function
       const result = await fetchSavedProperties(user.id);
       
       if (result.success) {
@@ -45,15 +45,15 @@ function SavedProperties() {
             id: property.id,
             title: property.title,
             location: property.location,
-            // Use price (not price_per_week)
             price: property.price || 0,
-            property_type: property.property_type,
+            // Removed property_type - not in your database
             bedrooms: property.bedrooms,
             bathrooms: property.bathrooms,
             square_feet: property.square_feet,
             // Try multiple image URL fields
             main_image_url: property.image_url || property.main_image_url || null,
-            created_at: property.created_at
+            created_at: property.created_at,
+            category: property.category // Use category instead of property_type
           };
         }) || [];
         
@@ -206,7 +206,7 @@ function SavedProperties() {
                   </div>
                 </div>
 
-                {/* Price Badge - FIXED: Using price not price_per_week */}
+                {/* Price Badge */}
                 <div className="absolute top-12 left-3">
                   <div className="px-2 py-1 bg-black/60 backdrop-blur-sm text-white font-sans font-bold rounded-full text-sm">
                     {formatPrice(property.price)}/week
@@ -245,18 +245,19 @@ function SavedProperties() {
                   </div>
                   <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
                     <DollarSign className="w-4 h-4 text-gray-500 mb-1" />
-                    {/* FIXED: Using price not price_per_week */}
                     <span className="text-xs font-medium">{property.price ? `${property.price}/wk` : 'N/A'}</span>
                     <span className="text-xs text-gray-500">Rent</span>
                   </div>
                 </div>
 
-                {/* Property Type */}
-                <div className="mb-4">
-                  <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                    {property.property_type || 'Property'}
-                  </span>
-                </div>
+                {/* Category (replacing property_type) */}
+                {property.category && (
+                  <div className="mb-4">
+                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                      {property.category}
+                    </span>
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div className="flex items-center justify-between pt-4 border-t">
