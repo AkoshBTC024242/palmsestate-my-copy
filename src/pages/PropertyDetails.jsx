@@ -85,8 +85,8 @@ function PropertyDetails() {
       setCheckingSaved(true);
       const propertyId = parseInt(property.id);
       if (!isNaN(propertyId)) {
-        const saved = await isPropertySaved(user.id, propertyId);
-        setIsSaved(saved);
+        const result = await isPropertySaved(user.id, propertyId);
+        setIsSaved(result.success ? result.isSaved : false);
       }
     } catch (error) {
       console.error('Error checking if saved:', error);
