@@ -1,4 +1,4 @@
-// src/lib/supabase.js - COMPLETE FIXED VERSION
+// src/lib/supabase.js - COMPLETE FINAL FIXED VERSION
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -6,8 +6,6 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('❌ Missing Supabase environment variables');
-  console.log('VITE_SUPABASE_URL:', supabaseUrl);
-  console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Set (hidden)' : 'Missing');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -31,16 +29,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   }
 });
 
+// ============ APPLICATION FUNCTIONS ============
 export const submitApplication = async (applicationData) => {
   console.log('📝 Submitting application:', applicationData);
   
   try {
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.warn('Session error (may be normal for anonymous):', sessionError);
-    }
-    
+    const { data: { session } } = await supabase.auth.getSession();
     const currentUserId = session?.user?.id || null;
     
     const requiredFields = ['property_id', 'full_name', 'email', 'phone'];
@@ -111,7 +105,6 @@ export const submitApplication = async (applicationData) => {
         .single();
         
       if (minimalError) {
-        console.error('❌ Minimal data also failed:', minimalError);
         throw new Error(`RLS blocked: ${minimalError.message}`);
       }
       
@@ -125,14 +118,9 @@ export const submitApplication = async (applicationData) => {
     return { 
       success: false, 
       error: error.message,
-      userMessage: 'Please check your information and try again. If the problem persists, contact support.'
+      userMessage: 'Please check your information and try again.'
     };
   }
-};
-
-export const validatePropertyId = (propertyId) => {
-  const id = parseInt(propertyId);
-  return !isNaN(id) && id > 0;
 };
 
 export const fetchUserApplications = async (userId) => {
@@ -170,20 +158,11 @@ export const fetchApplicationById = async (applicationId, userId) => {
   }
 };
 
+// ============ PROPERTY FUNCTIONS ============
 export const fetchProperties = async () => {
   console.log('📡 Starting properties fetch...');
   
   try {
-    const { data: testData, error: testError } = await supabase
-      .from('properties')
-      .select('*')
-      .limit(1);
-    
-    if (testError) {
-      console.error('❌ Initial connection failed:', testError);
-      return getSampleProperties();
-    }
-    
     const { data, error } = await supabase
       .from('properties')
       .select('*')
@@ -191,7 +170,7 @@ export const fetchProperties = async () => {
     
     if (error) {
       console.error('❌ Fetch error:', error);
-      throw error;
+      return getSampleProperties();
     }
     
     console.log(`✅ Successfully fetched ${data?.length || 0} properties`);
@@ -233,38 +212,59 @@ export const fetchPropertyById = async (propertyId) => {
   }
 };
 
+// Transform based on ACTUAL database columns
 const transformProperties = (data) => {
-  return data.map(property => ({
-    id: property.id,
-    title: property.title || 'Luxury Residence',
-    description: property.description || 'Premium property with exceptional features',
-    location: property.location || 'Premium Location',
-    price: property.price || 35000,
-    price_per_week: property.price || 35000,
-    bedrooms: property.bedrooms || 3,
-    bathrooms: property.bathrooms || 3,
-    sqft: property.sqft || 5000,
-    image_url: property.image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
-    status: property.status || 'available',
-    category: property.category || 'Premium',
-    created_at: property.created_at || new Date().toISOString()
-  }));
+  return data.map(property => {
+    // Determine category based on price (since category column doesn't exist)
+    const price = property.price || property.price_per_week || 35000;
+    const category = price > 50000 ? 'Exclusive' : 
+                     price > 35000 ? 'Premium' : 'Luxury';
+    
+    // Handle square footage - try multiple possible column names
+    const squareFootage = property.square_feet || property.sqft || 
+                         property.square_feet || property.area || 5000;
+    
+    return {
+      id: property.id,
+      title: property.title || 'Luxury Residence',
+      description: property.description || 'Premium property with exceptional features',
+      location: property.location || 'Premium Location',
+      price: price,
+      price_per_week: price,
+      bedrooms: property.bedrooms || 3,
+      bathrooms: property.bathrooms || 3,
+      square_feet: squareFootage,
+      sqft: squareFootage,
+      image_url: property.image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
+      status: property.status || 'available',
+      category: category, // Generated, not from database
+      created_at: property.created_at || new Date().toISOString()
+    };
+  });
 };
 
 const transformProperty = (property) => {
+  const price = property.price || property.price_per_week || 35000;
+  const category = price > 50000 ? 'Exclusive' : 
+                   price > 35000 ? 'Premium' : 'Luxury';
+  
+  const squareFootage = property.square_feet || property.sqft || 
+                       property.square_feet || property.area || 5000;
+  
   return {
     id: property.id,
     title: property.title || 'Luxury Residence',
     description: property.description || 'Premium property with exceptional features',
     location: property.location || 'Premium Location',
-    price: property.price || 35000,
-    price_per_week: property.price || 35000,
+    price: price,
+    price_per_week: price,
     bedrooms: property.bedrooms || 3,
     bathrooms: property.bathrooms || 3,
-    sqft: property.sqft || 5000,
+    square_feet: squareFootage,
+    sqft: squareFootage,
     image_url: property.image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
     status: property.status || 'available',
-    category: property.category || 'Premium',
+    category: category,
     created_at: property.created_at || new Date().toISOString()
   };
 };
@@ -279,6 +279,7 @@ const getSampleProperties = () => {
       price_per_week: 35000,
       bedrooms: 5,
       bathrooms: 6,
+      square_feet: 12500,
       sqft: 12500,
       image_url: 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
       status: 'available',
@@ -292,6 +293,7 @@ const getSampleProperties = () => {
       price_per_week: 45000,
       bedrooms: 4,
       bathrooms: 5,
+      square_feet: 8500,
       sqft: 8500,
       image_url: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00',
       status: 'available',
@@ -300,6 +302,7 @@ const getSampleProperties = () => {
   ];
 };
 
+// ============ AUTH FUNCTIONS ============
 export const resendVerificationEmail = async (email) => {
   try {
     const { error } = await supabase.auth.resend({
@@ -359,71 +362,7 @@ export const testConnection = async () => {
   }
 };
 
-export const testApplicationSubmission = async () => {
-  const testData = {
-    property_id: "1",
-    full_name: "Test User",
-    email: "test@example.com",
-    phone: "+1234567890",
-    employment_status: "employed",
-    monthly_income: "3000",
-    occupants: "2"
-  };
-  
-  return await submitApplication(testData);
-};
-
-export const submitApplicationWithFallback = async (applicationData) => {
-  try {
-    const result = await submitApplication(applicationData);
-    if (result.success) return result;
-    
-    const dataWithoutUserId = { ...applicationData };
-    delete dataWithoutUserId.user_id;
-    
-    const { data: data1, error: error1 } = await supabase
-      .from('applications')
-      .insert([dataWithoutUserId])
-      .select()
-      .single();
-      
-    if (!error1 && data1) {
-      return { success: true, data: data1, anonymous: true };
-    }
-    
-    const minimalData = {
-      property_id: parseInt(applicationData.property_id) || 1,
-      full_name: applicationData.full_name || '',
-      email: applicationData.email || '',
-      phone: applicationData.phone || '',
-      status: 'submitted',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    
-    const { data: data2, error: error2 } = await supabase
-      .from('applications')
-      .insert([minimalData])
-      .select()
-      .single();
-      
-    if (!error2 && data2) {
-      return { success: true, data: data2, minimal: true };
-    }
-    
-    return { 
-      success: false, 
-      error: 'Unable to submit application. Please contact support.'
-    };
-    
-  } catch (error) {
-    console.error('Fallback submission error:', error);
-    return { success: false, error: error.message };
-  }
-};
-
 // ============ SAVED PROPERTIES FUNCTIONS ============
-
 export const saveProperty = async (userId, propertyId) => {
   try {
     if (!userId || !propertyId) {
@@ -495,7 +434,7 @@ export const fetchSavedProperties = async (userId) => {
       throw new Error('User ID is required');
     }
 
-    // FIXED: Using correct column names from your database
+    // ONLY select columns that ACTUALLY exist in your database
     const { data, error } = await supabase
       .from('saved_properties')
       .select(`
@@ -514,7 +453,6 @@ export const fetchSavedProperties = async (userId) => {
           sqft,
           image_url,
           status,
-          category,
           created_at
         )
       `)
@@ -593,5 +531,74 @@ export const getSavedPropertiesCount = async (userId) => {
       error: error.message,
       count: 0 
     };
+  }
+};
+
+// ============ OTHER FUNCTIONS ============
+export const validatePropertyId = (propertyId) => {
+  const id = parseInt(propertyId);
+  return !isNaN(id) && id > 0;
+};
+
+export const testApplicationSubmission = async () => {
+  const testData = {
+    property_id: "1",
+    full_name: "Test User",
+    email: "test@example.com",
+    phone: "+1234567890",
+    employment_status: "employed",
+    monthly_income: "3000",
+    occupants: "2"
+  };
+  
+  return await submitApplication(testData);
+};
+
+export const submitApplicationWithFallback = async (applicationData) => {
+  try {
+    const result = await submitApplication(applicationData);
+    if (result.success) return result;
+    
+    const dataWithoutUserId = { ...applicationData };
+    delete dataWithoutUserId.user_id;
+    
+    const { data: data1, error: error1 } = await supabase
+      .from('applications')
+      .insert([dataWithoutUserId])
+      .select()
+      .single();
+      
+    if (!error1 && data1) {
+      return { success: true, data: data1, anonymous: true };
+    }
+    
+    const minimalData = {
+      property_id: parseInt(applicationData.property_id) || 1,
+      full_name: applicationData.full_name || '',
+      email: applicationData.email || '',
+      phone: applicationData.phone || '',
+      status: 'submitted',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    const { data: data2, error: error2 } = await supabase
+      .from('applications')
+      .insert([minimalData])
+      .select()
+      .single();
+      
+    if (!error2 && data2) {
+      return { success: true, data: data2, minimal: true };
+    }
+    
+    return { 
+      success: false, 
+      error: 'Unable to submit application. Please contact support.'
+    };
+    
+  } catch (error) {
+    console.error('Fallback submission error:', error);
+    return { success: false, error: error.message };
   }
 };
