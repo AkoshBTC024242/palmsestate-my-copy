@@ -711,6 +711,3 @@ export const getSavedPropertiesCount = async (userId) => {
   }
 };
 
-// ============ END SAVED PROPERTIES FUNCTIONS ============
-
-export { fetchPropertyById };
