@@ -1,11 +1,11 @@
-// src/pages/dashboard/SavedProperties.jsx - FULL UPDATED FILE
+// src/pages/dashboard/SavedProperties.jsx - UPDATED
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../lib/supabase';
+import { supabase, fetchSavedProperties, unsaveProperty } from '../../lib/supabase';
 import {
   Heart, Building2, MapPin, DollarSign, BedDouble,
-  Bath, Square, X, Eye, CalendarDays
+  Bath, Square, X, Eye, CalendarDays, Loader2, AlertCircle
 } from 'lucide-react';
 
 function SavedProperties() {
@@ -14,6 +14,8 @@ function SavedProperties() {
   
   const [savedProperties, setSavedProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [removingId, setRemovingId] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -24,59 +26,63 @@ function SavedProperties() {
   const loadSavedProperties = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // UPDATED QUERY: Changed price_per_week to price
-      const { data, error } = await supabase
-        .from('saved_properties')
-        .select(`
-          id,
-          created_at,
-          properties (
-            id,
-            title,
-            location,
-            price,
-            property_type,
-            bedrooms,
-            bathrooms,
-            square_feet,
-            main_image_url,
-            created_at
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      console.log('Loading saved properties for user:', user.id);
       
-      // Transform data to extract properties
-      const properties = data?.map(item => ({
-        savedId: item.id,
-        savedAt: item.created_at,
-        ...item.properties
-      })) || [];
+      // Use the helper function from supabase.jsx
+      const result = await fetchSavedProperties(user.id);
       
-      setSavedProperties(properties);
-    } catch (error) {
-      console.error('Error loading saved properties:', error);
+      if (result.success) {
+        console.log('Saved properties result:', result);
+        
+        // Transform the data to match your component structure
+        const properties = result.data?.map(item => ({
+          savedId: item.id,
+          savedAt: item.created_at,
+          id: item.properties?.id,
+          title: item.properties?.title,
+          location: item.properties?.location,
+          price: item.properties?.price || item.properties?.price_per_week || 0,
+          property_type: item.properties?.property_type,
+          bedrooms: item.properties?.bedrooms,
+          bathrooms: item.properties?.bathrooms,
+          square_feet: item.properties?.square_feet,
+          main_image_url: item.properties?.image_url || item.properties?.main_image_url,
+          created_at: item.properties?.created_at
+        })) || [];
+        
+        console.log('Transformed properties:', properties);
+        setSavedProperties(properties);
+      } else {
+        setError(result.error || 'Failed to load saved properties');
+      }
+    } catch (err) {
+      console.error('Error loading saved properties:', err);
+      setError(err.message || 'An unexpected error occurred');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUnsave = async (savedId) => {
+  const handleUnsave = async (savedId, propertyId) => {
     try {
-      const { error } = await supabase
-        .from('saved_properties')
-        .delete()
-        .eq('id', savedId);
-
-      if (error) throw error;
+      setRemovingId(savedId);
       
-      // Remove from local state
-      setSavedProperties(prev => prev.filter(p => p.savedId !== savedId));
+      // Use the helper function
+      const result = await unsaveProperty(user.id, propertyId);
+      
+      if (result.success) {
+        // Remove from local state
+        setSavedProperties(prev => prev.filter(p => p.savedId !== savedId));
+      } else {
+        alert('Failed to remove property: ' + (result.error || 'Unknown error'));
+      }
     } catch (error) {
       console.error('Error removing saved property:', error);
+      alert('Failed to remove property. Please try again.');
+    } finally {
+      setRemovingId(null);
     }
   };
 
@@ -93,9 +99,44 @@ function SavedProperties() {
     return `$${price.toLocaleString()}`;
   };
 
-  // REMOVE DashboardLayout wrapper - it's already in App.jsx
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-orange-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading your saved properties...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Saved Properties</h3>
+              <p className="text-red-700 mb-4">{error}</p>
+              <button
+                onClick={loadSavedProperties}
+                className="inline-flex items-center gap-2 bg-orange-600 text-white font-medium px-6 py-2 rounded-lg hover:bg-orange-700"
+              >
+                <Loader2 className="w-4 h-4" />
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Saved Properties</h1>
@@ -104,12 +145,7 @@ function SavedProperties() {
         </p>
       </div>
 
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Loading saved properties...</p>
-        </div>
-      ) : savedProperties.length === 0 ? (
+      {savedProperties.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
           <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 flex items-center justify-center">
             <Heart className="w-10 h-10 text-rose-600" />
@@ -117,6 +153,7 @@ function SavedProperties() {
           <h3 className="text-2xl font-bold text-gray-900 mb-3">No Saved Properties Yet</h3>
           <p className="text-gray-600 mb-8 max-w-md mx-auto">
             Start building your dream home collection by saving properties that catch your eye.
+            Click the heart icon on any property to save it here.
           </p>
           <button
             onClick={() => navigate('/properties')}
@@ -146,10 +183,15 @@ function SavedProperties() {
                 
                 {/* Unsave Button */}
                 <button
-                  onClick={() => handleUnsave(property.savedId)}
-                  className="absolute top-3 right-3 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow transition-all duration-200"
+                  onClick={() => handleUnsave(property.savedId, property.id)}
+                  disabled={removingId === property.savedId}
+                  className="absolute top-3 right-3 w-8 h-8 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-sm hover:shadow transition-all duration-200 disabled:opacity-50"
                 >
-                  <X className="w-4 h-4 text-gray-700" />
+                  {removingId === property.savedId ? (
+                    <Loader2 className="w-4 h-4 text-red-600 animate-spin" />
+                  ) : (
+                    <X className="w-4 h-4 text-gray-700" />
+                  )}
                 </button>
                 
                 {/* Saved Badge */}
@@ -160,10 +202,10 @@ function SavedProperties() {
                   </div>
                 </div>
 
-                {/* Price Badge - UPDATED: Changed price_per_week to price */}
-                <div className="absolute top-3 right-12">
-                  <div className="px-2 py-1 bg-white/90 backdrop-blur-sm text-gray-800 font-sans font-bold rounded-full text-sm">
-                    ${property.price?.toLocaleString() || '0'}/week
+                {/* Price Badge */}
+                <div className="absolute top-12 left-3">
+                  <div className="px-2 py-1 bg-black/60 backdrop-blur-sm text-white font-sans font-bold rounded-full text-sm">
+                    {formatPrice(property.price)}/week
                   </div>
                 </div>
               </div>
@@ -199,7 +241,6 @@ function SavedProperties() {
                   </div>
                   <div className="flex flex-col items-center p-2 bg-gray-50 rounded-lg">
                     <DollarSign className="w-4 h-4 text-gray-500 mb-1" />
-                    {/* UPDATED: Changed price_per_week to price */}
                     <span className="text-xs font-medium">{property.price ? `${property.price}/wk` : 'N/A'}</span>
                     <span className="text-xs text-gray-500">Rent</span>
                   </div>
