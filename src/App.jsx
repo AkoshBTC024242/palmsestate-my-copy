@@ -1,3 +1,4 @@
+// src/App.jsx - UPDATED WITH VERIFICATION SUCCESS ROUTE
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
@@ -19,6 +20,7 @@ const Contact = lazy(() => import('./pages/Contact'));
 const About = lazy(() => import('./pages/About'));
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
+const VerificationSuccess = lazy(() => import('./pages/VerificationSuccess'));
 const ApplicationForm = lazy(() => import('./pages/ApplicationForm'));
 const InitialApplyForm = lazy(() => import('./pages/InitialApplyForm'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -69,6 +71,7 @@ function App() {
                           <Route path="/about" element={<About />} />
                           <Route path="/signin" element={<SignIn />} />
                           <Route path="/signup" element={<SignUp />} />
+                          <Route path="/verification-success" element={<VerificationSuccess />} />
                         </Routes>
                       </main>
                       <Footer />
