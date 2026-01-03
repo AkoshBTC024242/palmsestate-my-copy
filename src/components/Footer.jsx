@@ -69,19 +69,19 @@ export default function Footer() {
               Your trusted partner in finding the perfect rental property. We offer premium rental services with a commitment to excellence and customer satisfaction.
             </p>
 
-            {/* Contact Info */}
+            {/* Contact Info - REAL DATA FROM CONTACT PAGE */}
             <div className="space-y-3">
-              <a href="tel:+12345678900" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
+              <a href="tel:+18286239765" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
                 <Phone className="w-5 h-5 mr-3 text-orange-500" />
-                <span>+1 (234) 567-8900</span>
+                <span>+1 (828) 623-9765</span>
               </a>
-              <a href="mailto:rentals@palmsestate.org" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
+              <a href="mailto:admin@palmsestate.org" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
                 <Mail className="w-5 h-5 mr-3 text-orange-500" />
-                <span>rentals@palmsestate.org</span>
+                <span>admin@palmsestate.org</span>
               </a>
               <div className="flex items-center text-gray-400">
                 <MapPin className="w-5 h-5 mr-3 text-orange-500" />
-                <span>123 Real Estate Blvd, New York, NY 10001</span>
+                <span>Palms Estate Office, USA</span>
               </div>
             </div>
           </div>
@@ -143,7 +143,7 @@ export default function Footer() {
             <div className="flex items-center text-gray-400 text-sm">
               <span>© {currentYear} Palms Estate. Made with</span>
               <Heart className="w-4 h-4 mx-1 text-orange-500 fill-current" />
-              <span>in New York</span>
+              <span>in USA</span>
             </div>
 
             {/* Social Links */}
