@@ -1,305 +1,311 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Menu, X, ChevronDown, User, LogOut, Home, Building2, Phone, FileText, Shield, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, FileText, Home as HomeIcon, Heart, Shield } from 'lucide-react';
 
 export default function Header() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, isAdmin } = useAuth();
   const userMenuRef = useRef(null);
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setIsUserMenuOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
+      setScrolled(window.scrollY > 20);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleSignOut = async () => {
     try {
       await signOut();
       navigate('/');
-      setIsUserMenuOpen(false);
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
-  const navLinks = [
-    { name: 'Home', path: '/', icon: Home },
-    { name: 'Properties', path: '/properties', icon: Building2 },
-    { name: 'About', path: '/about', icon: FileText },
-    { name: 'Contact', path: '/contact', icon: Phone },
+  const isActive = (path) => location.pathname === path;
+
+  const navigation = [
+    { name: 'Home', path: '/' },
+    { name: 'Properties', path: '/properties' },
+    { name: 'About', path: '/about' },
+    { name: 'Contact', path: '/contact' },
   ];
 
-  const isActive = (path) => {
-    if (path === '/') return location.pathname === '/';
-    return location.pathname.startsWith(path);
-  };
-
   return (
-    <header 
+    <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled 
-          ? 'bg-white shadow-lg' 
+        scrolled
+          ? 'bg-white shadow-lg'
           : 'bg-white/95 backdrop-blur-sm'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
-          <Link 
-            to="/" 
-            className="flex items-center space-x-3 group"
-          >
+          <Link to="/" className="flex items-center space-x-3 group">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-              <div className="relative w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform">
-                <Building2 className="w-7 h-7 text-white" />
+              <div className="relative w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
               </div>
             </div>
-            <div className="hidden sm:block">
-              <span className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-500 bg-clip-text text-transparent">
+            <div>
+              <div className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">
                 Palms Estate
-              </span>
-              <p className="text-xs text-gray-500 -mt-1">Premium Properties</p>
+              </div>
+              <div className="text-xs text-gray-500">Premium Properties</div>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {navLinks.map((link) => (
+          <div className="hidden md:flex items-center space-x-1">
+            {navigation.map((item) => (
               <Link
-                key={link.path}
-                to={link.path}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  isActive(link.path)
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg'
-                    : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600'
+                key={item.name}
+                to={item.path}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive(item.path)
+                    ? 'text-orange-600 bg-orange-50'
+                    : 'text-gray-700 hover:text-orange-600 hover:bg-orange-50'
                 }`}
               >
-                <link.icon className="w-4 h-4" />
-                {link.name}
+                {item.name}
               </Link>
             ))}
-          </nav>
+          </div>
 
-          {/* Right Side - Auth Buttons or User Menu */}
-          <div className="flex items-center gap-4">
+          {/* User Actions */}
+          <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-3 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                     <User className="w-5 h-5" />
                   </div>
-                  <span className="hidden sm:block font-medium">
+                  <span className="font-medium">
                     {user.email?.split('@')[0]}
                   </span>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {/* Dropdown Menu */}
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl py-2 border border-gray-100 overflow-hidden">
-                    {/* User Info Header */}
-                    <div className="px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
-                      <p className="text-sm font-semibold truncate">{user.email}</p>
-                      <p className="text-xs text-orange-100 mt-1">
-                        {isAdmin ? '👑 Administrator' : '👤 Member'}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-orange-100">
+                      <p className="text-sm font-semibold text-gray-900">{user.email}</p>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {isAdmin ? '🔐 Administrator' : '👤 Member'}
                       </p>
                     </div>
 
                     <div className="py-2">
-                      {/* Admin Dashboard Link - Only shown for admins */}
-                      {isAdmin && (
-                        <>
-                          <Link
-                            to="/admin"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 text-orange-600 hover:bg-orange-50 transition-colors group"
-                          >
-                            <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                              <Shield className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="font-semibold text-sm">Admin Dashboard</div>
-                              <div className="text-xs text-gray-500">Manage system</div>
-                            </div>
-                          </Link>
-                          <div className="h-px bg-gray-200 my-2 mx-4"></div>
-                        </>
-                      )}
-
-                      {/* User Dashboard Link */}
                       <Link
                         to="/dashboard"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors group"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
-                          <LayoutDashboard className="w-5 h-5 text-gray-600" />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-sm">My Dashboard</div>
-                          <div className="text-xs text-gray-500">View applications</div>
-                        </div>
+                        <HomeIcon className="w-4 h-4 mr-3" />
+                        Dashboard
                       </Link>
 
-                      {/* Profile Link */}
+                      {/* Admin Dashboard Link - Only for Admins */}
+                      {isAdmin && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center px-4 py-3 text-sm text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors border-l-4 border-orange-500"
+                        >
+                          <Shield className="w-4 h-4 mr-3" />
+                          Admin Dashboard
+                        </Link>
+                      )}
+
                       <Link
-                        to="/dashboard/profile"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors group"
+                        to="/dashboard/applications"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
-                          <User className="w-5 h-5 text-gray-600" />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-sm">Profile Settings</div>
-                          <div className="text-xs text-gray-500">Update your info</div>
-                        </div>
+                        <FileText className="w-4 h-4 mr-3" />
+                        My Applications
                       </Link>
 
-                      <div className="h-px bg-gray-200 my-2 mx-4"></div>
-
-                      {/* Sign Out */}
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition-colors group"
+                      <Link
+                        to="/dashboard/saved"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                       >
-                        <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center group-hover:bg-red-200 transition-colors">
-                          <LogOut className="w-5 h-5" />
-                        </div>
-                        <div className="text-left">
-                          <div className="font-semibold text-sm">Sign Out</div>
-                          <div className="text-xs text-red-400">See you later!</div>
-                        </div>
-                      </button>
+                        <Heart className="w-4 h-4 mr-3" />
+                        Saved Properties
+                      </Link>
+
+                      <Link
+                        to="/dashboard/settings"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                      >
+                        <Settings className="w-4 h-4 mr-3" />
+                        Settings
+                      </Link>
+
+                      <div className="border-t border-gray-100 mt-2 pt-2">
+                        <button
+                          onClick={handleSignOut}
+                          className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4 mr-3" />
+                          Sign Out
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center space-x-3">
                 <Link
                   to="/signin"
-                  className="px-4 py-2 text-gray-700 hover:text-orange-600 font-medium transition-colors"
+                  className="px-5 py-2 text-sm font-medium text-gray-700 hover:text-orange-600 transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-6 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Get Started
                 </Link>
               </div>
             )}
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              {isMenuOpen ? (
-                <X className="w-6 h-6 text-gray-700" />
-              ) : (
-                <Menu className="w-6 h-6 text-gray-700" />
-              )}
-            </button>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+          >
+            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-200 shadow-lg">
-          <nav className="px-4 py-4 space-y-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                onClick={() => setIsMenuOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${
-                  isActive(link.path)
-                    ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white'
-                    : 'text-gray-700 hover:bg-orange-50 hover:text-orange-600'
-                }`}
-              >
-                <link.icon className="w-5 h-5" />
-                {link.name}
-              </Link>
-            ))}
+        {/* Mobile Navigation */}
+        {isOpen && (
+          <div className="md:hidden py-4 border-t border-gray-100">
+            <div className="space-y-1">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  to={item.path}
+                  onClick={() => setIsOpen(false)}
+                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    isActive(item.path)
+                      ? 'text-orange-600 bg-orange-50'
+                      : 'text-gray-700 hover:text-orange-600 hover:bg-orange-50'
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              ))}
 
-            {user && (
-              <>
-                <div className="h-px bg-gray-200 my-2"></div>
+              {user ? (
+                <>
+                  <div className="pt-4 mt-4 border-t border-gray-100">
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-500">
+                      {user.email}
+                    </div>
 
-                {/* Admin Dashboard for Mobile */}
-                {isAdmin && (
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors rounded-lg"
+                    >
+                      <HomeIcon className="w-4 h-4 mr-3" />
+                      Dashboard
+                    </Link>
+
+                    {/* Admin Dashboard Link for Mobile */}
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center px-4 py-3 text-sm text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors rounded-lg border-l-4 border-orange-500"
+                      >
+                        <Shield className="w-4 h-4 mr-3" />
+                        Admin Dashboard
+                      </Link>
+                    )}
+
+                    <Link
+                      to="/dashboard/applications"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors rounded-lg"
+                    >
+                      <FileText className="w-4 h-4 mr-3" />
+                      My Applications
+                    </Link>
+
+                    <Link
+                      to="/dashboard/saved"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors rounded-lg"
+                    >
+                      <Heart className="w-4 h-4 mr-3" />
+                      Saved Properties
+                    </Link>
+
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center w-full px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors rounded-lg mt-2"
+                    >
+                      <LogOut className="w-4 h-4 mr-3" />
+                      Sign Out
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="pt-4 mt-4 border-t border-gray-100 space-y-2">
                   <Link
-                    to="/admin"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-orange-600 hover:bg-orange-50 transition-colors"
+                    to="/signin"
+                    onClick={() => setIsOpen(false)}
+                    className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors rounded-lg"
                   >
-                    <Shield className="w-5 h-5" />
-                    Admin Dashboard
+                    Sign In
                   </Link>
-                )}
-
-                <Link
-                  to="/dashboard"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  <LayoutDashboard className="w-5 h-5" />
-                  My Dashboard
-                </Link>
-
-                <Link
-                  to="/dashboard/profile"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  <User className="w-5 h-5" />
-                  Profile
-                </Link>
-
-                <button
-                  onClick={() => {
-                    handleSignOut();
-                    setIsMenuOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <LogOut className="w-5 h-5" />
-                  Sign Out
-                </button>
-              </>
-            )}
-          </nav>
-        </div>
-      )}
+                  <Link
+                    to="/signup"
+                    onClick={() => setIsOpen(false)}
+                    className="block px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all rounded-lg text-center"
+                  >
+                    Get Started
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
     </header>
   );
 }
