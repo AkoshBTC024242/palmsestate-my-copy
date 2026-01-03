@@ -1,29 +1,39 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, Mail, Lock, Eye, EyeOff, ChevronLeft, AlertCircle, ArrowRight } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
-function SignIn() {
+export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { signIn } = useAuth();
-
-  const from = location.state?.from || '/dashboard';
+  const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-    
+
     try {
-      await signIn(email, password);
-      navigate(from, { replace: true });
+      const result = await signIn(email, password);
+
+      // Wait for auth state to propagate
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      // Check if user is admin and redirect accordingly
+      const userEmail = result.user?.email;
+      const isAdmin = userEmail === 'Koshbtc@gmail.com' || 
+                      userEmail === 'admin@palmsestate.org' || 
+                      userEmail?.includes('admin');
+
+      if (isAdmin) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (error) {
       setError(error.message || 'Invalid email or password. Please try again.');
       console.error('Sign in error:', error);
@@ -33,149 +43,102 @@ function SignIn() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-amber-50 py-20 px-4">
-      <div className="max-w-md w-full">
-        {/* Back to Home */}
-        <Link 
-          to="/" 
-          className="inline-flex items-center text-amber-600 hover:text-amber-700 font-sans font-medium mb-8 group"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
-          Back to Home
-        </Link>
-
-        {/* Sign In Card */}
-        <div className="relative">
-          {/* Decorative Elements */}
-          <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl blur opacity-20"></div>
-          <div className="absolute -top-6 -right-6 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl"></div>
-          <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-orange-400/10 rounded-full blur-2xl"></div>
-
-          <div className="relative bg-white/95 backdrop-blur-xl border border-white/40 rounded-2xl shadow-2xl shadow-black/10 overflow-hidden">
-            {/* Header */}
-            <div className="p-8 border-b border-white/20">
-              <div className="flex items-center justify-center w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg">
-                <LogIn className="w-8 h-8 text-white" />
-              </div>
-              <h1 className="font-serif text-3xl font-bold text-center text-gray-800 mb-2">
-                Welcome Back
-              </h1>
-              <p className="text-center text-gray-600 font-sans">
-                Sign in to your Palms Estate account
-              </p>
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="mx-8 mt-6 p-4 bg-red-50 border border-red-200 rounded-xl">
-                <div className="flex items-start">
-                  <AlertCircle className="w-5 h-5 text-red-500 mr-3 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-red-700 text-sm mb-2">{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-8">
-              <div className="space-y-6">
-                {/* Email Field */}
-                <div>
-                  <label className="block font-sans text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300/70 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-300 outline-none"
-                      placeholder="concierge@example.com"
-                      required
-                      disabled={isLoading}
-                    />
-                  </div>
-                </div>
-
-                {/* Password Field */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="font-sans text-sm font-medium text-gray-700">
-                      Password
-                    </label>
-                    <Link 
-                      to="/forgot-password" 
-                      className="text-xs font-medium text-amber-600 hover:text-amber-700"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-12 pr-12 py-3 bg-white border border-gray-300/70 rounded-xl focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all duration-300 outline-none"
-                      placeholder="••••••••"
-                      required
-                      disabled={isLoading}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      disabled={isLoading}
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-700 hover:to-orange-600 text-white font-sans font-semibold py-4 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:transform-none"
-                >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Signing In...
-                    </span>
-                  ) : (
-                    'Sign In'
-                  )}
-                </button>
-              </div>
-
-              {/* Divider */}
-              <div className="my-8 flex items-center">
-                <div className="flex-1 border-t border-gray-300/50"></div>
-                <span className="px-4 font-sans text-sm text-gray-500">Don't have an account?</span>
-                <div className="flex-1 border-t border-gray-300/50"></div>
-              </div>
-
-              {/* Sign Up Link */}
-              <div className="text-center">
-                <Link
-                  to="/signup"
-                  className="inline-block w-full border-2 border-gray-300/70 hover:border-amber-500 text-gray-700 hover:text-amber-700 font-sans font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:shadow-md"
-                >
-                  Create New Account
-                </Link>
-              </div>
-            </form>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-orange-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <div className="mx-auto h-16 w-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
           </div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Welcome Back
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Sign in to access your Palms Estate dashboard
+          </p>
         </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="rounded-md bg-red-50 border border-red-200 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-red-800">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="rounded-md shadow-sm -space-y-px">
+            <div>
+              <label htmlFor="email-address" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="email-address"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="appearance-none rounded-t-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="appearance-none rounded-b-lg relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:z-10 sm:text-sm"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+            >
+              {isLoading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing in...
+                </>
+              ) : (
+                'Sign in'
+              )}
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm">
+              <Link to="/signup" className="font-medium text-orange-600 hover:text-orange-500 transition-colors">
+                Don't have an account? Sign up
+              </Link>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   );
 }
-
-export default SignIn;
