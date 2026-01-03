@@ -76,16 +76,16 @@ export default function Home() {
             <div className="text-white space-y-8">
               <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
                 <Star className="w-4 h-4 fill-current" />
-                <span>Trusted by 800+ Happy Residents</span>
+                <span>Trusted by 800+ Happy Renters</span>
               </div>
 
               <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
-                Your Dream Home <br />
+                Your Dream Rental <br />
                 <span className="text-orange-200">Awaits You</span>
               </h1>
 
               <p className="text-xl text-orange-100 leading-relaxed">
-                Discover premium properties across the United States. Experience luxury living with Palms Estate - where comfort meets elegance.
+                Discover premium rental properties across the United States. Experience luxury living with Palms Estate - where comfort meets affordability.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -93,7 +93,7 @@ export default function Home() {
                   to="/properties"
                   className="group inline-flex items-center justify-center px-8 py-4 bg-white text-orange-600 font-semibold rounded-xl hover:bg-orange-50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
                 >
-                  Explore Properties
+                  Browse Rentals
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
 
@@ -109,11 +109,11 @@ export default function Home() {
               <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/20">
                 <div>
                   <div className="text-3xl font-bold">{stats.properties}+</div>
-                  <div className="text-orange-200 text-sm">Properties</div>
+                  <div className="text-orange-200 text-sm">Rentals Available</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold">{stats.residents}+</div>
-                  <div className="text-orange-200 text-sm">Happy Residents</div>
+                  <div className="text-orange-200 text-sm">Happy Renters</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold">{stats.satisfaction}%</div>
@@ -134,12 +134,12 @@ export default function Home() {
                           <HomeIcon className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <div className="font-semibold text-gray-900">Modern Villa</div>
+                          <div className="font-semibold text-gray-900">Modern Apartment</div>
                           <div className="text-sm text-gray-600">Los Angeles, CA</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">$2.5M</div>
+                        <div className="text-lg font-bold text-orange-600">$2,500/mo</div>
                         <div className="text-xs text-gray-500">Available</div>
                       </div>
                     </div>
@@ -150,19 +150,19 @@ export default function Home() {
                           <MapPin className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                          <div className="font-semibold text-gray-900">Luxury Apartment</div>
+                          <div className="font-semibold text-gray-900">Luxury Condo</div>
                           <div className="text-sm text-gray-600">New York, NY</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">$1.8M</div>
+                        <div className="text-lg font-bold text-orange-600">$3,200/mo</div>
                         <div className="text-xs text-gray-500">Available</div>
                       </div>
                     </div>
 
                     <div className="p-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl text-white text-center">
                       <div className="text-3xl font-bold mb-1">800+</div>
-                      <div className="text-orange-100">Properties Listed</div>
+                      <div className="text-orange-100">Rentals Listed</div>
                     </div>
                   </div>
                 </div>
@@ -176,28 +176,28 @@ export default function Home() {
       <div className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Palms Estate?</h2>
-            <p className="text-xl text-gray-600">Experience the best in real estate services</p>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Palms Estate Rentals?</h2>
+            <p className="text-xl text-gray-600">Experience the best in rental property services</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
                 icon: Shield,
-                title: 'Secure Transactions',
-                description: 'Your safety is our priority. All transactions are protected and verified.',
+                title: 'Secure Rentals',
+                description: 'Your safety is our priority. All rental agreements are protected and verified.',
                 color: 'orange'
               },
               {
                 icon: Users,
                 title: 'Expert Support',
-                description: 'Professional team ready to assist you every step of the way.',
+                description: 'Professional team ready to assist you every step of the rental process.',
                 color: 'orange'
               },
               {
                 icon: TrendingUp,
                 title: 'Best Value',
-                description: 'Competitive pricing with the best properties across the United States.',
+                description: 'Competitive rental rates with the best properties across the United States.',
                 color: 'orange'
               }
             ].map((feature, index) => (
@@ -219,8 +219,8 @@ export default function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center mb-12">
               <div>
-                <h2 className="text-4xl font-bold text-gray-900 mb-2">Featured Properties</h2>
-                <p className="text-xl text-gray-600">Handpicked selections just for you</p>
+                <h2 className="text-4xl font-bold text-gray-900 mb-2">Featured Rental Properties</h2>
+                <p className="text-xl text-gray-600">Handpicked rental selections just for you</p>
               </div>
               <Link
                 to="/properties"
@@ -271,7 +271,7 @@ export default function Home() {
                       </p>
                       <div className="flex items-center justify-between">
                         <div className="text-2xl font-bold text-orange-600">
-                          ${parseFloat(property.price).toLocaleString()}
+                          ${parseFloat(property.price).toLocaleString()}/mo
                         </div>
                         <div className="text-sm text-gray-500">
                           {property.bedrooms} beds • {property.bathrooms} baths
@@ -290,10 +290,10 @@ export default function Home() {
       <div className="py-24 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Find Your Dream Home?
+            Ready to Find Your Dream Rental?
           </h2>
           <p className="text-xl text-orange-100 mb-10">
-            Join thousands of satisfied residents who found their perfect property with us.
+            Join thousands of satisfied renters who found their perfect property with us.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -301,7 +301,7 @@ export default function Home() {
               to="/properties"
               className="inline-flex items-center justify-center px-8 py-4 bg-white text-orange-600 font-semibold rounded-xl hover:bg-orange-50 transition-all duration-300 shadow-xl hover:shadow-2xl"
             >
-              Browse Properties
+              Browse Rentals
               <ArrowRight className="ml-2 w-5 h-5" />
             </Link>
             <Link
@@ -320,8 +320,8 @@ export default function Home() {
           <div className="grid md:grid-cols-4 gap-8 text-center">
             {[
               { label: 'Years Experience', value: '15+' },
-              { label: 'Properties Sold', value: '2,500+' },
-              { label: 'Happy Clients', value: '800+' },
+              { label: 'Rentals Available', value: '800+' },
+              { label: 'Happy Renters', value: '2,500+' },
               { label: 'Awards Won', value: '35+' }
             ].map((stat, index) => (
               <div key={index} className="space-y-2">
