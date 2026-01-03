@@ -11,25 +11,25 @@ export default function Footer() {
         { name: 'About Us', path: '/about' },
         { name: 'Properties', path: '/properties' },
         { name: 'Contact', path: '/contact' },
-        { name: 'Careers', path: '/contact' },
+        { name: 'Sign Up', path: '/signup' },
       ],
     },
     {
-      title: 'Resources',
+      title: 'For Renters',
       links: [
-        { name: 'Help Center', path: '/contact' },
-        { name: 'Privacy Policy', path: '/contact' },
-        { name: 'Terms of Service', path: '/contact' },
-        { name: 'FAQs', path: '/contact' },
+        { name: 'Browse Rentals', path: '/properties' },
+        { name: 'My Applications', path: '/dashboard/applications' },
+        { name: 'Saved Properties', path: '/dashboard/saved' },
+        { name: 'My Profile', path: '/dashboard/profile' },
       ],
     },
     {
       title: 'Quick Links',
       links: [
         { name: 'Sign In', path: '/signin' },
-        { name: 'Sign Up', path: '/signup' },
         { name: 'Dashboard', path: '/dashboard' },
-        { name: 'Browse Properties', path: '/properties' },
+        { name: 'Settings', path: '/dashboard/settings' },
+        { name: 'Help Center', path: '/contact' },
       ],
     },
   ];
@@ -61,23 +61,23 @@ export default function Footer() {
                 <div className="text-xl font-bold text-white">
                   Palms Estate
                 </div>
-                <div className="text-sm text-orange-400">Premium Properties</div>
+                <div className="text-sm text-orange-400">Premium Rentals</div>
               </div>
             </Link>
 
             <p className="text-gray-400 mb-6 leading-relaxed">
-              Your trusted partner in finding the perfect property. We offer premium real estate services with a commitment to excellence and customer satisfaction.
+              Your trusted partner in finding the perfect rental property. We offer premium rental services with a commitment to excellence and customer satisfaction.
             </p>
 
             {/* Contact Info */}
             <div className="space-y-3">
-              <a href="tel:+1234567890" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
+              <a href="tel:+12345678900" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
                 <Phone className="w-5 h-5 mr-3 text-orange-500" />
-                <span>+1 (234) 567-890</span>
+                <span>+1 (234) 567-8900</span>
               </a>
-              <a href="mailto:info@palmsestate.org" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
+              <a href="mailto:rentals@palmsestate.org" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
                 <Mail className="w-5 h-5 mr-3 text-orange-500" />
-                <span>info@palmsestate.org</span>
+                <span>rentals@palmsestate.org</span>
               </a>
               <div className="flex items-center text-gray-400">
                 <MapPin className="w-5 h-5 mr-3 text-orange-500" />
@@ -113,7 +113,7 @@ export default function Footer() {
             <div>
               <h3 className="text-2xl font-bold mb-2 text-white">Stay Updated</h3>
               <p className="text-gray-400">
-                Subscribe to our newsletter for the latest properties and exclusive deals.
+                Subscribe to our newsletter for the latest rental properties and exclusive deals.
               </p>
             </div>
             <div>
