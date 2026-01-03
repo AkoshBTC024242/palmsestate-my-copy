@@ -1,9 +1,9 @@
-// src/pages/SignIn.jsx - CORRECTED VERSION
+// src/pages/SignIn.jsx - WITH DEBUGGING
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
-function SignIn() {  // Remove 'export default' from here
+function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -21,12 +21,21 @@ function SignIn() {  // Remove 'export default' from here
       console.log('✅ Sign in result:', result);
 
       if (result.success) {
-        // Wait a moment for context to update, then redirect
+        // Show success message
+        setError('✅ Login successful! Redirecting...');
+        
+        // Determine redirect path
+        const isAdmin = result.isAdmin || email.includes('admin') || email === 'koshbtc@gmail.com';
+        const redirectPath = isAdmin ? '/admin' : '/dashboard';
+        
+        console.log('👤 Is Admin:', isAdmin);
+        console.log('🚀 Redirecting to:', redirectPath);
+        
+        // Wait 1 second then redirect
         setTimeout(() => {
-          const redirectPath = result.isAdmin ? '/admin' : '/dashboard';
-          console.log('🚀 Redirecting to:', redirectPath);
+          console.log('🔄 Performing redirect...');
           window.location.href = redirectPath;
-        }, 100);
+        }, 1000);
       } else {
         setError(result.error || 'Invalid email or password. Please try again.');
         setIsLoading(false);
@@ -57,15 +66,32 @@ function SignIn() {  // Remove 'export default' from here
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md bg-red-50 border border-red-200 p-4">
+            <div className={`rounded-md p-4 ${error.includes('✅') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+                  {error.includes('✅') ? (
+                    <svg className="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">{error}</p>
+                  <p className={`text-sm font-medium ${error.includes('✅') ? 'text-green-800' : 'text-red-800'}`}>
+                    {error}
+                  </p>
+                  {error.includes('✅') && (
+                    <p className="text-xs text-green-600 mt-1">
+                      If redirect doesn't work, click: 
+                      <a href={email.includes('admin') || email === 'koshbtc@gmail.com' ? '/admin' : '/dashboard'} 
+                         className="ml-1 underline">
+                        {email.includes('admin') || email === 'koshbtc@gmail.com' ? '/admin' : '/dashboard'}
+                      </a>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -132,14 +158,17 @@ function SignIn() {  // Remove 'export default' from here
             </div>
           </div>
           
-          {/* Debug Info */}
+          {/* Debug Links */}
           <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs text-gray-600 mb-1">Admin Test Account:</p>
-            <p className="text-xs font-mono text-gray-800">koshbtc@gmail.com</p>
-            <p className="text-xs text-gray-600 mt-2">After login, you will be redirected to:</p>
-            <p className="text-xs font-medium text-orange-600">
-              {email.includes('admin') || email === 'koshbtc@gmail.com' ? '/admin' : '/dashboard'}
-            </p>
+            <p className="text-xs text-gray-600 mb-2">Test Links:</p>
+            <div className="space-y-1">
+              <a href="/admin" className="block text-xs text-blue-600 hover:text-blue-800 hover:underline">
+                ↗ Go to Admin Dashboard
+              </a>
+              <a href="/dashboard" className="block text-xs text-blue-600 hover:text-blue-800 hover:underline">
+                ↗ Go to User Dashboard
+              </a>
+            </div>
           </div>
         </form>
       </div>
@@ -147,5 +176,4 @@ function SignIn() {  // Remove 'export default' from here
   );
 }
 
-// Only ONE export default at the end
 export default SignIn;
