@@ -1,8 +1,9 @@
+// src/pages/SignIn.jsx - CORRECTED VERSION
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
-export default function SignIn() {
+function SignIn() {  // Remove 'export default' from here
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,30 +18,22 @@ export default function SignIn() {
     try {
       console.log('🔐 Signing in...', email);
       const result = await signIn(email, password);
-      console.log('✅ Sign in successful', result);
+      console.log('✅ Sign in result:', result);
 
-      // BULLETPROOF: Check admin status from result
-      const isAdmin = result.isAdmin === true;
-      console.log('👤 Is Admin:', isAdmin);
-
-      // FORCE REDIRECT - NO REACT ROUTER, PURE BROWSER NAVIGATION
-      const redirectUrl = isAdmin ? '/admin' : '/dashboard';
-      console.log('🚀 Redirecting to:', redirectUrl);
-
-      // Clear any existing state
-      sessionStorage.setItem('redirectAfterLogin', redirectUrl);
-
-      // TRIPLE REDUNDANCY: Try multiple redirect methods
-      setTimeout(() => {
-        window.location.replace(redirectUrl);
-      }, 100);
-
-      // Fallback
-      window.location.href = redirectUrl;
-
+      if (result.success) {
+        // Wait a moment for context to update, then redirect
+        setTimeout(() => {
+          const redirectPath = result.isAdmin ? '/admin' : '/dashboard';
+          console.log('🚀 Redirecting to:', redirectPath);
+          window.location.href = redirectPath;
+        }, 100);
+      } else {
+        setError(result.error || 'Invalid email or password. Please try again.');
+        setIsLoading(false);
+      }
     } catch (error) {
       console.error('❌ Sign in error:', error);
-      setError(error.message || 'Invalid email or password. Please try again.');
+      setError(error.message || 'An unexpected error occurred');
       setIsLoading(false);
     }
   };
@@ -138,10 +131,21 @@ export default function SignIn() {
               </Link>
             </div>
           </div>
+          
+          {/* Debug Info */}
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-xs text-gray-600 mb-1">Admin Test Account:</p>
+            <p className="text-xs font-mono text-gray-800">koshbtc@gmail.com</p>
+            <p className="text-xs text-gray-600 mt-2">After login, you will be redirected to:</p>
+            <p className="text-xs font-medium text-orange-600">
+              {email.includes('admin') || email === 'koshbtc@gmail.com' ? '/admin' : '/dashboard'}
+            </p>
+          </div>
         </form>
       </div>
     </div>
   );
 }
 
+// Only ONE export default at the end
 export default SignIn;
