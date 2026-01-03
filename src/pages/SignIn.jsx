@@ -142,7 +142,6 @@ export default function SignIn() {
       </div>
     </div>
   );
-
-
-  export default SignIn;
 }
+
+export default SignIn;
