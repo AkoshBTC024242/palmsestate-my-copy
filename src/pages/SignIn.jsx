@@ -1,5 +1,5 @@
-// src/pages/SignIn.jsx - FIXED VERSION
-import { useState } from 'react';
+// src/pages/SignIn.jsx - SIMPLIFIED WORKING VERSION
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -9,11 +9,20 @@ function SignIn() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { signIn, user, isAdmin } = useAuth();
+  const { signIn, user, isAdmin, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = location.state?.from?.pathname || '/';
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('User is already authenticated, redirecting...');
+      const redirectPath = isAdmin ? '/admin' : '/dashboard';
+      navigate(redirectPath, { replace: true });
+    }
+  }, [isAuthenticated, user, isAdmin, navigate]);
+
+  const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -21,19 +30,27 @@ function SignIn() {
     setIsLoading(true);
 
     try {
+      console.log('🔐 Attempting sign in...');
       const result = await signIn(email, password);
 
       if (result.success) {
-        // Navigate immediately after successful sign in
-        const redirectPath = result.isAdmin ? '/admin' : '/dashboard';
-        console.log('Sign in successful, redirecting to:', redirectPath);
-        navigate(redirectPath, { replace: true });
+        console.log('✅ Sign in successful, waiting for auth state update...');
+        setError('✅ Login successful! Redirecting...');
+        
+        // Wait for auth state to update, then redirect
+        setTimeout(() => {
+          console.log('🔄 Checking auth state after sign in...');
+          const redirectPath = isAdmin ? '/admin' : '/dashboard';
+          console.log('Redirecting to:', redirectPath);
+          navigate(redirectPath, { replace: true });
+        }, 1000);
       } else {
+        console.error('❌ Sign in failed:', result.error);
         setError(result.error || 'Invalid email or password. Please try again.');
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('❌ Sign in error:', error);
       setError(error.message || 'An unexpected error occurred');
       setIsLoading(false);
     }
@@ -58,17 +75,28 @@ function SignIn() {
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md bg-red-50 border border-red-200 p-4">
+            <div className={`rounded-md p-4 ${error.includes('✅') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+                  {error.includes('✅') ? (
+                    <svg className="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">
+                  <p className={`text-sm font-medium ${error.includes('✅') ? 'text-green-800' : 'text-red-800'}`}>
                     {error}
                   </p>
+                  {error.includes('✅') && (
+                    <p className="text-xs text-green-600 mt-1">
+                      If you are not redirected automatically, please wait...
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
