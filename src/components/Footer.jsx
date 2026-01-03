@@ -1,180 +1,169 @@
 import { Link } from 'react-router-dom';
-import { Phone, Mail, MapPin, Facebook, Twitter, Instagram, Linkedin, Building2, ArrowRight, Heart } from 'lucide-react';
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, Heart } from 'lucide-react';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
-  const quickLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Properties', path: '/properties' },
-    { name: 'About Us', path: '/about' },
-    { name: 'Contact', path: '/contact' },
-  ];
-
-  const legalLinks = [
-    { name: 'Privacy Policy', path: '/privacy' },
-    { name: 'Terms of Service', path: '/terms' },
-    { name: 'Cookie Policy', path: '/cookies' },
-    { name: 'FAQ', path: '/faq' },
+  const footerSections = [
+    {
+      title: 'Company',
+      links: [
+        { name: 'About Us', path: '/about' },
+        { name: 'Properties', path: '/properties' },
+        { name: 'Contact', path: '/contact' },
+        { name: 'Careers', path: '/contact' },
+      ],
+    },
+    {
+      title: 'Resources',
+      links: [
+        { name: 'Help Center', path: '/contact' },
+        { name: 'Privacy Policy', path: '/contact' },
+        { name: 'Terms of Service', path: '/contact' },
+        { name: 'FAQs', path: '/contact' },
+      ],
+    },
+    {
+      title: 'Quick Links',
+      links: [
+        { name: 'Sign In', path: '/signin' },
+        { name: 'Sign Up', path: '/signup' },
+        { name: 'Dashboard', path: '/dashboard' },
+        { name: 'Browse Properties', path: '/properties' },
+      ],
+    },
   ];
 
   const socialLinks = [
-    { icon: Facebook, href: 'https://facebook.com', color: 'hover:bg-blue-600' },
-    { icon: Twitter, href: 'https://twitter.com', color: 'hover:bg-sky-500' },
-    { icon: Instagram, href: 'https://instagram.com', color: 'hover:bg-pink-600' },
-    { icon: Linkedin, href: 'https://linkedin.com', color: 'hover:bg-blue-700' },
+    { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
+    { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
+    { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
+    { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
   ];
 
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      {/* Newsletter Section */}
-      <div className="border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Main Footer Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+          {/* Brand Section */}
+          <div className="lg:col-span-2">
+            <Link to="/" className="flex items-center space-x-3 group mb-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                <div className="relative w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-white">
+                  Palms Estate
+                </div>
+                <div className="text-sm text-orange-400">Premium Properties</div>
+              </div>
+            </Link>
+
+            <p className="text-gray-400 mb-6 leading-relaxed">
+              Your trusted partner in finding the perfect property. We offer premium real estate services with a commitment to excellence and customer satisfaction.
+            </p>
+
+            {/* Contact Info */}
+            <div className="space-y-3">
+              <a href="tel:+1234567890" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
+                <Phone className="w-5 h-5 mr-3 text-orange-500" />
+                <span>+1 (234) 567-890</span>
+              </a>
+              <a href="mailto:info@palmsestate.org" className="flex items-center text-gray-400 hover:text-orange-400 transition-colors">
+                <Mail className="w-5 h-5 mr-3 text-orange-500" />
+                <span>info@palmsestate.org</span>
+              </a>
+              <div className="flex items-center text-gray-400">
+                <MapPin className="w-5 h-5 mr-3 text-orange-500" />
+                <span>123 Real Estate Blvd, New York, NY 10001</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer Links Sections */}
+          {footerSections.map((section, index) => (
+            <div key={index}>
+              <h3 className="text-lg font-bold mb-4 text-white">{section.title}</h3>
+              <ul className="space-y-3">
+                {section.links.map((link, linkIndex) => (
+                  <li key={linkIndex}>
+                    <Link
+                      to={link.path}
+                      className="text-gray-400 hover:text-orange-400 transition-colors inline-flex items-center group"
+                    >
+                      <span className="inline-block w-0 group-hover:w-2 h-0.5 bg-orange-500 mr-0 group-hover:mr-2 transition-all duration-200"></span>
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        {/* Newsletter Section */}
+        <div className="mt-12 pt-12 border-t border-gray-700">
           <div className="grid md:grid-cols-2 gap-8 items-center">
             <div>
-              <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-                Stay Updated
-              </h3>
+              <h3 className="text-2xl font-bold mb-2 text-white">Stay Updated</h3>
               <p className="text-gray-400">
                 Subscribe to our newsletter for the latest properties and exclusive deals.
               </p>
             </div>
-            <div className="flex gap-3">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-white placeholder-gray-500"
-              />
-              <button className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-lg font-semibold transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2">
-                Subscribe
-                <ArrowRight className="w-4 h-4" />
-              </button>
+            <div>
+              <form className="flex gap-3">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  className="flex-1 px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl whitespace-nowrap"
+                >
+                  Subscribe
+                </button>
+              </form>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Footer Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-          {/* Company Info */}
-          <div>
-            <Link to="/" className="flex items-center space-x-3 mb-4 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                <div className="relative w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Building2 className="w-7 h-7 text-white" />
-                </div>
-              </div>
-              <div>
-                <span className="text-xl font-bold bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent">
-                  Palms Estate
-                </span>
-              </div>
-            </Link>
-            <p className="text-gray-400 text-sm leading-relaxed mb-4">
-              Your trusted partner in finding the perfect property. We offer premium real estate solutions tailored to your needs.
-            </p>
+      {/* Bottom Bar */}
+      <div className="border-t border-gray-800 bg-gray-900/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            {/* Copyright */}
+            <div className="flex items-center text-gray-400 text-sm">
+              <span>© {currentYear} Palms Estate. Made with</span>
+              <Heart className="w-4 h-4 mx-1 text-orange-500 fill-current" />
+              <span>in New York</span>
+            </div>
+
             {/* Social Links */}
-            <div className="flex gap-2">
+            <div className="flex items-center space-x-4">
               {socialLinks.map((social, index) => (
                 <a
                   key={index}
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center transition-all duration-200 ${social.color} hover:text-white`}
+                  aria-label={social.label}
+                  className="w-10 h-10 rounded-full bg-gray-800 hover:bg-gradient-to-br hover:from-orange-500 hover:to-orange-600 flex items-center justify-center text-gray-400 hover:text-white transition-all duration-200"
                 >
                   <social.icon className="w-5 h-5" />
                 </a>
               ))}
             </div>
           </div>
-
-          {/* Quick Links */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4 text-white">Quick Links</h4>
-            <ul className="space-y-3">
-              {quickLinks.map((link, index) => (
-                <li key={index}>
-                  <Link
-                    to={link.path}
-                    className="text-gray-400 hover:text-orange-500 transition-colors flex items-center gap-2 group"
-                  >
-                    <span className="w-1 h-1 bg-orange-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4 text-white">Legal</h4>
-            <ul className="space-y-3">
-              {legalLinks.map((link, index) => (
-                <li key={index}>
-                  <Link
-                    to={link.path}
-                    className="text-gray-400 hover:text-orange-500 transition-colors flex items-center gap-2 group"
-                  >
-                    <span className="w-1 h-1 bg-orange-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact Info */}
-          <div>
-            <h4 className="text-lg font-semibold mb-4 text-white">Contact Us</h4>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3 text-gray-400">
-                <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-sm">123 Real Estate Ave</p>
-                  <p className="text-sm">Lagos, Nigeria</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-3 text-gray-400">
-                <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Phone className="w-5 h-5 text-orange-500" />
-                </div>
-                <a href="tel:+2348012345678" className="text-sm hover:text-orange-500 transition-colors">
-                  +234 801 234 5678
-                </a>
-              </li>
-              <li className="flex items-center gap-3 text-gray-400">
-                <div className="w-10 h-10 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-5 h-5 text-orange-500" />
-                </div>
-                <a href="mailto:info@palmsestate.org" className="text-sm hover:text-orange-500 transition-colors">
-                  info@palmsestate.org
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Bottom Bar */}
-        <div className="pt-8 border-t border-gray-800">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-gray-400 text-sm text-center md:text-left">
-              © {currentYear} Palms Estate. All rights reserved.
-            </p>
-            <p className="text-gray-400 text-sm flex items-center gap-1">
-              Made with <Heart className="w-4 h-4 text-orange-500 fill-current" /> by Palms Estate Team
-            </p>
-          </div>
         </div>
       </div>
-
-      {/* Decorative Gradient */}
-      <div className="h-1 bg-gradient-to-r from-orange-500 via-orange-600 to-orange-500"></div>
     </footer>
   );
 }
