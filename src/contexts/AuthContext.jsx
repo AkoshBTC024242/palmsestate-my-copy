@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
           const currentUser = currentSession.user;
 
           // Skip user_roles query — use email fallback
-          const isAdmin = currentUser.email?.includes('admin') || currentUser.email === 'admin@palmsestate.org';
+          const isAdmin = currentUser.email === 'Koshbtc@gmail.com' || currentUser.email === 'admin@palmsestate.org' || currentUser.email?.includes('admin');
 
           const enhancedUser = {
             ...currentUser,
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
 
           if (newSession?.user) {
             const currentUser = newSession.user;
-            const isAdmin = currentUser.email?.includes('admin') || currentUser.email === 'admin@palmsestate.org';
+            const isAdmin = currentUser.email === 'Koshbtc@gmail.com' || currentUser.email === 'admin@palmsestate.org' || currentUser.email?.includes('admin');
 
             const enhancedUser = {
               ...currentUser,
@@ -131,7 +131,7 @@ export const AuthProvider = ({ children }) => {
         await supabase.auth.setSession(data.session);
       }
 
-      const isAdmin = data.user.email?.includes('admin') || data.user.email === 'admin@palmsestate.org';
+      const isAdmin = data.user.email === 'Koshbtc@gmail.com' || data.user.email === 'admin@palmsestate.org' || data.user.email?.includes('admin');
 
       const enhancedUser = {
         ...data.user,
