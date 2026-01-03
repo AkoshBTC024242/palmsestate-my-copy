@@ -1,6 +1,7 @@
-// src/contexts/AuthContext.jsx - CORRECTED VERSION
+// src/contexts/AuthContext.jsx - COMPLETE FIXED VERSION
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { saveUserProfile, resendVerificationEmail } from '../lib/supabase';
 
 const AuthContext = createContext({});
 
@@ -43,7 +44,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         // Listen for auth changes
-        supabase.auth.onAuthStateChange(async (event, newSession) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
           setSession(newSession);
 
           if (newSession?.user) {
@@ -69,6 +70,10 @@ export const AuthProvider = ({ children }) => {
             setUserProfile(null);
           }
         });
+
+        return () => {
+          subscription.unsubscribe();
+        };
       } catch (error) {
         console.error('Auth initialization error:', error);
       } finally {
@@ -163,6 +168,107 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // NEW: Sign up function
+  const signUp = async (email, password, userData = {}) => {
+    try {
+      console.log('Starting sign up process for:', email);
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: userData.full_name || '',
+            phone: userData.phone || '',
+            role: 'user'
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) {
+        console.error('Sign up error:', error);
+        throw error;
+      }
+
+      console.log('Sign up response:', data);
+
+      if (data.user) {
+        // Save user profile to profiles table
+        try {
+          const profileResult = await saveUserProfile(data.user.id, {
+            email: email,
+            first_name: userData.full_name?.split(' ')[0] || '',
+            last_name: userData.full_name?.split(' ').slice(1).join(' ') || '',
+            phone: userData.phone || null,
+          });
+
+          if (!profileResult.success) {
+            console.error('Failed to save profile:', profileResult.error);
+          }
+        } catch (profileError) {
+          console.error('Profile save error:', profileError);
+        }
+
+        // Return appropriate response
+        if (data.session) {
+          // User is immediately confirmed (email confirmation disabled)
+          const adminStatus = checkAdminStatus(data.user);
+          setIsAdminUser(adminStatus);
+          
+          const enhancedUser = {
+            ...data.user,
+            isAdmin: adminStatus,
+            role: adminStatus ? 'admin' : 'user'
+          };
+
+          setUser(enhancedUser);
+          setSession(data.session);
+
+          return { 
+            success: true, 
+            user: enhancedUser,
+            session: data.session,
+            requiresEmailConfirmation: false 
+          };
+        } else {
+          // Email confirmation required
+          return {
+            success: true,
+            user: data.user,
+            requiresEmailConfirmation: true,
+            confirmationSentAt: new Date().toISOString()
+          };
+        }
+      }
+
+      return { 
+        success: false, 
+        error: 'Sign up failed - no user data returned' 
+      };
+    } catch (error) {
+      console.error('Sign up error:', error);
+      return { 
+        success: false, 
+        error: error.message 
+      };
+    }
+  };
+
+  // NEW: Resend verification function
+  const resendVerification = async (email) => {
+    try {
+      const result = await resendVerificationEmail(email);
+      return result;
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      return { 
+        success: false, 
+        error: error.message 
+      };
+    }
+  };
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -186,9 +292,11 @@ export const AuthProvider = ({ children }) => {
     loading,
     userProfile,
     signIn,
+    signUp, // Now properly added
     signOut,
+    resendVerification, // Now properly added
     updateUserProfile,
-    isAdmin: isAdminUser, // This is now a proper boolean
+    isAdmin: isAdminUser,
     isAuthenticated: !!user,
     refreshSession: async () => {
       const { data: { session: newSession } } = await supabase.auth.refreshSession();
