@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
@@ -8,9 +8,6 @@ export default function SignIn() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -18,19 +15,32 @@ export default function SignIn() {
     setIsLoading(true);
 
     try {
+      console.log('🔐 Signing in...', email);
       const result = await signIn(email, password);
+      console.log('✅ Sign in successful', result);
 
-      // CRITICAL FIX: Use the isAdmin value returned from signIn
-      if (result.isAdmin) {
-        // Force full page reload to ensure Header gets updated isAdmin value
-        window.location.href = '/admin';
-      } else {
-        window.location.href = '/dashboard';
-      }
+      // BULLETPROOF: Check admin status from result
+      const isAdmin = result.isAdmin === true;
+      console.log('👤 Is Admin:', isAdmin);
+
+      // FORCE REDIRECT - NO REACT ROUTER, PURE BROWSER NAVIGATION
+      const redirectUrl = isAdmin ? '/admin' : '/dashboard';
+      console.log('🚀 Redirecting to:', redirectUrl);
+
+      // Clear any existing state
+      sessionStorage.setItem('redirectAfterLogin', redirectUrl);
+
+      // TRIPLE REDUNDANCY: Try multiple redirect methods
+      setTimeout(() => {
+        window.location.replace(redirectUrl);
+      }, 100);
+
+      // Fallback
+      window.location.href = redirectUrl;
+
     } catch (error) {
+      console.error('❌ Sign in error:', error);
       setError(error.message || 'Invalid email or password. Please try again.');
-      console.error('Sign in error:', error);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -51,6 +61,7 @@ export default function SignIn() {
             Sign in to access your Palms Estate dashboard
           </p>
         </div>
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="rounded-md bg-red-50 border border-red-200 p-4">
@@ -66,11 +77,10 @@ export default function SignIn() {
               </div>
             </div>
           )}
+
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
+              <label htmlFor="email-address" className="sr-only">Email address</label>
               <input
                 id="email-address"
                 name="email"
@@ -85,9 +95,7 @@ export default function SignIn() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
+              <label htmlFor="password" className="sr-only">Password</label>
               <input
                 id="password"
                 name="password"
