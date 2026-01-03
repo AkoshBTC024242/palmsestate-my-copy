@@ -20,19 +20,12 @@ export default function SignIn() {
     try {
       const result = await signIn(email, password);
 
-      // Wait for auth state to propagate
-      await new Promise(resolve => setTimeout(resolve, 150));
-
-      // Check if user is admin and redirect accordingly
-      const userEmail = result.user?.email;
-      const isAdmin = userEmail === 'Koshbtc@gmail.com' || 
-                      userEmail === 'admin@palmsestate.org' || 
-                      userEmail?.includes('admin');
-
-      if (isAdmin) {
-        navigate('/admin', { replace: true });
+      // CRITICAL FIX: Use the isAdmin value returned from signIn
+      if (result.isAdmin) {
+        // Force full page reload to ensure Header gets updated isAdmin value
+        window.location.href = '/admin';
       } else {
-        navigate(from, { replace: true });
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       setError(error.message || 'Invalid email or password. Please try again.');
