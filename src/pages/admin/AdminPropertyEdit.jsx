@@ -1,4 +1,4 @@
-// src/pages/admin/AdminPropertyEdit.jsx - COMPATIBLE WITH YOUR SCHEMA
+// src/pages/admin/AdminPropertyEdit.jsx - FIXED VERSION
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -46,7 +46,7 @@ function AdminPropertyEdit() {
   const [imagePreview, setImagePreview] = useState('');
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   
-  // Initial form state - Only using columns from your schema
+  // Initial form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -80,7 +80,7 @@ function AdminPropertyEdit() {
         .from('properties')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle(); // Use maybeSingle instead of single
       
       if (fetchError) {
         console.error('Fetch error:', fetchError);
@@ -103,7 +103,7 @@ function AdminPropertyEdit() {
           status: data.status || 'available',
           category: data.category || 'Luxury',
           featured: data.featured || false,
-          price_per_week: data.price_per_week?.toString() || '',
+          price_per_week: data.price_per_week?.toString() || data.price?.toString() || '',
           property_type: data.property_type || 'villa'
         };
         
@@ -130,6 +130,9 @@ function AdminPropertyEdit() {
             console.warn('Error parsing amenities:', e);
           }
         }
+      } else {
+        setError('Property not found');
+        navigate('/admin/properties');
       }
     } catch (err) {
       console.error('Error loading property:', err);
@@ -232,7 +235,7 @@ function AdminPropertyEdit() {
         updated_at: new Date().toISOString()
       };
       
-      // Add price_per_week if provided (default to price * 4 if not)
+      // Add price_per_week if provided (default to price if not)
       if (formData.price_per_week) {
         propertyData.price_per_week = parseFloat(formData.price_per_week);
       } else {
@@ -252,22 +255,19 @@ function AdminPropertyEdit() {
       
       console.log('Submitting property data:', propertyData);
       
-      let result;
-      
       if (isEditing) {
-        // Update existing property
-        const { data, error: updateError } = await supabase
+        // Update existing property - don't use .single()
+        const { error: updateError } = await supabase
           .from('properties')
           .update(propertyData)
-          .eq('id', id)
-          .select()
-          .single();
+          .eq('id', id);
         
         if (updateError) {
           console.error('Update error details:', updateError);
           throw updateError;
         }
-        result = data;
+        
+        setSuccess('Property updated successfully!');
       } else {
         // Create new property
         propertyData.created_at = new Date().toISOString();
@@ -276,16 +276,15 @@ function AdminPropertyEdit() {
           .from('properties')
           .insert([propertyData])
           .select()
-          .single();
+          .single(); // For insert, .single() is okay
         
         if (insertError) {
           console.error('Insert error details:', insertError);
           throw insertError;
         }
-        result = data;
+        
+        setSuccess('Property created successfully!');
       }
-      
-      setSuccess(`Property ${isEditing ? 'updated' : 'created'} successfully!`);
       
       // Redirect after successful save
       setTimeout(() => {
@@ -354,7 +353,7 @@ function AdminPropertyEdit() {
               <div>
                 <p className="text-red-800 font-medium">{error}</p>
                 <p className="text-red-700 text-sm mt-1">
-                  Check your database schema or contact support if this persists.
+                  Please check the form and try again.
                 </p>
               </div>
             </div>
@@ -376,7 +375,7 @@ function AdminPropertyEdit() {
         )}
       </div>
 
-      {/* Property Form */}
+      {/* Property Form - Rest of the form remains the same as before */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Main Details */}
         <div className="lg:col-span-2 space-y-6">
