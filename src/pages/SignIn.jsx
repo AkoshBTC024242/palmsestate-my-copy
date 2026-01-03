@@ -1,7 +1,7 @@
-// src/pages/SignIn.jsx - WITH DEBUGGING
+// src/pages/SignIn.jsx - FINAL FIXED VERSION
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 function SignIn() {
   const [email, setEmail] = useState('');
@@ -9,6 +9,7 @@ function SignIn() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,17 +26,24 @@ function SignIn() {
         setError('✅ Login successful! Redirecting...');
         
         // Determine redirect path
-        const isAdmin = result.isAdmin || email.includes('admin') || email === 'koshbtc@gmail.com';
+        const isAdmin = result.isAdmin || 
+                       email.toLowerCase() === 'koshbtc@gmail.com' || 
+                       email.toLowerCase().includes('admin');
+        
         const redirectPath = isAdmin ? '/admin' : '/dashboard';
         
         console.log('👤 Is Admin:', isAdmin);
         console.log('🚀 Redirecting to:', redirectPath);
         
-        // Wait 1 second then redirect
+        // Use React Router navigation first
         setTimeout(() => {
-          console.log('🔄 Performing redirect...');
-          window.location.href = redirectPath;
-        }, 1000);
+          navigate(redirectPath, { replace: true });
+          
+          // Fallback: hard redirect after 2 seconds
+          setTimeout(() => {
+            window.location.href = redirectPath;
+          }, 2000);
+        }, 500);
       } else {
         setError(result.error || 'Invalid email or password. Please try again.');
         setIsLoading(false);
@@ -45,6 +53,12 @@ function SignIn() {
       setError(error.message || 'An unexpected error occurred');
       setIsLoading(false);
     }
+  };
+
+  // Test redirect function
+  const testRedirect = (path) => {
+    console.log('Testing redirect to:', path);
+    window.location.href = path;
   };
 
   return (
@@ -84,13 +98,27 @@ function SignIn() {
                     {error}
                   </p>
                   {error.includes('✅') && (
-                    <p className="text-xs text-green-600 mt-1">
-                      If redirect doesn't work, click: 
-                      <a href={email.includes('admin') || email === 'koshbtc@gmail.com' ? '/admin' : '/dashboard'} 
-                         className="ml-1 underline">
-                        {email.includes('admin') || email === 'koshbtc@gmail.com' ? '/admin' : '/dashboard'}
-                      </a>
-                    </p>
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-green-600">
+                        If redirect doesn't work, click below:
+                      </p>
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => testRedirect('/admin')}
+                          className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200"
+                        >
+                          Go to Admin
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => testRedirect('/dashboard')}
+                          className="text-xs bg-orange-100 text-orange-700 px-3 py-1 rounded hover:bg-orange-200"
+                        >
+                          Go to Dashboard
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -156,18 +184,37 @@ function SignIn() {
                 Don't have an account? Sign up
               </Link>
             </div>
+            <div className="text-sm">
+              <a href="/" className="font-medium text-gray-600 hover:text-gray-500">
+                Back to Home
+              </a>
+            </div>
           </div>
           
-          {/* Debug Links */}
+          {/* Quick Test Links */}
           <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p className="text-xs text-gray-600 mb-2">Test Links:</p>
+            <p className="text-xs text-gray-600 mb-2">Test Accounts:</p>
             <div className="space-y-1">
-              <a href="/admin" className="block text-xs text-blue-600 hover:text-blue-800 hover:underline">
-                ↗ Go to Admin Dashboard
-              </a>
-              <a href="/dashboard" className="block text-xs text-blue-600 hover:text-blue-800 hover:underline">
-                ↗ Go to User Dashboard
-              </a>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('koshbtc@gmail.com');
+                  setPassword('testpassword123');
+                }}
+                className="text-xs text-blue-600 hover:text-blue-800 hover:underline block w-full text-left"
+              >
+                ↗ Use Admin Test Account
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('user@example.com');
+                  setPassword('password123');
+                }}
+                className="text-xs text-orange-600 hover:text-orange-800 hover:underline block w-full text-left"
+              >
+                ↗ Use User Test Account
+              </button>
             </div>
           </div>
         </form>
