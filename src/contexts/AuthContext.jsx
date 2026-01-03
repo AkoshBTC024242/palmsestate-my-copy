@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
         if (currentSession?.user) {
           const currentUser = currentSession.user;
 
-          // Skip user_roles query — use email fallback
+          // Check if user is admin
           const isAdmin = currentUser.email === 'Koshbtc@gmail.com' || currentUser.email === 'admin@palmsestate.org' || currentUser.email?.includes('admin');
 
           const enhancedUser = {
@@ -114,7 +114,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const canUseTestMode = () => {
-    return false; // disable for now
+    return false;
   };
 
   const signIn = async (email, password) => {
@@ -131,22 +131,22 @@ export const AuthProvider = ({ children }) => {
         await supabase.auth.setSession(data.session);
       }
 
-      const isAdmin = data.user.email === 'Koshbtc@gmail.com' || data.user.email === 'admin@palmsestate.org' || data.user.email?.includes('admin');
+      const isAdminUser = data.user.email === 'Koshbtc@gmail.com' || data.user.email === 'admin@palmsestate.org' || data.user.email?.includes('admin');
 
       const enhancedUser = {
         ...data.user,
-        role: isAdmin ? 'admin' : 'user',
-        isAdmin: isAdmin,
+        role: isAdminUser ? 'admin' : 'user',
+        isAdmin: isAdminUser,
         testMode: false
       };
 
       setUser(enhancedUser);
-      setUserRole(isAdmin ? 'admin' : 'user');
+      setUserRole(isAdminUser ? 'admin' : 'user');
       setSession(data.session);
 
       await loadUserProfile(data.user.id);
 
-      return { user: enhancedUser, session: data.session };
+      return { user: enhancedUser, session: data.session, isAdmin: isAdminUser };
     } catch (error) {
       throw error;
     }
@@ -171,7 +171,7 @@ export const AuthProvider = ({ children }) => {
     testMode,
     signIn,
     signOut,
-    isAdmin: isAdmin(),
+    isAdmin: user?.isAdmin === true || userRole === 'admin', // CRITICAL FIX: Return boolean directly
     canUseTestMode: canUseTestMode(),
     isAuthenticated: !!user,
   };
