@@ -1,38 +1,35 @@
-// src/pages/admin/AdminPropertyEdit.jsx - FIXED VERSION
+// src/pages/admin/AdminPropertyEdit.jsx - COMPATIBLE WITH YOUR SCHEMA
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Save, Upload, X, Image, MapPin,
   DollarSign, Bed, Bath, Square, Home, Globe,
   Calendar, CheckCircle, AlertCircle, Loader2,
-  Plus, Minus, Tag, Building2, Eye, Check, Wifi,
-  Car, Coffee, Dumbbell, Waves, Snowflake, Tv,
-  Shield, Utensils, Wind, Sun, Droplets, Thermometer
+  Tag, Building2, Eye, Check, Wifi,
+  Car, Dumbbell, Waves, Snowflake, Tv,
+  Shield, Utensils, Sun, Droplets, Thermometer,
+  Users, Coffee, Wind, Snowflake as SnowflakeIcon
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
-// Amenities options
+// Amenities options (will be stored as comma-separated string)
 const AMENITIES_OPTIONS = [
-  { id: 'wifi', label: 'Wi-Fi', icon: Wifi, category: 'Technology' },
-  { id: 'parking', label: 'Parking', icon: Car, category: 'Transportation' },
-  { id: 'pool', label: 'Swimming Pool', icon: Waves, category: 'Recreation' },
-  { id: 'gym', label: 'Gym', icon: Dumbbell, category: 'Recreation' },
-  { id: 'ac', label: 'Air Conditioning', icon: Snowflake, category: 'Comfort' },
-  { id: 'heating', label: 'Heating', icon: Thermometer, category: 'Comfort' },
-  { id: 'tv', label: 'Smart TV', icon: Tv, category: 'Entertainment' },
-  { id: 'security', label: 'Security System', icon: Shield, category: 'Safety' },
-  { id: 'kitchen', label: 'Fully Equipped Kitchen', icon: Utensils, category: 'Kitchen' },
-  { id: 'laundry', label: 'Laundry Facilities', icon: Droplets, category: 'Utility' },
-  { id: 'balcony', label: 'Balcony/Terrace', icon: Sun, category: 'Outdoor' },
-  { id: 'view', label: 'Scenic View', icon: Eye, category: 'Location' },
-  { id: 'elevator', label: 'Elevator', icon: ArrowLeft, category: 'Accessibility' },
-  { id: 'concierge', label: 'Concierge Service', icon: Shield, category: 'Services' },
-  { id: 'maid', label: 'Maid Service', icon: Coffee, category: 'Services' },
-  { id: 'hot_tub', label: 'Hot Tub/Jacuzzi', icon: Waves, category: 'Recreation' },
-  { id: 'bbq', label: 'BBQ Area', icon: Thermometer, category: 'Outdoor' },
-  { id: 'garden', label: 'Garden', icon: Sun, category: 'Outdoor' },
-  { id: 'workspace', label: 'Dedicated Workspace', icon: Home, category: 'Work' },
-  { id: 'pets', label: 'Pet Friendly', icon: Shield, category: 'Policy' },
+  { id: 'wifi', label: 'Wi-Fi', icon: Wifi },
+  { id: 'parking', label: 'Parking', icon: Car },
+  { id: 'pool', label: 'Swimming Pool', icon: Waves },
+  { id: 'gym', label: 'Gym', icon: Dumbbell },
+  { id: 'ac', label: 'Air Conditioning', icon: Snowflake },
+  { id: 'heating', label: 'Heating', icon: Thermometer },
+  { id: 'tv', label: 'Smart TV', icon: Tv },
+  { id: 'security', label: 'Security System', icon: Shield },
+  { id: 'kitchen', label: 'Fully Equipped Kitchen', icon: Utensils },
+  { id: 'laundry', label: 'Laundry Facilities', icon: Droplets },
+  { id: 'balcony', label: 'Balcony/Terrace', icon: Sun },
+  { id: 'view', label: 'Ocean View', icon: Eye },
+  { id: 'concierge', label: 'Concierge Service', icon: Users },
+  { id: 'maid', label: 'Daily Maid Service', icon: Coffee },
+  { id: 'spa', label: 'Spa Services', icon: Wind },
+  { id: 'hot_tub', label: 'Hot Tub/Jacuzzi', icon: Waves },
 ];
 
 function AdminPropertyEdit() {
@@ -49,21 +46,21 @@ function AdminPropertyEdit() {
   const [imagePreview, setImagePreview] = useState('');
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   
-  // Initial form state - ONLY using columns that exist in your schema
+  // Initial form state - Only using columns from your schema
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     location: '',
     price: '',
-    price_per_week: '',
     bedrooms: '3',
     bathrooms: '3',
-    square_feet: '5000',
     sqft: '5000',
-    category: 'Luxury',
-    status: 'available',
     image_url: 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
+    status: 'available',
+    category: 'Luxury',
     featured: false,
+    price_per_week: '',
+    property_type: 'villa'
   });
 
   // Load property data if editing
@@ -78,32 +75,36 @@ function AdminPropertyEdit() {
       setLoading(true);
       setError('');
       
+      console.log('Loading property ID:', id);
       const { data, error: fetchError } = await supabase
         .from('properties')
         .select('*')
         .eq('id', id)
         .single();
       
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Fetch error:', fetchError);
+        throw fetchError;
+      }
       
       if (data) {
         console.log('Loaded property data:', data);
         
-        // Convert numbers to strings for form inputs
+        // Map all fields from database to form
         const formattedData = {
           title: data.title || '',
           description: data.description || '',
           location: data.location || '',
           price: data.price?.toString() || '',
-          price_per_week: data.price_per_week?.toString() || data.price?.toString() || '',
           bedrooms: data.bedrooms?.toString() || '3',
           bathrooms: data.bathrooms?.toString() || '3',
-          square_feet: data.square_feet?.toString() || data.sqft?.toString() || '5000',
-          sqft: data.sqft?.toString() || data.square_feet?.toString() || '5000',
-          category: data.category || 'Luxury',
-          status: data.status || 'available',
+          sqft: data.sqft?.toString() || '5000',
           image_url: data.image_url || 'https://images.unsplash.com/photo-1613977257592-4871e5fcd7c4',
+          status: data.status || 'available',
+          category: data.category || 'Luxury',
           featured: data.featured || false,
+          price_per_week: data.price_per_week?.toString() || '',
+          property_type: data.property_type || 'villa'
         };
         
         setFormData(formattedData);
@@ -112,14 +113,19 @@ function AdminPropertyEdit() {
         // Parse amenities if they exist
         if (data.amenities) {
           try {
-            // Handle both string (comma-separated) and array formats
-            let amenitiesList = [];
-            if (Array.isArray(data.amenities)) {
-              amenitiesList = data.amenities;
-            } else if (typeof data.amenities === 'string') {
-              amenitiesList = data.amenities.split(',').map(item => item.trim());
-            }
-            setSelectedAmenities(amenitiesList);
+            // Split comma-separated string into array
+            const amenitiesList = data.amenities
+              .split(',')
+              .map(item => item.trim())
+              .filter(item => item.length > 0);
+            
+            // Map to amenity IDs
+            const amenityIds = amenitiesList.map(amenity => {
+              const found = AMENITIES_OPTIONS.find(a => a.label === amenity);
+              return found ? found.id : amenity.toLowerCase().replace(/\s+/g, '_');
+            });
+            
+            setSelectedAmenities(amenityIds);
           } catch (e) {
             console.warn('Error parsing amenities:', e);
           }
@@ -127,7 +133,7 @@ function AdminPropertyEdit() {
       }
     } catch (err) {
       console.error('Error loading property:', err);
-      setError('Failed to load property. Please try again.');
+      setError(`Failed to load property: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -164,7 +170,7 @@ function AdminPropertyEdit() {
     try {
       setUploadingImage(true);
       
-      // For now, we'll just use the file for preview
+      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -209,27 +215,39 @@ function AdminPropertyEdit() {
       setError('');
       setSuccess('');
       
-      // Prepare data for submission - ONLY include columns that exist
+      // Prepare data for submission
       const propertyData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         location: formData.location.trim(),
         price: parseFloat(formData.price),
-        price_per_week: parseFloat(formData.price_per_week || formData.price),
         bedrooms: parseInt(formData.bedrooms) || 3,
         bathrooms: parseInt(formData.bathrooms) || 3,
-        square_feet: parseInt(formData.square_feet) || 5000,
         sqft: parseInt(formData.sqft) || 5000,
-        category: formData.category,
-        status: formData.status,
         image_url: formData.image_url,
+        status: formData.status,
+        category: formData.category,
         featured: formData.featured,
+        property_type: formData.property_type,
         updated_at: new Date().toISOString()
       };
       
-      // Only add amenities if there are any selected
+      // Add price_per_week if provided (default to price * 4 if not)
+      if (formData.price_per_week) {
+        propertyData.price_per_week = parseFloat(formData.price_per_week);
+      } else {
+        propertyData.price_per_week = parseFloat(formData.price);
+      }
+      
+      // Convert selected amenities to comma-separated string
       if (selectedAmenities.length > 0) {
-        propertyData.amenities = selectedAmenities;
+        const amenityLabels = selectedAmenities.map(amenityId => {
+          const amenity = AMENITIES_OPTIONS.find(a => a.id === amenityId);
+          return amenity ? amenity.label : amenityId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        });
+        propertyData.amenities = amenityLabels.join(', ');
+      } else {
+        propertyData.amenities = '';
       }
       
       console.log('Submitting property data:', propertyData);
@@ -286,16 +304,6 @@ function AdminPropertyEdit() {
     navigate('/admin/properties');
   };
 
-  // Group amenities by category
-  const groupedAmenities = AMENITIES_OPTIONS.reduce((groups, amenity) => {
-    const category = amenity.category;
-    if (!groups[category]) {
-      groups[category] = [];
-    }
-    groups[category].push(amenity);
-    return groups;
-  }, {});
-
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[60vh]">
@@ -346,7 +354,7 @@ function AdminPropertyEdit() {
               <div>
                 <p className="text-red-800 font-medium">{error}</p>
                 <p className="text-red-700 text-sm mt-1">
-                  If this persists, check your database schema or contact support.
+                  Check your database schema or contact support if this persists.
                 </p>
               </div>
             </div>
@@ -426,6 +434,27 @@ function AdminPropertyEdit() {
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property Type
+                </label>
+                <select
+                  name="property_type"
+                  value={formData.property_type}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                >
+                  <option value="villa">Villa</option>
+                  <option value="apartment">Apartment</option>
+                  <option value="penthouse">Penthouse</option>
+                  <option value="mansion">Mansion</option>
+                  <option value="chalet">Chalet</option>
+                  <option value="cottage">Cottage</option>
+                  <option value="condo">Condominium</option>
+                  <option value="townhouse">Townhouse</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -438,7 +467,7 @@ function AdminPropertyEdit() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Weekly Price ($) *
+                  Price per Week ($) *
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -456,7 +485,7 @@ function AdminPropertyEdit() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Monthly Price (Calculated)
+                  Price per Month (Calculated)
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -506,15 +535,15 @@ function AdminPropertyEdit() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Square Feet
+                  Square Feet (sqft)
                 </label>
                 <div className="relative">
                   <Square className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
-                    name="square_feet"
-                    value={formData.square_feet}
-                    onChange={(e) => handleNumberChange('square_feet', e.target.value)}
+                    name="sqft"
+                    value={formData.sqft}
+                    onChange={(e) => handleNumberChange('sqft', e.target.value)}
                     className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                     placeholder="5000"
                   />
@@ -551,46 +580,39 @@ function AdminPropertyEdit() {
               Select amenities available at this property
             </p>
             
-            <div className="space-y-6">
-              {Object.entries(groupedAmenities).map(([category, amenities]) => (
-                <div key={category}>
-                  <h3 className="font-medium text-gray-900 mb-3">{category}</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {amenities.map((amenity) => {
-                      const Icon = amenity.icon;
-                      const isSelected = selectedAmenities.includes(amenity.id);
-                      
-                      return (
-                        <button
-                          key={amenity.id}
-                          type="button"
-                          onClick={() => toggleAmenity(amenity.id)}
-                          className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
-                            isSelected
-                              ? 'bg-orange-50 border-orange-300 text-orange-700'
-                              : 'bg-white border-gray-300 hover:border-gray-400 text-gray-700'
-                          }`}
-                        >
-                          <div className={`p-2 rounded ${
-                            isSelected ? 'bg-orange-100' : 'bg-gray-100'
-                          }`}>
-                            <Icon className={`w-4 h-4 ${isSelected ? 'text-orange-600' : 'text-gray-500'}`} />
-                          </div>
-                          <span className="text-sm font-medium">{amenity.label}</span>
-                          {isSelected && (
-                            <Check className="w-4 h-4 text-orange-600 ml-auto" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {AMENITIES_OPTIONS.map((amenity) => {
+                const Icon = amenity.icon;
+                const isSelected = selectedAmenities.includes(amenity.id);
+                
+                return (
+                  <button
+                    key={amenity.id}
+                    type="button"
+                    onClick={() => toggleAmenity(amenity.id)}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                      isSelected
+                        ? 'bg-orange-50 border-orange-300 text-orange-700'
+                        : 'bg-white border-gray-300 hover:border-gray-400 text-gray-700'
+                    }`}
+                  >
+                    <div className={`p-2 rounded ${
+                      isSelected ? 'bg-orange-100' : 'bg-gray-100'
+                    }`}>
+                      <Icon className={`w-4 h-4 ${isSelected ? 'text-orange-600' : 'text-gray-500'}`} />
+                    </div>
+                    <span className="text-sm font-medium text-left">{amenity.label}</span>
+                    {isSelected && (
+                      <Check className="w-4 h-4 text-orange-600 ml-auto" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
             
-            <div className="mt-4 text-sm text-gray-600">
-              <p>
-                Selected: {selectedAmenities.length} amenit{selectedAmenities.length === 1 ? 'y' : 'ies'}
+            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">
+                <span className="font-medium">{selectedAmenities.length} amenities</span> selected
               </p>
               {selectedAmenities.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -599,13 +621,13 @@ function AdminPropertyEdit() {
                     return amenity ? (
                       <span
                         key={amenityId}
-                        className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 rounded text-xs"
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
                       >
                         {amenity.label}
                         <button
                           type="button"
                           onClick={() => toggleAmenity(amenityId)}
-                          className="text-orange-600 hover:text-orange-800"
+                          className="text-orange-600 hover:text-orange-800 ml-1"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -761,13 +783,19 @@ function AdminPropertyEdit() {
                   <div className="flex justify-between">
                     <span>Size:</span>
                     <span className="font-medium">
-                      {formData.square_feet?.toLocaleString()} sqft
+                      {formData.sqft?.toLocaleString()} sqft
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Bed/Bath:</span>
                     <span className="font-medium">
                       {formData.bedrooms} / {formData.bathrooms}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Type:</span>
+                    <span className="font-medium capitalize">
+                      {formData.property_type}
                     </span>
                   </div>
                   <div className="flex justify-between">
