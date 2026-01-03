@@ -39,13 +39,25 @@ export default function Home() {
         .select('*', { count: 'exact', head: true });
 
       setStats({
-        properties: propertyCount || 150,
-        residents: residentCount || 500,
+        properties: propertyCount || 250,
+        residents: residentCount || 800,
         satisfaction: 98
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
+  };
+
+  // Helper function to get property image
+  const getPropertyImage = (property) => {
+    if (property.images && Array.isArray(property.images) && property.images.length > 0) {
+      return property.images[0];
+    }
+    if (property.image_url) {
+      return property.image_url;
+    }
+    // Return placeholder gradient
+    return null;
   };
 
   return (
@@ -64,7 +76,7 @@ export default function Home() {
             <div className="text-white space-y-8">
               <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
                 <Star className="w-4 h-4 fill-current" />
-                <span>Trusted by 500+ Happy Residents</span>
+                <span>Trusted by 800+ Happy Residents</span>
               </div>
 
               <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
@@ -73,7 +85,7 @@ export default function Home() {
               </h1>
 
               <p className="text-xl text-orange-100 leading-relaxed">
-                Discover premium properties in prime locations. Experience luxury living with Palms Estate - where comfort meets elegance.
+                Discover premium properties across the United States. Experience luxury living with Palms Estate - where comfort meets elegance.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -123,11 +135,11 @@ export default function Home() {
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900">Modern Villa</div>
-                          <div className="text-sm text-gray-600">Lagos, Nigeria</div>
+                          <div className="text-sm text-gray-600">Los Angeles, CA</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">₦45M</div>
+                        <div className="text-lg font-bold text-orange-600">$2.5M</div>
                         <div className="text-xs text-gray-500">Available</div>
                       </div>
                     </div>
@@ -139,17 +151,17 @@ export default function Home() {
                         </div>
                         <div>
                           <div className="font-semibold text-gray-900">Luxury Apartment</div>
-                          <div className="text-sm text-gray-600">Lekki, Lagos</div>
+                          <div className="text-sm text-gray-600">New York, NY</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">₦28M</div>
+                        <div className="text-lg font-bold text-orange-600">$1.8M</div>
                         <div className="text-xs text-gray-500">Available</div>
                       </div>
                     </div>
 
                     <div className="p-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl text-white text-center">
-                      <div className="text-3xl font-bold mb-1">500+</div>
+                      <div className="text-3xl font-bold mb-1">800+</div>
                       <div className="text-orange-100">Properties Listed</div>
                     </div>
                   </div>
@@ -185,7 +197,7 @@ export default function Home() {
               {
                 icon: TrendingUp,
                 title: 'Best Value',
-                description: 'Competitive pricing with the best properties in premium locations.',
+                description: 'Competitive pricing with the best properties across the United States.',
                 color: 'orange'
               }
             ].map((feature, index) => (
@@ -220,47 +232,55 @@ export default function Home() {
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
-              {featuredProperties.map((property) => (
-                <Link
-                  key={property.id}
-                  to={`/properties/${property.id}`}
-                  className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-                >
-                  <div className="relative h-64 bg-gradient-to-br from-orange-400 to-orange-600 overflow-hidden">
-                    {property.images?.[0] ? (
-                      <img
-                        src={property.images[0]}
-                        alt={property.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <HomeIcon className="w-16 h-16 text-white" />
-                      </div>
-                    )}
-                    <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full text-sm font-semibold text-orange-600">
-                      {property.status}
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
-                      {property.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4 flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      {property.location}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div className="text-2xl font-bold text-orange-600">
-                        ₦{parseFloat(property.price).toLocaleString()}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {property.bedrooms} beds • {property.bathrooms} baths
+              {featuredProperties.map((property) => {
+                const propertyImage = getPropertyImage(property);
+
+                return (
+                  <Link
+                    key={property.id}
+                    to={`/properties/${property.id}`}
+                    className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
+                  >
+                    <div className="relative h-64 bg-gradient-to-br from-orange-400 to-orange-600 overflow-hidden">
+                      {propertyImage ? (
+                        <img
+                          src={propertyImage}
+                          alt={property.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <HomeIcon className="w-16 h-16 text-white" />
+                        </div>
+                      )}
+                      <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full text-sm font-semibold text-orange-600 capitalize">
+                        {property.status}
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">
+                        {property.title}
+                      </h3>
+                      <p className="text-gray-600 mb-4 flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        {property.location}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div className="text-2xl font-bold text-orange-600">
+                          ${parseFloat(property.price).toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {property.bedrooms} beds • {property.bathrooms} baths
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -299,10 +319,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 text-center">
             {[
-              { label: 'Years Experience', value: '10+' },
-              { label: 'Properties Sold', value: '1000+' },
-              { label: 'Happy Clients', value: '500+' },
-              { label: 'Awards Won', value: '25+' }
+              { label: 'Years Experience', value: '15+' },
+              { label: 'Properties Sold', value: '2,500+' },
+              { label: 'Happy Clients', value: '800+' },
+              { label: 'Awards Won', value: '35+' }
             ].map((stat, index) => (
               <div key={index} className="space-y-2">
                 <div className="text-4xl font-bold text-orange-600">{stat.value}</div>
