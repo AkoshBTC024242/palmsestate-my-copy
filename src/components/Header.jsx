@@ -12,6 +12,12 @@ export default function Header() {
   const { user, signOut, isAdmin } = useAuth();
   const userMenuRef = useRef(null);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 Header: user =', user);
+    console.log('🔍 Header: isAdmin =', isAdmin);
+  }, [user, isAdmin]);
+
   // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
@@ -74,7 +80,7 @@ export default function Header() {
               <div className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">
                 Palms Estate
               </div>
-              <div className="text-xs text-gray-500">Premium Properties</div>
+              <div className="text-xs text-gray-500">Premium Rentals</div>
             </div>
           </Link>
 
@@ -111,7 +117,7 @@ export default function Header() {
                   </span>
                 </button>
 
-                {/* Dropdown Menu */}
+                {/* Dropdown Menu - Admin Dashboard BELOW Dashboard */}
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-orange-100">
@@ -122,6 +128,7 @@ export default function Header() {
                     </div>
 
                     <div className="py-2">
+                      {/* Dashboard FIRST */}
                       <Link
                         to="/dashboard"
                         onClick={() => setShowUserMenu(false)}
@@ -131,12 +138,12 @@ export default function Header() {
                         Dashboard
                       </Link>
 
-                      {/* Admin Dashboard Link - Only for Admins */}
+                      {/* Admin Dashboard BELOW Dashboard - Only for Admins */}
                       {isAdmin && (
                         <Link
                           to="/admin"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center px-4 py-3 text-sm text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors border-l-4 border-orange-500"
+                          className="flex items-center px-4 py-3 text-sm font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors border-l-4 border-orange-500"
                         >
                           <Shield className="w-4 h-4 mr-3" />
                           Admin Dashboard
@@ -245,12 +252,12 @@ export default function Header() {
                       Dashboard
                     </Link>
 
-                    {/* Admin Dashboard Link for Mobile */}
+                    {/* Admin Dashboard for Mobile - BELOW Dashboard */}
                     {isAdmin && (
                       <Link
                         to="/admin"
                         onClick={() => setIsOpen(false)}
-                        className="flex items-center px-4 py-3 text-sm text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors rounded-lg border-l-4 border-orange-500"
+                        className="flex items-center px-4 py-3 text-sm font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors rounded-lg border-l-4 border-orange-500"
                       >
                         <Shield className="w-4 h-4 mr-3" />
                         Admin Dashboard
