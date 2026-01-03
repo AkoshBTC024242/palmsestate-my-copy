@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.jsx - FIXED VERSION
+// src/contexts/AuthContext.jsx - CORRECTED VERSION
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
     const handleAuthState = async () => {
@@ -22,12 +22,12 @@ export const AuthProvider = ({ children }) => {
         if (currentSession?.user) {
           const currentUser = currentSession.user;
           
-          // Load profile first to check admin status
+          // Load profile first
           await loadUserProfile(currentUser.id);
           
-          // Check admin status from multiple sources
+          // Check admin status
           const adminStatus = checkAdminStatus(currentUser);
-          setIsAdmin(adminStatus);
+          setIsAdminUser(adminStatus);
           
           const enhancedUser = {
             ...currentUser,
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
           setUser(enhancedUser);
         } else {
           setUser(null);
-          setIsAdmin(false);
+          setIsAdminUser(false);
           setUserProfile(null);
         }
 
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
             
             // Check admin status
             const adminStatus = checkAdminStatus(currentUser);
-            setIsAdmin(adminStatus);
+            setIsAdminUser(adminStatus);
             
             const enhancedUser = {
               ...currentUser,
@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
             setUser(enhancedUser);
           } else {
             setUser(null);
-            setIsAdmin(false);
+            setIsAdminUser(false);
             setUserProfile(null);
           }
         });
@@ -82,17 +82,16 @@ export const AuthProvider = ({ children }) => {
   const checkAdminStatus = (currentUser) => {
     // Check multiple possible admin indicators
     return (
-      // 1. Check email
-      currentUser.email === 'koshbtc@gmail.com' || // Lowercase
-      currentUser.email === 'Koshbtc@gmail.com' || // Original case
-      currentUser.email === 'admin@palmsestate.org' ||
-      currentUser.email?.includes('admin') ||
+      // Check email (case-insensitive)
+      currentUser.email?.toLowerCase() === 'koshbtc@gmail.com' ||
+      currentUser.email?.toLowerCase() === 'admin@palmsestate.org' ||
+      currentUser.email?.toLowerCase().includes('admin') ||
       
-      // 2. Check user metadata
+      // Check user metadata
       currentUser.user_metadata?.role === 'admin' ||
       currentUser.user_metadata?.is_admin === true ||
       
-      // 3. Check loaded profile
+      // Check loaded profile
       userProfile?.role === 'admin' ||
       userProfile?.is_admin === true
     );
@@ -111,7 +110,7 @@ export const AuthProvider = ({ children }) => {
         
         // Update admin status based on profile
         if (data.role === 'admin' || data.is_admin === true) {
-          setIsAdmin(true);
+          setIsAdminUser(true);
         }
       }
     } catch (error) {
@@ -138,7 +137,7 @@ export const AuthProvider = ({ children }) => {
       
       // Check admin status
       const adminStatus = checkAdminStatus(data.user);
-      setIsAdmin(adminStatus);
+      setIsAdminUser(adminStatus);
 
       const enhancedUser = {
         ...data.user,
@@ -169,7 +168,7 @@ export const AuthProvider = ({ children }) => {
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
-      setIsAdmin(false);
+      setIsAdminUser(false);
       setUserProfile(null);
       window.location.href = '/';
     } catch (error) {
@@ -189,7 +188,7 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signOut,
     updateUserProfile,
-    isAdmin: isAdmin, // This is now a proper boolean
+    isAdmin: isAdminUser, // This is now a proper boolean
     isAuthenticated: !!user,
     refreshSession: async () => {
       const { data: { session: newSession } } = await supabase.auth.refreshSession();
