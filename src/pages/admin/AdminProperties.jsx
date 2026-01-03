@@ -1,9 +1,9 @@
-// src/pages/admin/AdminProperties.jsx
+// src/pages/admin/AdminProperties.jsx - COMPLETE VERSION WITH SUPABASE
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Filter, Edit, Trash2, Eye, 
-  Upload, Download, MoreVertical, ChevronLeft, 
+  Download, MoreVertical, ChevronLeft, 
   ChevronRight, Building2, DollarSign, MapPin, 
   Bed, Bath, Square, Calendar, CheckCircle, 
   XCircle, Clock, AlertCircle, Loader2 
@@ -22,27 +22,30 @@ function AdminProperties() {
   const [selectedProperties, setSelectedProperties] = useState([]);
   const [bulkAction, setBulkAction] = useState('');
 
-  // Fetch properties
+  // Fetch properties from Supabase
   const fetchProperties = async () => {
     try {
       setLoading(true);
       setError('');
       
-      console.log('Fetching properties...');
+      console.log('📡 Fetching properties from Supabase...');
       const { data, error: fetchError } = await supabase
         .from('properties')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('❌ Error fetching properties:', fetchError);
+        throw fetchError;
+      }
       
-      console.log(`Fetched ${data?.length || 0} properties`);
+      console.log(`✅ Fetched ${data?.length || 0} properties`);
       setProperties(data || []);
       
     } catch (err) {
-      console.error('Error fetching properties:', err);
+      console.error('❌ Error fetching properties:', err);
       setError('Failed to load properties. Please try again.');
-      // Load sample data for demo
+      // Fallback to sample data if database fetch fails
       setProperties(getSampleProperties());
     } finally {
       setLoading(false);
@@ -53,7 +56,7 @@ function AdminProperties() {
     fetchProperties();
   }, []);
 
-  // Get sample properties for demo
+  // Sample properties for fallback/demo
   const getSampleProperties = () => {
     return [
       {
@@ -170,7 +173,10 @@ function AdminProperties() {
         // Update status for selected properties
         const { error } = await supabase
           .from('properties')
-          .update({ status: 'available', updated_at: new Date().toISOString() })
+          .update({ 
+            status: 'available', 
+            updated_at: new Date().toISOString() 
+          })
           .in('id', selectedProperties);
         
         if (error) throw error;
@@ -180,7 +186,7 @@ function AdminProperties() {
         setBulkAction('');
       }
     } catch (err) {
-      console.error('Bulk action error:', err);
+      console.error('❌ Bulk action error:', err);
       setError('Failed to perform bulk action. Please try again.');
     } finally {
       setLoading(false);
@@ -204,7 +210,7 @@ function AdminProperties() {
       
       await fetchProperties();
     } catch (err) {
-      console.error('Delete error:', err);
+      console.error('❌ Delete error:', err);
       setError('Failed to delete property. Please try again.');
     } finally {
       setLoading(false);
@@ -231,13 +237,42 @@ function AdminProperties() {
     );
   };
 
+  // Export properties to CSV
+  const handleExport = () => {
+    const csvContent = [
+      ['ID', 'Title', 'Location', 'Price', 'Status', 'Category', 'Bedrooms', 'Bathrooms', 'Square Feet', 'Created At'],
+      ...filteredProperties.map(property => [
+        property.id,
+        property.title,
+        property.location,
+        `$${property.price}`,
+        property.status,
+        property.category,
+        property.bedrooms,
+        property.bathrooms,
+        property.square_feet,
+        new Date(property.created_at).toLocaleDateString()
+      ])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `properties-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Properties</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Properties Management</h1>
             <p className="text-gray-600">Manage all properties in your portfolio</p>
           </div>
           <button
@@ -380,9 +415,12 @@ function AdminProperties() {
               </select>
             </div>
             
-            <button className="flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors">
+            <button 
+              onClick={handleExport}
+              className="flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-colors"
+            >
               <Download className="w-4 h-4" />
-              Export
+              Export CSV
             </button>
           </div>
         </div>
