@@ -1,4 +1,4 @@
-// src/pages/PropertyDetails.jsx - UPDATED WITH IMAGE LIGHTBOX AND REORGANIZED CONTENT
+// src/pages/PropertyDetails.jsx - UPDATED WITH IMAGE CLICK AND REORGANIZED CONTENT
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,7 +17,7 @@ import {
   FireExtinguisher, Microwave, Refrigerator,
   Fan, Printer, Gamepad2, Projector, Piano,
   Wine, Bike, Zap, Settings as SettingsIcon, Camera,
-  FileText, MessageSquare, X, Maximize2, Download
+  FileText, MessageSquare, X, Maximize2
 } from 'lucide-react';
 
 // Property Type Configuration for Icons and Labels
@@ -72,85 +72,6 @@ const PROPERTY_TYPE_CONFIG = {
   }
 };
 
-// Amenities Icons Mapping
-const AMENITIES_ICONS = {
-  'Wi-Fi': Wifi,
-  'Parking': Car,
-  'Swimming Pool': Waves,
-  'Gym': Dumbbell,
-  'Air Conditioning': Snowflake,
-  'Heating': Thermometer,
-  'Smart TV': Tv,
-  'Security System': Shield,
-  'Fully Equipped Kitchen': Utensils,
-  'Laundry Facilities': Droplets,
-  'Balcony/Terrace': Sun,
-  'Ocean View': Eye,
-  'Concierge Service': Users,
-  'Daily Maid Service': Coffee,
-  'Spa Services': Wind,
-  'Hot Tub/Jacuzzi': Waves,
-  'Private Pool': Waves,
-  'Staff Quarters': Users,
-  'Private Beach': Sun,
-  'Concierge': Users,
-  'Elevator': Settings,
-  'Rooftop': Eye,
-  'Private Elevator': Settings,
-  'Panoramic View': Eye,
-  'Tennis Court': Dumbbell,
-  'Wine Cellar': Wine,
-  'Ski Access': Mountain,
-  'Fireplace': FireExtinguisher,
-  'Sauna': Wind,
-  'Mountain View': Mountain,
-  'Waterfront': Waves,
-  'Boat Dock': Waves,
-  'Fire Pit': FireExtinguisher,
-  'Rustic': TreePine,
-  'Reserved Parking': Car,
-  'Building Amenities': Building,
-  'Private Entrance': Key,
-  'Private Garden': TreePine,
-  'Community Pool': Waves,
-};
-
-// Property Type Specific Features Icons
-const TYPE_FEATURES_ICONS = {
-  'has_private_pool': Waves,
-  'garden_size_sqft': TreePine,
-  'staff_quarters': Users,
-  'private_beach_access': Sun,
-  'apartment_floor': Building,
-  'has_concierge': Users,
-  'parking_spots': Car,
-  'has_elevator': Settings,
-  'rooftop_access': Eye,
-  'private_elevator': Settings,
-  'panoramic_view': Eye,
-  'terrace_size_sqft': Sun,
-  'estate_size_acres': Map,
-  'guest_houses': HomeIcon,
-  'tennis_court': Dumbbell,
-  'wine_cellar': Wine,
-  'ski_in_out': Mountain,
-  'fireplace': FireExtinguisher,
-  'sauna': Wind,
-  'mountain_view': Mountain,
-  'waterfront': Waves,
-  'boat_dock': Waves,
-  'fire_pit': FireExtinguisher,
-  'rustic_features': TreePine,
-  'hoa_fee': DollarSign,
-  'unit_number': HomeIcon,
-  'reserved_parking': Car,
-  'building_amenities': Building,
-  'shared_walls': Building,
-  'private_entrance': Key,
-  'small_garden': TreePine,
-  'community_pool': Waves,
-};
-
 function PropertyDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -183,6 +104,7 @@ function PropertyDetails() {
     try {
       setLoading(true);
       
+      // Fetch property with minimal data first for faster loading
       const { data, error } = await supabase
         .from('properties')
         .select('*')
@@ -192,8 +114,6 @@ function PropertyDetails() {
       if (error) throw error;
 
       if (data) {
-        console.log('Loaded property:', data);
-        
         // Parse custom fields JSON
         const customFields = typeof data.custom_fields === 'string' 
           ? JSON.parse(data.custom_fields || '{}') 
@@ -204,7 +124,7 @@ function PropertyDetails() {
           ? data.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
           : [];
         
-        // Ensure images is an array
+        // Get images - ensure it's an array
         let images = [];
         if (data.images && Array.isArray(data.images)) {
           images = data.images;
@@ -245,6 +165,10 @@ function PropertyDetails() {
       }
     } catch (error) {
       console.error('Error checking if saved:', error);
+      // If table doesn't exist, just continue
+      if (error.code !== '42P01') {
+        console.log('Saved properties table might not exist');
+      }
     } finally {
       setCheckingSaved(false);
     }
@@ -299,7 +223,6 @@ function PropertyDetails() {
   };
 
   const handleContactAgent = () => {
-    // Navigate to contact page with property details in state
     navigate('/contact', {
       state: {
         propertyInquiry: true,
@@ -312,7 +235,6 @@ function PropertyDetails() {
   };
 
   const handleScheduleTour = () => {
-    // Navigate to contact page for tour scheduling
     navigate('/contact', {
       state: {
         scheduleTour: true,
@@ -324,12 +246,10 @@ function PropertyDetails() {
   };
 
   const handleCallAgent = () => {
-    // Open default phone app with contact number
     window.location.href = 'tel:+12345678900';
   };
 
   const handleEmailInquiry = () => {
-    // Open default email client with pre-filled subject
     const subject = `Inquiry about ${property.title} (ID: ${property.id})`;
     const body = `Hello Palms Estate Team,\n\nI'm interested in the property "${property.title}" located at ${property.location}.\n\nPlease contact me with more information.\n\nBest regards,`;
     window.location.href = `mailto:info@palmsestate.org?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -350,12 +270,12 @@ function PropertyDetails() {
   const handleOpenLightbox = (index) => {
     setLightboxImageIndex(index);
     setShowLightbox(true);
-    document.body.style.overflow = 'hidden'; // Prevent scrolling
+    document.body.style.overflow = 'hidden';
   };
 
   const handleCloseLightbox = () => {
     setShowLightbox(false);
-    document.body.style.overflow = 'auto'; // Restore scrolling
+    document.body.style.overflow = 'auto';
   };
 
   const handleNextLightboxImage = () => {
@@ -367,17 +287,6 @@ function PropertyDetails() {
   const handlePrevLightboxImage = () => {
     if (property.images && property.images.length > 0) {
       setLightboxImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
-    }
-  };
-
-  const handleDownloadImage = () => {
-    if (property.images && property.images[lightboxImageIndex]) {
-      const link = document.createElement('a');
-      link.href = property.images[lightboxImageIndex];
-      link.download = `${property.title}-image-${lightboxImageIndex + 1}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     }
   };
 
@@ -456,9 +365,8 @@ function PropertyDetails() {
     if (property.custom_fields) {
       Object.entries(property.custom_fields).forEach(([key, value]) => {
         if (value && value !== '') {
-          const Icon = TYPE_FEATURES_ICONS[key] || Settings;
           features.push({
-            icon: Icon,
+            icon: Settings,
             label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
             value: typeof value === 'boolean' ? (value ? 'Yes' : 'No') : value
           });
@@ -497,8 +405,50 @@ function PropertyDetails() {
   const getAmenitiesWithIcons = () => {
     if (!property || !property.amenities) return [];
     
+    const iconMap = {
+      'Wi-Fi': Wifi,
+      'Parking': Car,
+      'Swimming Pool': Waves,
+      'Gym': Dumbbell,
+      'Air Conditioning': Snowflake,
+      'Heating': Thermometer,
+      'Smart TV': Tv,
+      'Security System': Shield,
+      'Fully Equipped Kitchen': Utensils,
+      'Laundry Facilities': Droplets,
+      'Balcony/Terrace': Sun,
+      'Ocean View': Eye,
+      'Concierge Service': Users,
+      'Daily Maid Service': Coffee,
+      'Spa Services': Wind,
+      'Hot Tub/Jacuzzi': Waves,
+      'Private Pool': Waves,
+      'Staff Quarters': Users,
+      'Private Beach': Sun,
+      'Concierge': Users,
+      'Elevator': Settings,
+      'Rooftop': Eye,
+      'Private Elevator': Settings,
+      'Panoramic View': Eye,
+      'Tennis Court': Dumbbell,
+      'Wine Cellar': Wine,
+      'Ski Access': Mountain,
+      'Fireplace': FireExtinguisher,
+      'Sauna': Wind,
+      'Mountain View': Mountain,
+      'Waterfront': Waves,
+      'Boat Dock': Waves,
+      'Fire Pit': FireExtinguisher,
+      'Rustic': TreePine,
+      'Reserved Parking': Car,
+      'Building Amenities': Building,
+      'Private Entrance': Key,
+      'Private Garden': TreePine,
+      'Community Pool': Waves,
+    };
+    
     return property.amenities.map(amenity => {
-      const Icon = AMENITIES_ICONS[amenity] || CheckCircle;
+      const Icon = iconMap[amenity] || CheckCircle;
       return {
         name: amenity,
         icon: Icon
@@ -620,7 +570,7 @@ function PropertyDetails() {
     <div className="min-h-screen bg-gradient-to-b from-white to-orange-50 pt-20">
       {/* Image Lightbox Modal */}
       {showLightbox && property.images && property.images.length > 0 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90">
           <div className="relative w-full h-full max-w-7xl mx-auto p-4">
             {/* Close button */}
             <button
@@ -628,14 +578,6 @@ function PropertyDetails() {
               className="absolute top-4 right-4 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
             >
               <X className="w-6 h-6" />
-            </button>
-
-            {/* Download button */}
-            <button
-              onClick={handleDownloadImage}
-              className="absolute top-4 right-20 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
-            >
-              <Download className="w-5 h-5" />
             </button>
 
             {/* Navigation buttons */}
@@ -674,9 +616,9 @@ function PropertyDetails() {
                   <button
                     key={index}
                     onClick={() => setLightboxImageIndex(index)}
-                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${
                       lightboxImageIndex === index 
-                        ? 'border-white scale-110' 
+                        ? 'border-white' 
                         : 'border-transparent hover:border-white/50'
                     }`}
                   >
@@ -827,17 +769,17 @@ function PropertyDetails() {
         
         {/* Property Images Gallery */}
         <div className="mb-12">
-          <div className="relative bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl overflow-hidden group">
+          <div className="relative bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl overflow-hidden">
             {property.images && property.images.length > 0 ? (
               <>
                 <div 
-                  className="cursor-zoom-in"
+                  className="cursor-pointer"
                   onClick={() => handleOpenLightbox(currentImageIndex)}
                 >
                   <img
                     src={property.images[currentImageIndex]}
                     alt={`${property.title} - Image ${currentImageIndex + 1}`}
-                    className="w-full h-[500px] object-cover group-hover:scale-105 transition-transform duration-700"
+                    className="w-full h-[500px] object-cover"
                     onError={(e) => {
                       e.target.style.display = 'none';
                       e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
@@ -884,9 +826,9 @@ function PropertyDetails() {
                       <button
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
                           currentImageIndex === index 
-                            ? 'border-white scale-110' 
+                            ? 'border-white' 
                             : 'border-transparent hover:border-white/50'
                         }`}
                       >
@@ -948,7 +890,7 @@ function PropertyDetails() {
                   return (
                     <div 
                       key={index} 
-                      className="group p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl hover:border-orange-300 transition-all hover:scale-105"
+                      className="group p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl hover:border-orange-300 transition-all"
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
@@ -1026,60 +968,6 @@ function PropertyDetails() {
                 )}
               </div>
             )}
-
-            {/* Additional Information */}
-            <div className="bg-white rounded-3xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                  <Settings className="w-6 h-6 text-white" />
-                </div>
-                Additional Information
-              </h2>
-              
-              <div className="space-y-6">
-                {property.lease_duration_months && (
-                  <div className="flex justify-between items-center p-4 bg-orange-50 rounded-2xl">
-                    <div className="font-medium text-gray-700">Lease Duration</div>
-                    <div className="font-bold text-orange-700">
-                      {property.lease_duration_months} months
-                    </div>
-                  </div>
-                )}
-                
-                {property.floor_plan_url && (
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-2xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-medium text-gray-700">Floor Plan</div>
-                      <Link
-                        to={property.floor_plan_url}
-                        target="_blank"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View Floor Plan
-                      </Link>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Detailed architectural layout and dimensions
-                    </p>
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl">
-                    <div className="font-medium text-gray-700 mb-1">Property ID</div>
-                    <div className="font-bold text-gray-800">{property.id}</div>
-                  </div>
-                  
-                  <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl">
-                    <div className="font-medium text-gray-700 mb-1">Last Updated</div>
-                    <div className="font-bold text-gray-800">
-                      {new Date(property.updated_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Right Column - Quick Info */}
@@ -1236,18 +1124,17 @@ function PropertyDetails() {
                 
                 <div className="space-y-4 mb-8">
                   {[
-                    { icon: CreditCard, text: 'Proof of income (3x monthly rent)', description: 'Recent pay stubs, tax returns, or bank statements' },
-                    { icon: Shield, text: 'Credit score check', description: 'Minimum 650 credit score required' },
-                    { icon: Users, text: 'Background verification', description: 'Criminal and eviction history check' },
-                    { icon: FileText, text: 'Valid ID & references', description: 'Government-issued ID and 2 references' }
+                    { icon: CreditCard, text: 'Proof of income (3x monthly rent)' },
+                    { icon: Shield, text: 'Credit score check' },
+                    { icon: Users, text: 'Background verification' },
+                    { icon: FileText, text: 'Valid ID & references' }
                   ].map((req, index) => (
-                    <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-orange-50 transition-colors">
+                    <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-2xl">
                       <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
                         <req.icon className="w-6 h-6 text-orange-600" />
                       </div>
                       <div>
                         <div className="font-semibold text-gray-800 mb-1">{req.text}</div>
-                        <div className="text-sm text-gray-600">{req.description}</div>
                       </div>
                     </div>
                   ))}
@@ -1272,25 +1159,6 @@ function PropertyDetails() {
                   <div className="text-center mb-6">
                     <div className="text-5xl font-bold text-orange-700 mb-2">$75</div>
                     <div className="text-orange-600 font-medium">One-time application fee</div>
-                  </div>
-                  
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <span className="text-gray-700">No commitment until approved</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <span className="text-gray-700">Secure document upload</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <span className="text-gray-700">24/7 application tracking</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <span className="text-gray-700">Digital signature support</span>
-                    </div>
                   </div>
                   
                   <button
@@ -1368,7 +1236,7 @@ function PropertyDetails() {
           </div>
           
           <div className="grid md:grid-cols-3 gap-6">
-            {/* Placeholder for related properties - You can fetch similar properties here */}
+            {/* Placeholder for related properties */}
             {[1, 2, 3].map((i) => (
               <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-lg">
                 <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600"></div>
