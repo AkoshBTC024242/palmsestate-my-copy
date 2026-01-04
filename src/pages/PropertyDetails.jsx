@@ -1,4 +1,4 @@
-// src/pages/PropertyDetails.jsx - COMPLETE UPDATED VERSION
+// src/pages/PropertyDetails.jsx - FIXED VERSION
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,17 +10,14 @@ import {
   Shield, Wind, Thermometer, Droplets, CreditCard,
   Lock, Users, DollarSign, Home, Star, Sparkles,
   ChevronRight, ChevronLeft, Eye, Settings,
-  ShieldCheck, WindIcon, Waves as WavesIcon,
-  Home as HomeIcon, Building, Castle, Mountain,
+  ShieldCheck, Home as HomeIcon, Building, Castle, Mountain,
   Warehouse, Building as BuildingIcon, Map,
   Phone, Mail, Globe, Award, Clock, Key,
   Sun, Snowflake, Utensils, Cloud, TreePine,
   FireExtinguisher, Microwave, Refrigerator,
   Fan, Printer, Gamepad2, Projector, Piano,
-  Wine, Tennis, Bike, HotTub, Barbell,
-  Coffee as CoffeeIcon, Wind as WindIcon2,
-  Waves as WavesIcon2, Star as StarIcon,
-  Zap, Settings as SettingsIcon, Camera
+  Wine, Bike, Zap, Settings as SettingsIcon, Camera,
+  FileText
 } from 'lucide-react';
 
 // Property Type Configuration for Icons and Labels
@@ -91,8 +88,8 @@ const AMENITIES_ICONS = {
   'Ocean View': Eye,
   'Concierge Service': Users,
   'Daily Maid Service': Coffee,
-  'Spa Services': WindIcon2,
-  'Hot Tub/Jacuzzi': WavesIcon2,
+  'Spa Services': Wind,
+  'Hot Tub/Jacuzzi': Waves,
   'Private Pool': Waves,
   'Staff Quarters': Users,
   'Private Beach': Sun,
@@ -101,11 +98,11 @@ const AMENITIES_ICONS = {
   'Rooftop': Eye,
   'Private Elevator': Settings,
   'Panoramic View': Eye,
-  'Tennis Court': Tennis,
+  'Tennis Court': Dumbbell, // Changed from Tennis to Dumbbell
   'Wine Cellar': Wine,
   'Ski Access': Mountain,
   'Fireplace': FireExtinguisher,
-  'Sauna': WindIcon2,
+  'Sauna': Wind,
   'Mountain View': Mountain,
   'Waterfront': Waves,
   'Boat Dock': Waves,
@@ -134,11 +131,11 @@ const TYPE_FEATURES_ICONS = {
   'terrace_size_sqft': Sun,
   'estate_size_acres': Map,
   'guest_houses': HomeIcon,
-  'tennis_court': Tennis,
+  'tennis_court': Dumbbell, // Changed from Tennis to Dumbbell
   'wine_cellar': Wine,
   'ski_in_out': Mountain,
   'fireplace': FireExtinguisher,
-  'sauna': WindIcon2,
+  'sauna': Wind,
   'mountain_view': Mountain,
   'waterfront': Waves,
   'boat_dock': Waves,
@@ -292,13 +289,13 @@ function PropertyDetails() {
   };
 
   const handleNextImage = () => {
-    if (property.images.length > 0) {
+    if (property.images && property.images.length > 0) {
       setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
     }
   };
 
   const handlePrevImage = () => {
-    if (property.images.length > 0) {
+    if (property.images && property.images.length > 0) {
       setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
     }
   };
