@@ -1,4 +1,4 @@
-// src/pages/admin/AdminPropertyEdit.jsx - UPDATED WITH DYNAMIC PROPERTY TYPE FORMS
+// src/pages/admin/AdminPropertyEdit.jsx - FINAL VERSION
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -9,7 +9,8 @@ import {
   Car, Dumbbell, Waves, Snowflake, Tv,
   Shield, Utensils, Sun, Droplets, Thermometer,
   Users, Coffee, Wind, Snowflake as SnowflakeIcon,
-  Layers, ChevronRight
+  Layers, ChevronRight, Key, CalendarDays,
+  PawPrint, Sofa, FileText
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -33,94 +34,86 @@ const AMENITIES_OPTIONS = [
   { id: 'hot_tub', label: 'Hot Tub/Jacuzzi', icon: Waves },
 ];
 
-// Property Type Configuration - DEFINE YOUR FIELDS HERE
+// Property Type Configuration - MAPPED TO YOUR ACTUAL SCHEMA
 const PROPERTY_TYPE_CONFIG = {
   villa: {
     name: 'Villa',
     icon: Home,
     fields: [
-      { name: 'has_private_pool', label: 'Private Pool', type: 'checkbox', defaultValue: false },
-      { name: 'garden_size_sqft', label: 'Garden Size (sqft)', type: 'number', defaultValue: '' },
-      { name: 'staff_quarters', label: 'Staff Quarters Included', type: 'checkbox', defaultValue: false },
-      { name: 'private_beach_access', label: 'Private Beach Access', type: 'checkbox', defaultValue: false },
-      { name: 'villa_size', label: 'Villa Total Area (sqft)', type: 'number', defaultValue: '' },
+      { name: 'has_private_pool', label: 'Private Pool', type: 'checkbox', dbField: 'amenities', value: 'Private Pool' },
+      { name: 'garden_size_sqft', label: 'Garden Size (sqft)', type: 'number', dbField: 'property_size_sqft' },
+      { name: 'staff_quarters', label: 'Staff Quarters', type: 'checkbox', dbField: 'amenities', value: 'Staff Quarters' },
+      { name: 'private_beach_access', label: 'Private Beach Access', type: 'checkbox', dbField: 'amenities', value: 'Private Beach' },
     ]
   },
   apartment: {
     name: 'Apartment',
     icon: Building2,
     fields: [
-      { name: 'apartment_floor', label: 'Floor Number', type: 'number', defaultValue: '' },
-      { name: 'has_concierge', label: '24/7 Concierge', type: 'checkbox', defaultValue: false },
-      { name: 'parking_spaces', label: 'Parking Spaces', type: 'number', defaultValue: 1 },
-      { name: 'has_elevator', label: 'Building Elevator', type: 'checkbox', defaultValue: false },
-      { name: 'building_security', label: '24/7 Security', type: 'checkbox', defaultValue: false },
+      { name: 'apartment_floor', label: 'Floor Number', type: 'number', dbField: 'custom_fields', subfield: 'floor' },
+      { name: 'has_concierge', label: '24/7 Concierge', type: 'checkbox', dbField: 'amenities', value: 'Concierge' },
+      { name: 'parking_spots', label: 'Parking Spaces', type: 'number', dbField: 'parking_spots' },
+      { name: 'has_elevator', label: 'Building Elevator', type: 'checkbox', dbField: 'amenities', value: 'Elevator' },
     ]
   },
   penthouse: {
     name: 'Penthouse',
     icon: Layers,
     fields: [
-      { name: 'rooftop_access', label: 'Private Rooftop Access', type: 'checkbox', defaultValue: false },
-      { name: 'private_elevator', label: 'Private Elevator', type: 'checkbox', defaultValue: false },
-      { name: 'panoramic_view', label: '360° Panoramic View', type: 'checkbox', defaultValue: false },
-      { name: 'terrace_size_sqft', label: 'Terrace Size (sqft)', type: 'number', defaultValue: '' },
-      { name: 'luxury_rating', label: 'Luxury Rating (1-5)', type: 'select', options: [1,2,3,4,5], defaultValue: 3 },
+      { name: 'rooftop_access', label: 'Private Rooftop', type: 'checkbox', dbField: 'amenities', value: 'Rooftop' },
+      { name: 'private_elevator', label: 'Private Elevator', type: 'checkbox', dbField: 'amenities', value: 'Private Elevator' },
+      { name: 'panoramic_view', label: 'Panoramic View', type: 'checkbox', dbField: 'amenities', value: 'Panoramic View' },
+      { name: 'terrace_size_sqft', label: 'Terrace Size (sqft)', type: 'number', dbField: 'custom_fields', subfield: 'terrace_size' },
     ]
   },
   mansion: {
     name: 'Mansion',
     icon: Home,
     fields: [
-      { name: 'estate_size_acres', label: 'Estate Size (acres)', type: 'number', defaultValue: '' },
-      { name: 'guest_houses', label: 'Number of Guest Houses', type: 'number', defaultValue: 0 },
-      { name: 'tennis_court', label: 'Tennis Court', type: 'checkbox', defaultValue: false },
-      { name: 'wine_cellar', label: 'Wine Cellar', type: 'checkbox', defaultValue: false },
-      { name: 'home_theater', label: 'Home Theater', type: 'checkbox', defaultValue: false },
+      { name: 'estate_size_acres', label: 'Estate Size (acres)', type: 'number', dbField: 'custom_fields', subfield: 'estate_size' },
+      { name: 'guest_houses', label: 'Guest Houses', type: 'number', dbField: 'custom_fields', subfield: 'guest_houses' },
+      { name: 'tennis_court', label: 'Tennis Court', type: 'checkbox', dbField: 'amenities', value: 'Tennis Court' },
+      { name: 'wine_cellar', label: 'Wine Cellar', type: 'checkbox', dbField: 'amenities', value: 'Wine Cellar' },
     ]
   },
   chalet: {
     name: 'Chalet',
     icon: Home,
     fields: [
-      { name: 'ski_in_out', label: 'Ski-In/Ski-Out Access', type: 'checkbox', defaultValue: false },
-      { name: 'fireplace', label: 'Wood Fireplace', type: 'checkbox', defaultValue: false },
-      { name: 'sauna', label: 'Private Sauna', type: 'checkbox', defaultValue: false },
-      { name: 'mountain_view', label: 'Mountain View', type: 'checkbox', defaultValue: false },
-      { name: 'snow_clearing', label: 'Snow Clearing Service', type: 'checkbox', defaultValue: false },
+      { name: 'ski_in_out', label: 'Ski-In/Ski-Out', type: 'checkbox', dbField: 'amenities', value: 'Ski Access' },
+      { name: 'fireplace', label: 'Fireplace', type: 'checkbox', dbField: 'amenities', value: 'Fireplace' },
+      { name: 'sauna', label: 'Private Sauna', type: 'checkbox', dbField: 'amenities', value: 'Sauna' },
+      { name: 'mountain_view', label: 'Mountain View', type: 'checkbox', dbField: 'amenities', value: 'Mountain View' },
     ]
   },
   cottage: {
     name: 'Cottage',
     icon: Home,
     fields: [
-      { name: 'waterfront', label: 'Waterfront Location', type: 'checkbox', defaultValue: false },
-      { name: 'boat_dock', label: 'Private Boat Dock', type: 'checkbox', defaultValue: false },
-      { name: 'fire_pit', label: 'Outdoor Fire Pit', type: 'checkbox', defaultValue: false },
-      { name: 'rustic_features', label: 'Rustic Features', type: 'checkbox', defaultValue: false },
-      { name: 'beach_proximity_ft', label: 'Distance to Beach (feet)', type: 'number', defaultValue: '' },
+      { name: 'waterfront', label: 'Waterfront', type: 'checkbox', dbField: 'amenities', value: 'Waterfront' },
+      { name: 'boat_dock', label: 'Boat Dock', type: 'checkbox', dbField: 'amenities', value: 'Boat Dock' },
+      { name: 'fire_pit', label: 'Fire Pit', type: 'checkbox', dbField: 'amenities', value: 'Fire Pit' },
+      { name: 'rustic_features', label: 'Rustic Features', type: 'checkbox', dbField: 'amenities', value: 'Rustic' },
     ]
   },
   condo: {
     name: 'Condominium',
     icon: Building2,
     fields: [
-      { name: 'hoa_fee', label: 'Monthly HOA Fee ($)', type: 'number', defaultValue: '' },
-      { name: 'building_amenities', label: 'Building Amenities', type: 'checkbox', defaultValue: false },
-      { name: 'unit_number', label: 'Unit Number', type: 'text', defaultValue: '' },
-      { name: 'floor_plan_type', label: 'Floor Plan Type', type: 'select', options: ['Studio', '1BR', '2BR', '3BR+'], defaultValue: '2BR' },
-      { name: 'reserved_parking', label: 'Reserved Parking Spot', type: 'checkbox', defaultValue: false },
+      { name: 'hoa_fee', label: 'HOA Fee ($/month)', type: 'number', dbField: 'custom_fields', subfield: 'hoa_fee' },
+      { name: 'unit_number', label: 'Unit Number', type: 'text', dbField: 'custom_fields', subfield: 'unit_number' },
+      { name: 'reserved_parking', label: 'Reserved Parking', type: 'checkbox', dbField: 'amenities', value: 'Reserved Parking' },
+      { name: 'building_amenities', label: 'Building Amenities', type: 'checkbox', dbField: 'amenities', value: 'Building Amenities' },
     ]
   },
   townhouse: {
     name: 'Townhouse',
     icon: Home,
     fields: [
-      { name: 'shared_walls', label: 'Number of Shared Walls', type: 'number', defaultValue: 1 },
-      { name: 'private_entrance', label: 'Private Entrance', type: 'checkbox', defaultValue: false },
-      { name: 'roof_access', label: 'Roof Access', type: 'checkbox', defaultValue: false },
-      { name: 'small_garden', label: 'Small Garden/Patio', type: 'checkbox', defaultValue: false },
-      { name: 'community_pool', label: 'Community Pool Access', type: 'checkbox', defaultValue: false },
+      { name: 'shared_walls', label: 'Shared Walls', type: 'number', dbField: 'custom_fields', subfield: 'shared_walls' },
+      { name: 'private_entrance', label: 'Private Entrance', type: 'checkbox', dbField: 'amenities', value: 'Private Entrance' },
+      { name: 'small_garden', label: 'Private Garden', type: 'checkbox', dbField: 'amenities', value: 'Private Garden' },
+      { name: 'community_pool', label: 'Community Pool', type: 'checkbox', dbField: 'amenities', value: 'Community Pool' },
     ]
   }
 };
@@ -139,8 +132,9 @@ function AdminPropertyEdit() {
   const [imagePreview, setImagePreview] = useState('');
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [step, setStep] = useState(isEditing ? 'form' : 'select-type');
+  const [typeSpecificData, setTypeSpecificData] = useState({});
   
-  // Extended form state including property type specific fields
+  // Main form state
   const [formData, setFormData] = useState({
     // Basic fields
     title: '',
@@ -149,7 +143,7 @@ function AdminPropertyEdit() {
     price: '',
     bedrooms: '3',
     bathrooms: '3',
-    sqft: '5000',
+    sqft: '',
     image_url: '',
     status: 'available',
     category: 'Luxury',
@@ -157,7 +151,21 @@ function AdminPropertyEdit() {
     price_per_week: '',
     property_type: 'villa',
     
-    // Property type specific fields will be added dynamically
+    // Schema fields from your database
+    security_deposit: '',
+    rent_amount: '',
+    lease_duration_months: '',
+    available_from: '',
+    property_size_sqft: '',
+    year_built: '',
+    parking_spots: '',
+    pet_friendly: false,
+    furnished: false,
+    images: [],
+    floor_plan_url: '',
+    
+    // Custom fields JSON for type-specific data
+    custom_fields: {}
   });
 
   // Load property data if editing
@@ -165,7 +173,6 @@ function AdminPropertyEdit() {
     if (isEditing) {
       loadProperty();
     } else {
-      // For new properties, start with type selection
       setStep('select-type');
     }
   }, [id]);
@@ -175,22 +182,18 @@ function AdminPropertyEdit() {
       setLoading(true);
       setError('');
       
-      console.log('Loading property ID:', id);
       const { data, error: fetchError } = await supabase
         .from('properties')
         .select('*')
         .eq('id', id)
         .maybeSingle();
       
-      if (fetchError) {
-        console.error('Fetch error:', fetchError);
-        throw fetchError;
-      }
+      if (fetchError) throw fetchError;
       
       if (data) {
-        console.log('Loaded property data:', data);
+        console.log('Loaded property:', data);
         
-        // Start with basic fields
+        // Map database fields to form
         const formattedData = {
           title: data.title || '',
           description: data.description || '',
@@ -198,22 +201,30 @@ function AdminPropertyEdit() {
           price: data.price?.toString() || '',
           bedrooms: data.bedrooms?.toString() || '3',
           bathrooms: data.bathrooms?.toString() || '3',
-          sqft: data.sqft?.toString() || '5000',
+          sqft: data.sqft?.toString() || '',
           image_url: data.image_url || '',
           status: data.status || 'available',
           category: data.category || 'Luxury',
           featured: data.featured || false,
           price_per_week: data.price_per_week?.toString() || data.price?.toString() || '',
-          property_type: data.property_type || 'villa'
+          property_type: data.property_type || 'villa',
+          
+          // Schema fields
+          security_deposit: data.security_deposit?.toString() || '',
+          rent_amount: data.rent_amount?.toString() || '',
+          lease_duration_months: data.lease_duration_months?.toString() || '',
+          available_from: data.available_from || '',
+          property_size_sqft: data.property_size_sqft?.toString() || '',
+          year_built: data.year_built?.toString() || '',
+          parking_spots: data.parking_spots?.toString() || '',
+          pet_friendly: data.pet_friendly || false,
+          furnished: data.furnished || false,
+          images: data.images || [],
+          floor_plan_url: data.floor_plan_url || '',
+          
+          // Custom fields
+          custom_fields: data.custom_fields || {}
         };
-        
-        // Add property type specific fields from database
-        const currentTypeConfig = PROPERTY_TYPE_CONFIG[data.property_type || 'villa'];
-        if (currentTypeConfig) {
-          currentTypeConfig.fields.forEach(field => {
-            formattedData[field.name] = data[field.name] !== undefined ? data[field.name] : field.defaultValue;
-          });
-        }
         
         setFormData(formattedData);
         setImagePreview(formattedData.image_url);
@@ -236,6 +247,10 @@ function AdminPropertyEdit() {
             console.warn('Error parsing amenities:', e);
           }
         }
+        
+        // Extract type-specific data
+        extractTypeSpecificData(data.property_type || 'villa', formattedData);
+        
       } else {
         setError('Property not found');
         navigate('/admin/properties');
@@ -248,6 +263,29 @@ function AdminPropertyEdit() {
     }
   };
 
+  const extractTypeSpecificData = (propertyType, dbData) => {
+    const typeConfig = PROPERTY_TYPE_CONFIG[propertyType];
+    const extracted = {};
+    
+    if (typeConfig) {
+      typeConfig.fields.forEach(field => {
+        if (field.dbField === 'amenities') {
+          // Check if amenity exists in the amenities string
+          const hasAmenity = dbData.amenities?.includes(field.value) || false;
+          extracted[field.name] = hasAmenity;
+        } else if (field.dbField === 'custom_fields' && dbData.custom_fields) {
+          extracted[field.name] = dbData.custom_fields[field.subfield] || '';
+        } else if (dbData[field.dbField] !== undefined) {
+          extracted[field.name] = dbData[field.dbField];
+        } else {
+          extracted[field.name] = field.type === 'checkbox' ? false : '';
+        }
+      });
+    }
+    
+    setTypeSpecificData(extracted);
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -256,6 +294,13 @@ function AdminPropertyEdit() {
     }));
     setError('');
     setSuccess('');
+  };
+
+  const handleTypeSpecificChange = (name, value) => {
+    setTypeSpecificData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleNumberChange = (name, value) => {
@@ -299,21 +344,93 @@ function AdminPropertyEdit() {
   };
 
   const handlePropertyTypeSelect = (type) => {
-    const newFormData = {
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       property_type: type
-    };
+    }));
     
-    // Initialize type-specific fields with defaults
+    // Reset type-specific data for new type
     const typeConfig = PROPERTY_TYPE_CONFIG[type];
+    const newTypeData = {};
+    
     if (typeConfig) {
       typeConfig.fields.forEach(field => {
-        newFormData[field.name] = field.defaultValue;
+        newTypeData[field.name] = field.type === 'checkbox' ? false : '';
       });
     }
     
-    setFormData(newFormData);
+    setTypeSpecificData(newTypeData);
     setStep('form');
+  };
+
+  const prepareFormDataForDatabase = () => {
+    const propertyData = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      location: formData.location.trim(),
+      price: parseFloat(formData.price) || 0,
+      bedrooms: parseInt(formData.bedrooms) || 0,
+      bathrooms: parseInt(formData.bathrooms) || 0,
+      sqft: parseInt(formData.sqft) || 0,
+      image_url: formData.image_url,
+      status: formData.status,
+      category: formData.category,
+      featured: formData.featured,
+      property_type: formData.property_type,
+      updated_at: new Date().toISOString(),
+      
+      // Schema fields
+      security_deposit: formData.security_deposit ? parseFloat(formData.security_deposit) : null,
+      rent_amount: formData.rent_amount ? parseFloat(formData.rent_amount) : null,
+      lease_duration_months: formData.lease_duration_months ? parseInt(formData.lease_duration_months) : null,
+      available_from: formData.available_from || null,
+      property_size_sqft: formData.property_size_sqft ? parseInt(formData.property_size_sqft) : null,
+      year_built: formData.year_built ? parseInt(formData.year_built) : null,
+      parking_spots: formData.parking_spots ? parseInt(formData.parking_spots) : null,
+      pet_friendly: formData.pet_friendly,
+      furnished: formData.furnished,
+      images: formData.images,
+      floor_plan_url: formData.floor_plan_url
+    };
+    
+    // Add price_per_week
+    if (formData.price_per_week) {
+      propertyData.price_per_week = parseFloat(formData.price_per_week);
+    } else {
+      propertyData.price_per_week = parseFloat(formData.price) || 0;
+    }
+    
+    // Process amenities
+    const amenityLabels = selectedAmenities.map(amenityId => {
+      const amenity = AMENITIES_OPTIONS.find(a => a.id === amenityId);
+      return amenity ? amenity.label : amenityId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    });
+    
+    // Add type-specific amenities
+    const typeConfig = PROPERTY_TYPE_CONFIG[formData.property_type];
+    if (typeConfig) {
+      typeConfig.fields.forEach(field => {
+        if (field.dbField === 'amenities' && typeSpecificData[field.name]) {
+          amenityLabels.push(field.value);
+        }
+      });
+    }
+    
+    propertyData.amenities = amenityLabels.join(', ');
+    
+    // Build custom_fields JSON
+    const customFields = {};
+    if (typeConfig) {
+      typeConfig.fields.forEach(field => {
+        if (field.dbField === 'custom_fields' && typeSpecificData[field.name] !== undefined) {
+          customFields[field.subfield] = typeSpecificData[field.name];
+        }
+      });
+    }
+    
+    propertyData.custom_fields = Object.keys(customFields).length > 0 ? customFields : null;
+    
+    return propertyData;
   };
 
   const handleSubmit = async (e) => {
@@ -340,58 +457,7 @@ function AdminPropertyEdit() {
       setError('');
       setSuccess('');
       
-      // Prepare all data for submission
-      const propertyData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        location: formData.location.trim(),
-        price: parseFloat(formData.price),
-        bedrooms: parseInt(formData.bedrooms) || 3,
-        bathrooms: parseInt(formData.bathrooms) || 3,
-        sqft: parseInt(formData.sqft) || 5000,
-        image_url: formData.image_url,
-        status: formData.status,
-        category: formData.category,
-        featured: formData.featured,
-        property_type: formData.property_type,
-        updated_at: new Date().toISOString()
-      };
-      
-      // Add price_per_week
-      if (formData.price_per_week) {
-        propertyData.price_per_week = parseFloat(formData.price_per_week);
-      } else {
-        propertyData.price_per_week = parseFloat(formData.price);
-      }
-      
-      // Add amenities
-      if (selectedAmenities.length > 0) {
-        const amenityLabels = selectedAmenities.map(amenityId => {
-          const amenity = AMENITIES_OPTIONS.find(a => a.id === amenityId);
-          return amenity ? amenity.label : amenityId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-        });
-        propertyData.amenities = amenityLabels.join(', ');
-      } else {
-        propertyData.amenities = '';
-      }
-      
-      // Add property type specific fields
-      const currentTypeConfig = PROPERTY_TYPE_CONFIG[formData.property_type];
-      if (currentTypeConfig) {
-        currentTypeConfig.fields.forEach(field => {
-          let value = formData[field.name];
-          
-          // Convert types for database
-          if (field.type === 'number' && value !== '') {
-            value = parseFloat(value);
-          } else if (field.type === 'checkbox') {
-            value = Boolean(value);
-          }
-          
-          propertyData[field.name] = value;
-        });
-      }
-      
+      const propertyData = prepareFormDataForDatabase();
       console.log('Submitting property data:', propertyData);
       
       if (isEditing) {
@@ -400,11 +466,7 @@ function AdminPropertyEdit() {
           .update(propertyData)
           .eq('id', id);
         
-        if (updateError) {
-          console.error('Update error details:', updateError);
-          throw updateError;
-        }
-        
+        if (updateError) throw updateError;
         setSuccess('Property updated successfully!');
       } else {
         propertyData.created_at = new Date().toISOString();
@@ -415,11 +477,7 @@ function AdminPropertyEdit() {
           .select()
           .single();
         
-        if (insertError) {
-          console.error('Insert error details:', insertError);
-          throw insertError;
-        }
-        
+        if (insertError) throw insertError;
         setSuccess('Property created successfully!');
       }
       
@@ -470,7 +528,7 @@ function AdminPropertyEdit() {
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500" />
                 </div>
-                <h3 className="font-semibold text-gray-900 capitalize">{config.name}</h3>
+                <h3 className="font-semibold text-gray-900">{config.name}</h3>
                 <p className="text-sm text-gray-600 mt-2">
                   {config.fields.length} specific fields
                 </p>
@@ -490,7 +548,6 @@ function AdminPropertyEdit() {
     );
   }
 
-  // Get current type configuration
   const currentTypeConfig = PROPERTY_TYPE_CONFIG[formData.property_type] || PROPERTY_TYPE_CONFIG.villa;
   const TypeIcon = currentTypeConfig.icon;
 
@@ -534,14 +591,11 @@ function AdminPropertyEdit() {
           </button>
         </div>
 
-        {/* Status Messages */}
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-500" />
-              <div>
-                <p className="text-red-800 font-medium">{error}</p>
-              </div>
+              <p className="text-red-800 font-medium">{error}</p>
             </div>
           </div>
         )}
@@ -550,9 +604,7 @@ function AdminPropertyEdit() {
           <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4">
             <div className="flex items-center gap-3">
               <CheckCircle className="w-5 h-5 text-green-500" />
-              <div>
-                <p className="text-green-800 font-medium">{success}</p>
-              </div>
+              <p className="text-green-800 font-medium">{success}</p>
             </div>
           </div>
         )}
@@ -560,9 +612,9 @@ function AdminPropertyEdit() {
 
       {/* Property Form */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Main Details */}
+        {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Basic Information Card */}
+          {/* Basic Information */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Building2 className="w-5 h-5 text-orange-600" />
@@ -594,7 +646,7 @@ function AdminPropertyEdit() {
                   onChange={handleChange}
                   rows={4}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="Describe the property features, amenities, and unique selling points..."
+                  placeholder="Describe the property..."
                   required
                 />
               </div>
@@ -630,7 +682,7 @@ function AdminPropertyEdit() {
                       onClick={() => setStep('select-type')}
                       className="ml-auto text-sm text-orange-600 hover:text-orange-800"
                     >
-                      Change
+                      Change Type
                     </button>
                   )}
                 </div>
@@ -638,7 +690,7 @@ function AdminPropertyEdit() {
             </div>
           </div>
 
-          {/* Property Type Specific Details Card */}
+          {/* Property Type Specific Details */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <TypeIcon className="w-5 h-5 text-orange-600" />
@@ -655,32 +707,19 @@ function AdminPropertyEdit() {
                       <input
                         type="checkbox"
                         id={field.name}
-                        name={field.name}
-                        checked={formData[field.name] || false}
-                        onChange={handleChange}
+                        checked={typeSpecificData[field.name] || false}
+                        onChange={(e) => handleTypeSpecificChange(field.name, e.target.checked)}
                         className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                       />
                       <label htmlFor={field.name} className="ml-2 text-sm text-gray-700">
-                        Included
+                        Yes
                       </label>
                     </div>
-                  ) : field.type === 'select' ? (
-                    <select
-                      name={field.name}
-                      value={formData[field.name] || field.defaultValue}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    >
-                      {field.options.map(option => (
-                        <option key={option} value={option}>{option}</option>
-                      ))}
-                    </select>
                   ) : (
                     <input
                       type={field.type}
-                      name={field.name}
-                      value={formData[field.name] || ''}
-                      onChange={handleChange}
+                      value={typeSpecificData[field.name] || ''}
+                      onChange={(e) => handleTypeSpecificChange(field.name, e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                       placeholder={field.label}
                     />
@@ -690,7 +729,7 @@ function AdminPropertyEdit() {
             </div>
           </div>
 
-          {/* Pricing & Details Card */}
+          {/* Pricing & Details */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-orange-600" />
@@ -717,16 +756,17 @@ function AdminPropertyEdit() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price per Month (Calculated)
+                  Security Deposit ($)
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Key className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
-                    readOnly
-                    value={formData.price ? (parseFloat(formData.price) * 4).toLocaleString() : ''}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
-                    placeholder="140000"
+                    name="security_deposit"
+                    value={formData.security_deposit}
+                    onChange={(e) => handleNumberChange('security_deposit', e.target.value)}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="5000"
                   />
                 </div>
               </div>
@@ -784,6 +824,34 @@ function AdminPropertyEdit() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Property Size (sqft)
+                </label>
+                <input
+                  type="text"
+                  name="property_size_sqft"
+                  value={formData.property_size_sqft}
+                  onChange={(e) => handleNumberChange('property_size_sqft', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="Total property area"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Parking Spots
+                </label>
+                <input
+                  type="text"
+                  name="parking_spots"
+                  value={formData.parking_spots}
+                  onChange={(e) => handleNumberChange('parking_spots', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="2"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Category
                 </label>
                 <select
@@ -798,6 +866,105 @@ function AdminPropertyEdit() {
                   <option value="Standard">Standard</option>
                   <option value="Budget">Budget</option>
                 </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Details */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-orange-600" />
+              Additional Details
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Available From
+                </label>
+                <input
+                  type="date"
+                  name="available_from"
+                  value={formData.available_from}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Lease Duration (months)
+                </label>
+                <input
+                  type="text"
+                  name="lease_duration_months"
+                  value={formData.lease_duration_months}
+                  onChange={(e) => handleNumberChange('lease_duration_months', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="12"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Year Built
+                </label>
+                <input
+                  type="text"
+                  name="year_built"
+                  value={formData.year_built}
+                  onChange={(e) => handleNumberChange('year_built', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  placeholder="2020"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Floor Plan URL
+                </label>
+                <div className="relative">
+                  <FileText className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    name="floor_plan_url"
+                    value={formData.floor_plan_url}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="https://example.com/floorplan.pdf"
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="pet_friendly"
+                    name="pet_friendly"
+                    checked={formData.pet_friendly}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  />
+                  <label htmlFor="pet_friendly" className="ml-2 text-sm text-gray-700 flex items-center">
+                    <PawPrint className="w-4 h-4 mr-1" />
+                    Pet Friendly
+                  </label>
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="furnished"
+                    name="furnished"
+                    checked={formData.furnished}
+                    onChange={handleChange}
+                    className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                  />
+                  <label htmlFor="furnished" className="ml-2 text-sm text-gray-700 flex items-center">
+                    <Sofa className="w-4 h-4 mr-1" />
+                    Fully Furnished
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -830,9 +997,7 @@ function AdminPropertyEdit() {
                       <Icon className={`w-4 h-4 ${isSelected ? 'text-orange-600' : 'text-gray-500'}`} />
                     </div>
                     <span className="text-sm font-medium text-left">{amenity.label}</span>
-                    {isSelected && (
-                      <Check className="w-4 h-4 text-orange-600 ml-auto" />
-                    )}
+                    {isSelected && <Check className="w-4 h-4 text-orange-600 ml-auto" />}
                   </button>
                 );
               })}
@@ -840,9 +1005,9 @@ function AdminPropertyEdit() {
           </div>
         </div>
 
-        {/* Right Column - Image & Settings */}
+        {/* Right Column */}
         <div className="space-y-6">
-          {/* Image Upload Card */}
+          {/* Image Upload */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Image className="w-5 h-5 text-orange-600" />
@@ -852,16 +1017,11 @@ function AdminPropertyEdit() {
             <div className="mb-4">
               {imagePreview ? (
                 <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Property preview"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
+                  <img src={imagePreview} alt="Property" className="w-full h-48 object-cover rounded-lg" />
                   <button
                     type="button"
                     onClick={() => {
                       setImagePreview('');
-                      setImageFile(null);
                       setFormData(prev => ({ ...prev, image_url: '' }));
                     }}
                     className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
@@ -883,17 +1043,12 @@ function AdminPropertyEdit() {
                 type="file"
                 id="image-upload"
                 accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    handleImageUpload(file);
-                  }
-                }}
+                onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0])}
                 className="hidden"
               />
               <label
                 htmlFor="image-upload"
-                className="block w-full text-center border-2 border-gray-300 border-dashed hover:border-orange-400 text-gray-700 hover:text-orange-700 font-medium py-3 px-4 rounded-lg cursor-pointer transition-colors"
+                className="block w-full text-center border-2 border-dashed border-gray-300 hover:border-orange-400 text-gray-700 hover:text-orange-700 font-medium py-3 px-4 rounded-lg cursor-pointer transition-colors"
               >
                 {uploadingImage ? (
                   <span className="flex items-center justify-center gap-2">
@@ -926,7 +1081,7 @@ function AdminPropertyEdit() {
             </div>
           </div>
 
-          {/* Settings Card */}
+          {/* Settings */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Eye className="w-5 h-5 text-orange-600" />
@@ -979,15 +1134,21 @@ function AdminPropertyEdit() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Monthly (est):</span>
+                    <span>Security Deposit:</span>
                     <span className="font-medium">
-                      ${formData.price ? (parseFloat(formData.price) * 4).toLocaleString() : '0'}
+                      ${formData.security_deposit ? parseFloat(formData.security_deposit).toLocaleString() : '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Bed/Bath:</span>
                     <span className="font-medium">
                       {formData.bedrooms} / {formData.bathrooms}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Size:</span>
+                    <span className="font-medium">
+                      {formData.sqft?.toLocaleString()} sqft
                     </span>
                   </div>
                   <div className="flex justify-between">
