@@ -1,4 +1,4 @@
-// src/pages/PropertyDetails.jsx - FIXED VERSION
+// src/pages/PropertyDetails.jsx - UPDATED WITH WORKING CONTACT LINKS
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,7 +17,7 @@ import {
   FireExtinguisher, Microwave, Refrigerator,
   Fan, Printer, Gamepad2, Projector, Piano,
   Wine, Bike, Zap, Settings as SettingsIcon, Camera,
-  FileText
+  FileText, MessageSquare
 } from 'lucide-react';
 
 // Property Type Configuration for Icons and Labels
@@ -98,7 +98,7 @@ const AMENITIES_ICONS = {
   'Rooftop': Eye,
   'Private Elevator': Settings,
   'Panoramic View': Eye,
-  'Tennis Court': Dumbbell, // Changed from Tennis to Dumbbell
+  'Tennis Court': Dumbbell,
   'Wine Cellar': Wine,
   'Ski Access': Mountain,
   'Fireplace': FireExtinguisher,
@@ -131,7 +131,7 @@ const TYPE_FEATURES_ICONS = {
   'terrace_size_sqft': Sun,
   'estate_size_acres': Map,
   'guest_houses': HomeIcon,
-  'tennis_court': Dumbbell, // Changed from Tennis to Dumbbell
+  'tennis_court': Dumbbell,
   'wine_cellar': Wine,
   'ski_in_out': Mountain,
   'fireplace': FireExtinguisher,
@@ -286,6 +286,43 @@ function PropertyDetails() {
       return;
     }
     navigate(`/properties/${id}/initial-apply`);
+  };
+
+  const handleContactAgent = () => {
+    // Navigate to contact page with property details in state
+    navigate('/contact', {
+      state: {
+        propertyInquiry: true,
+        propertyId: property.id,
+        propertyTitle: property.title,
+        propertyType: property.property_type,
+        propertyPrice: property.price
+      }
+    });
+  };
+
+  const handleScheduleTour = () => {
+    // Navigate to contact page for tour scheduling
+    navigate('/contact', {
+      state: {
+        scheduleTour: true,
+        propertyId: property.id,
+        propertyTitle: property.title,
+        propertyLocation: property.location
+      }
+    });
+  };
+
+  const handleCallAgent = () => {
+    // Open default phone app with contact number
+    window.location.href = 'tel:+12345678900';
+  };
+
+  const handleEmailInquiry = () => {
+    // Open default email client with pre-filled subject
+    const subject = `Inquiry about ${property.title} (ID: ${property.id})`;
+    const body = `Hello Palms Estate Team,\n\nI'm interested in the property "${property.title}" located at ${property.location}.\n\nPlease contact me with more information.\n\nBest regards,`;
+    window.location.href = `mailto:info@palmsestate.org?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   const handleNextImage = () => {
@@ -581,7 +618,10 @@ function PropertyDetails() {
                 )}
               </button>
               
-              <button className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 text-orange-700 rounded-xl font-semibold hover:shadow-lg transition-all">
+              <button 
+                onClick={handleScheduleTour}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 text-orange-700 rounded-xl font-semibold hover:shadow-lg transition-all"
+              >
                 <Eye className="w-5 h-5" />
                 Schedule Tour
               </button>
@@ -621,9 +661,16 @@ function PropertyDetails() {
               
               <button
                 onClick={handleApplyForRental}
-                className="w-full bg-white text-orange-600 font-bold py-4 px-6 rounded-xl hover:bg-orange-50 hover:scale-105 transition-all duration-300 shadow-lg"
+                className="w-full bg-white text-orange-600 font-bold py-4 px-6 rounded-xl hover:bg-orange-50 hover:scale-105 transition-all duration-300 shadow-lg mb-3"
               >
                 {user ? 'Apply for Rental' : 'Sign In to Apply'}
+              </button>
+
+              <button
+                onClick={handleContactAgent}
+                className="w-full bg-transparent border-2 border-white text-white font-bold py-3 px-6 rounded-xl hover:bg-white/10 transition-all duration-300"
+              >
+                Contact Agent
               </button>
               
               <p className="text-sm text-orange-200 text-center mt-3">
@@ -941,7 +988,10 @@ function PropertyDetails() {
               
               <div className="mt-8 pt-6 border-t border-white/20">
                 <div className="text-sm text-gray-300 mb-3">Need more information?</div>
-                <button className="w-full bg-white text-gray-900 font-bold py-3 px-6 rounded-xl hover:bg-gray-100 transition-colors">
+                <button 
+                  onClick={handleContactAgent}
+                  className="w-full bg-white text-gray-900 font-bold py-3 px-6 rounded-xl hover:bg-gray-100 transition-colors"
+                >
                   Contact Agent
                 </button>
               </div>
@@ -984,14 +1034,28 @@ function PropertyDetails() {
               </p>
               
               <div className="space-y-4">
-                <button className="w-full flex items-center justify-center gap-3 bg-white text-orange-600 font-bold py-3 px-6 rounded-xl hover:bg-orange-50 transition-colors">
+                <button 
+                  onClick={handleCallAgent}
+                  className="w-full flex items-center justify-center gap-3 bg-white text-orange-600 font-bold py-3 px-6 rounded-xl hover:bg-orange-50 transition-colors"
+                >
                   <Phone className="w-5 h-5" />
                   Call Agent
                 </button>
                 
-                <button className="w-full flex items-center justify-center gap-3 bg-transparent border-2 border-white text-white font-bold py-3 px-6 rounded-xl hover:bg-white/10 transition-colors">
+                <button 
+                  onClick={handleEmailInquiry}
+                  className="w-full flex items-center justify-center gap-3 bg-transparent border-2 border-white text-white font-bold py-3 px-6 rounded-xl hover:bg-white/10 transition-colors"
+                >
                   <Mail className="w-5 h-5" />
                   Email Inquiry
+                </button>
+
+                <button 
+                  onClick={handleContactAgent}
+                  className="w-full flex items-center justify-center gap-3 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-bold py-3 px-6 rounded-xl hover:bg-white/20 transition-colors"
+                >
+                  <MessageSquare className="w-5 h-5" />
+                  Contact Form
                 </button>
               </div>
               
@@ -1062,13 +1126,13 @@ function PropertyDetails() {
               <CheckCircle className="w-5 h-5" />
               Apply Now
             </button>
-            <Link
-              to="/contact"
+            <button
+              onClick={handleContactAgent}
               className="inline-flex items-center justify-center gap-3 px-8 py-4 border-2 border-white text-white font-bold rounded-xl hover:bg-white/10 transition-all duration-300"
             >
-              <Phone className="w-5 h-5" />
-              Schedule Tour
-            </Link>
+              <MessageSquare className="w-5 h-5" />
+              Contact Agent
+            </button>
           </div>
         </div>
       </div>
