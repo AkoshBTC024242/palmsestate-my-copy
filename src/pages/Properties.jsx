@@ -1,4 +1,4 @@
-// src/pages/Properties.jsx - UPDATED WITH WORKING FAVORITE BUTTON
+// src/pages/Properties.jsx - UPDATED WITH WORKING FAVORITE BUTTON (NO react-hot-toast)
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,7 +9,6 @@ import {
   CheckCircle, Loader2, X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { toast } from 'react-hot-toast';
 
 function Properties() {
   const { user } = useAuth();
@@ -29,6 +28,7 @@ function Properties() {
   const [savedProperties, setSavedProperties] = useState(new Set());
   const [savingStates, setSavingStates] = useState({});
   const [isFilterApplied, setIsFilterApplied] = useState(false);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     loadProperties();
@@ -43,6 +43,16 @@ function Properties() {
       loadSavedProperties();
     }
   }, [user]);
+
+  // Auto-hide notification after 3 seconds
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   const loadProperties = async () => {
     try {
@@ -65,7 +75,7 @@ function Properties() {
     } catch (error) {
       console.error('Failed to load properties:', error);
       setError('Failed to load properties. Please try again.');
-      toast.error('Failed to load properties');
+      setNotification({ type: 'error', message: 'Failed to load properties' });
     } finally {
       setLoading(false);
     }
@@ -88,7 +98,7 @@ function Properties() {
       }
     } catch (error) {
       console.error('Error loading saved properties:', error);
-      toast.error('Failed to load saved properties');
+      setNotification({ type: 'error', message: 'Failed to load saved properties' });
     }
   };
 
@@ -97,7 +107,7 @@ function Properties() {
     e.stopPropagation();
     
     if (!user) {
-      toast.error('Please sign in to save properties');
+      setNotification({ type: 'error', message: 'Please sign in to save properties' });
       navigate('/signin');
       return;
     }
@@ -107,7 +117,7 @@ function Properties() {
       const propertyIdNum = parseInt(propertyId);
       
       if (isNaN(propertyIdNum)) {
-        toast.error('Invalid property');
+        setNotification({ type: 'error', message: 'Invalid property' });
         return;
       }
 
@@ -129,7 +139,7 @@ function Properties() {
           return newSet;
         });
         
-        toast.success('Property removed from favorites');
+        setNotification({ type: 'success', message: 'Property removed from favorites' });
       } else {
         // Save
         const { error } = await supabase
@@ -148,11 +158,11 @@ function Properties() {
           return newSet;
         });
         
-        toast.success('Property saved to favorites');
+        setNotification({ type: 'success', message: 'Property saved to favorites' });
       }
     } catch (error) {
       console.error('Error saving property:', error);
-      toast.error('Failed to save property');
+      setNotification({ type: 'error', message: 'Failed to save property' });
     } finally {
       setSavingStates(prev => ({ ...prev, [propertyId]: false }));
     }
@@ -217,7 +227,7 @@ function Properties() {
     setSearchQuery('');
     setShowFilters(false);
     setIsFilterApplied(false);
-    toast.success('All filters cleared');
+    setNotification({ type: 'success', message: 'All filters cleared' });
   };
 
   const getPropertyImage = (property) => {
@@ -286,23 +296,6 @@ function Properties() {
     return icons[type] || Home;
   };
 
-  // Add toast notification for save action
-  useEffect(() => {
-    const ToastComponent = ({ children }) => (
-      <div className="bg-white border border-gray-200 rounded-xl shadow-lg p-4">
-        {children}
-      </div>
-    );
-
-    if (typeof window !== 'undefined') {
-      import('react-hot-toast').then(({ Toaster }) => {
-        const toaster = document.createElement('div');
-        toaster.id = 'toaster';
-        document.body.appendChild(toaster);
-      });
-    }
-  }, []);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-white to-orange-50 pt-20">
@@ -345,10 +338,31 @@ function Properties() {
 
   return (
     <>
-      {/* Toaster for notifications */}
-      <div className="toaster-container">
-        {/* React Hot Toast will render here */}
-      </div>
+      {/* Notification Toast */}
+      {notification && (
+        <div className="fixed top-24 right-4 z-50 animate-fade-in">
+          <div className={`rounded-xl shadow-2xl border ${
+            notification.type === 'success' 
+              ? 'bg-green-50 border-green-200 text-green-800' 
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}>
+            <div className="flex items-center gap-3 px-4 py-3">
+              {notification.type === 'success' ? (
+                <CheckCircle className="w-5 h-5 text-green-600" />
+              ) : (
+                <X className="w-5 h-5 text-red-600" />
+              )}
+              <span className="font-medium">{notification.message}</span>
+              <button
+                onClick={() => setNotification(null)}
+                className="ml-4 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="min-h-screen bg-gradient-to-b from-white to-orange-50 pt-20">
         {/* Header Section with Orange Theme */}
