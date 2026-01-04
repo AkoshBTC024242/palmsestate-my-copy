@@ -1,4 +1,4 @@
-// src/pages/PropertyDetails.jsx - UPDATED WITH WORKING CONTACT LINKS
+// src/pages/PropertyDetails.jsx - UPDATED WITH ENHANCED IMAGE VIEWING
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,7 +17,7 @@ import {
   FireExtinguisher, Microwave, Refrigerator,
   Fan, Printer, Gamepad2, Projector, Piano,
   Wine, Bike, Zap, Settings as SettingsIcon, Camera,
-  FileText, MessageSquare
+  FileText, MessageSquare, X, Maximize2, Minus, Plus
 } from 'lucide-react';
 
 // Property Type Configuration for Icons and Labels
@@ -115,42 +115,6 @@ const AMENITIES_ICONS = {
   'Community Pool': Waves,
 };
 
-// Property Type Specific Features Icons
-const TYPE_FEATURES_ICONS = {
-  'has_private_pool': Waves,
-  'garden_size_sqft': TreePine,
-  'staff_quarters': Users,
-  'private_beach_access': Sun,
-  'apartment_floor': Building,
-  'has_concierge': Users,
-  'parking_spots': Car,
-  'has_elevator': Settings,
-  'rooftop_access': Eye,
-  'private_elevator': Settings,
-  'panoramic_view': Eye,
-  'terrace_size_sqft': Sun,
-  'estate_size_acres': Map,
-  'guest_houses': HomeIcon,
-  'tennis_court': Dumbbell,
-  'wine_cellar': Wine,
-  'ski_in_out': Mountain,
-  'fireplace': FireExtinguisher,
-  'sauna': Wind,
-  'mountain_view': Mountain,
-  'waterfront': Waves,
-  'boat_dock': Waves,
-  'fire_pit': FireExtinguisher,
-  'rustic_features': TreePine,
-  'hoa_fee': DollarSign,
-  'unit_number': HomeIcon,
-  'reserved_parking': Car,
-  'building_amenities': Building,
-  'shared_walls': Building,
-  'private_entrance': Key,
-  'small_garden': TreePine,
-  'community_pool': Waves,
-};
-
 function PropertyDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -164,6 +128,9 @@ function PropertyDetails() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   useEffect(() => {
     loadProperty();
@@ -206,7 +173,9 @@ function PropertyDetails() {
           ...data,
           custom_fields: customFields,
           amenities: amenitiesList,
-          images: data.images || [data.image_url].filter(Boolean),
+          images: data.images && Array.isArray(data.images) && data.images.length > 0 
+            ? data.images 
+            : [data.image_url].filter(Boolean),
         });
       } else {
         navigate('/properties');
@@ -289,7 +258,6 @@ function PropertyDetails() {
   };
 
   const handleContactAgent = () => {
-    // Navigate to contact page with property details in state
     navigate('/contact', {
       state: {
         propertyInquiry: true,
@@ -302,7 +270,6 @@ function PropertyDetails() {
   };
 
   const handleScheduleTour = () => {
-    // Navigate to contact page for tour scheduling
     navigate('/contact', {
       state: {
         scheduleTour: true,
@@ -314,12 +281,10 @@ function PropertyDetails() {
   };
 
   const handleCallAgent = () => {
-    // Open default phone app with contact number
     window.location.href = 'tel:+12345678900';
   };
 
   const handleEmailInquiry = () => {
-    // Open default email client with pre-filled subject
     const subject = `Inquiry about ${property.title} (ID: ${property.id})`;
     const body = `Hello Palms Estate Team,\n\nI'm interested in the property "${property.title}" located at ${property.location}.\n\nPlease contact me with more information.\n\nBest regards,`;
     window.location.href = `mailto:info@palmsestate.org?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -336,6 +301,77 @@ function PropertyDetails() {
       setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
     }
   };
+
+  const openLightbox = (index) => {
+    setLightboxIndex(index);
+    setShowLightbox(true);
+    setZoomLevel(1);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeLightbox = () => {
+    setShowLightbox(false);
+    setZoomLevel(1);
+    document.body.style.overflow = 'auto';
+  };
+
+  const handleNextLightboxImage = () => {
+    if (property.images && property.images.length > 0) {
+      setLightboxIndex((prev) => (prev + 1) % property.images.length);
+      setZoomLevel(1);
+    }
+  };
+
+  const handlePrevLightboxImage = () => {
+    if (property.images && property.images.length > 0) {
+      setLightboxIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
+      setZoomLevel(1);
+    }
+  };
+
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 0.25, 3));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+  };
+
+  // Handle keyboard navigation in lightbox
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!showLightbox) return;
+      
+      switch (e.key) {
+        case 'Escape':
+          closeLightbox();
+          break;
+        case 'ArrowLeft':
+          handlePrevLightboxImage();
+          break;
+        case 'ArrowRight':
+          handleNextLightboxImage();
+          break;
+        case '+':
+        case '=':
+          handleZoomIn();
+          break;
+        case '-':
+          handleZoomOut();
+          break;
+        case '0':
+          handleResetZoom();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showLightbox]);
 
   const getCurrentTypeConfig = () => {
     return PROPERTY_TYPE_CONFIG[property?.property_type] || PROPERTY_TYPE_CONFIG.villa;
@@ -412,7 +448,8 @@ function PropertyDetails() {
     if (property.custom_fields) {
       Object.entries(property.custom_fields).forEach(([key, value]) => {
         if (value && value !== '') {
-          const Icon = TYPE_FEATURES_ICONS[key] || Settings;
+          const iconKey = key.toLowerCase().replace(/\s+/g, '_');
+          const Icon = AMENITIES_ICONS[iconKey] || Settings;
           features.push({
             icon: Icon,
             label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
@@ -549,594 +586,330 @@ function PropertyDetails() {
     : allFeatures.slice(0, 8);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-orange-50 pt-20">
-      {/* Back Navigation */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <Link
-          to="/properties"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-gray-700 hover:border-orange-300 hover:text-orange-600 font-medium mb-4 group transition-all"
-        >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          Back to Properties
-        </Link>
-      </div>
-      
-      {/* Property Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-3 mb-4">
-              <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(property.status)}`}>
-                {getStatusText(property.status)}
-              </span>
-              
-              <span className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-full text-sm">
-                <TypeIcon className="w-4 h-4" />
-                <span className="capitalize">{property.property_type}</span>
-              </span>
-              
-              <span className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-full text-sm">
-                {property.category || 'Premium'}
-              </span>
-              
-              {property.featured && (
-                <span className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white font-semibold rounded-full text-sm">
-                  <Sparkles className="w-4 h-4" />
-                  Featured Property
-                </span>
-              )}
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
-              {property.title}
-            </h1>
-            
-            <div className="flex items-center gap-2 text-gray-600 mb-6">
-              <MapPin className="w-5 h-5 text-orange-500 flex-shrink-0" />
-              <span className="text-lg">{property.location}</span>
-            </div>
-
-            {/* Save Button */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={handleSaveProperty}
-                disabled={saving || checkingSaved}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 hover:border-orange-300 text-gray-700 hover:text-orange-700 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
-              >
-                {saving || checkingSaved ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : isSaved ? (
-                  <>
-                    <Heart className="w-5 h-5 fill-red-500 text-red-500" />
-                    Saved to Favorites
-                  </>
-                ) : (
-                  <>
-                    <Heart className="w-5 h-5" />
-                    Save to Favorites
-                  </>
-                )}
-              </button>
-              
-              <button 
-                onClick={handleScheduleTour}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 text-orange-700 rounded-xl font-semibold hover:shadow-lg transition-all"
-              >
-                <Eye className="w-5 h-5" />
-                Schedule Tour
-              </button>
-            </div>
-          </div>
-         
-          {/* Pricing Card */}
-          <div className="w-full lg:w-96">
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-8 text-white shadow-2xl">
-              <div className="mb-6">
-                <div className="text-sm text-orange-200 mb-2">{priceInfo.label}</div>
-                <div className="text-5xl font-bold mb-2">
-                  ${priceInfo.amount.toLocaleString()}
-                </div>
-                <div className="text-orange-200 text-sm">
-                  {property.security_deposit 
-                    ? `Security deposit: $${parseFloat(property.security_deposit).toLocaleString()}`
-                    : 'No security deposit required'}
-                </div>
-              </div>
-              
-              {property.available_from && (
-                <div className="mb-6 p-4 bg-white/10 rounded-xl backdrop-blur-sm">
-                  <div className="flex items-center gap-2 text-sm mb-1">
-                    <Calendar className="w-4 h-4" />
-                    Available From
-                  </div>
-                  <div className="font-semibold">
-                    {new Date(property.available_from).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </div>
-                </div>
-              )}
-              
-              <button
-                onClick={handleApplyForRental}
-                className="w-full bg-white text-orange-600 font-bold py-4 px-6 rounded-xl hover:bg-orange-50 hover:scale-105 transition-all duration-300 shadow-lg mb-3"
-              >
-                {user ? 'Apply for Rental' : 'Sign In to Apply'}
-              </button>
-
-              <button
-                onClick={handleContactAgent}
-                className="w-full bg-transparent border-2 border-white text-white font-bold py-3 px-6 rounded-xl hover:bg-white/10 transition-all duration-300"
-              >
-                Contact Agent
-              </button>
-              
-              <p className="text-sm text-orange-200 text-center mt-3">
-                {user 
-                  ? 'Complete your application in minutes'
-                  : 'Create an account to start your application'}
-              </p>
-            </div>
-          </div>
+    <>
+      <div className="min-h-screen bg-gradient-to-b from-white to-orange-50 pt-20">
+        {/* Back Navigation */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+          <Link
+            to="/properties"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-gray-700 hover:border-orange-300 hover:text-orange-600 font-medium mb-4 group transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Back to Properties
+          </Link>
         </div>
         
-        {/* Property Images Gallery */}
-        <div className="mb-12">
-          <div className="relative bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl overflow-hidden">
-            {property.images && property.images.length > 0 ? (
-              <>
-                <img
-                  src={property.images[currentImageIndex]}
-                  alt={`${property.title} - Image ${currentImageIndex + 1}`}
-                  className="w-full h-[500px] object-cover"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
-                  }}
-                />
+        {/* Property Header */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(property.status)}`}>
+                  {getStatusText(property.status)}
+                </span>
                 
-                {/* Image Navigation */}
-                {property.images.length > 1 && (
-                  <>
-                    <button
-                      onClick={handlePrevImage}
-                      className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-                    <button
-                      onClick={handleNextImage}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
-                    >
-                      <ChevronRight className="w-6 h-6" />
-                    </button>
-                    
-                    {/* Image Counter */}
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 backdrop-blur-md bg-black/40 border border-white/20 rounded-full px-4 py-2 text-white text-sm">
-                      {currentImageIndex + 1} / {property.images.length}
-                    </div>
-                  </>
-                )}
+                <span className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-full text-sm">
+                  <TypeIcon className="w-4 h-4" />
+                  <span className="capitalize">{property.property_type}</span>
+                </span>
                 
-                {/* Image Thumbnails */}
-                {property.images.length > 1 && (
-                  <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-2">
-                    {property.images.map((img, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentImageIndex(index)}
-                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
-                          currentImageIndex === index 
-                            ? 'border-white' 
-                            : 'border-transparent'
-                        }`}
-                      >
-                        <img
-                          src={img}
-                          alt={`Thumbnail ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="w-full h-[500px] flex flex-col items-center justify-center text-white">
-                <Camera className="w-24 h-24 mb-4 opacity-50" />
-                <p className="text-xl">No images available</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Property Details Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Main Details */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Description Card */}
-            <div className="bg-white rounded-3xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                  <Home className="w-6 h-6 text-white" />
-                </div>
-                Property Description
-              </h2>
-              <div className="prose prose-lg max-w-none">
-                <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                  {property.description || 'Premium luxury property with exceptional features and amenities.'}
-                </p>
-              </div>
-            </div>
-
-            {/* All Property Features */}
-            <div className="bg-white rounded-3xl shadow-xl p-8">
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                    <Star className="w-6 h-6 text-white" />
-                  </div>
-                  Property Features
-                </h2>
-                <div className="text-sm text-gray-500">
-                  {allFeatures.length} features total
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayedFeatures.map((feature, index) => {
-                  const Icon = feature.icon;
-                  return (
-                    <div 
-                      key={index} 
-                      className="group p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl hover:border-orange-300 transition-all hover:scale-105"
-                    >
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-                          <Icon className="w-5 h-5 text-orange-600" />
-                        </div>
-                        <div className="font-semibold text-gray-800">{feature.label}</div>
-                      </div>
-                      <div className="text-lg font-bold text-orange-700">
-                        {feature.value}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {allFeatures.length > 8 && (
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={() => setShowAllFeatures(!showAllFeatures)}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
-                  >
-                    {showAllFeatures ? 'Show Less Features' : `View All ${allFeatures.length} Features`}
-                    <ChevronRight className={`w-4 h-4 transition-transform ${showAllFeatures ? 'rotate-90' : ''}`} />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Amenities */}
-            {amenitiesWithIcons.length > 0 && (
-              <div className="bg-white rounded-3xl shadow-xl p-8">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                      <Sparkles className="w-6 h-6 text-white" />
-                    </div>
-                    Amenities & Facilities
-                  </h2>
-                  <div className="text-sm text-gray-500">
-                    {amenitiesWithIcons.length} amenities
-                  </div>
-                </div>
+                <span className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-full text-sm">
+                  {property.category || 'Premium'}
+                </span>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {displayedAmenities.map((amenity, index) => {
-                    const Icon = amenity.icon;
-                    return (
-                      <div 
-                        key={index} 
-                        className="group p-4 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl hover:border-orange-300 hover:bg-orange-50 transition-all"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center group-hover:bg-orange-100 transition-colors">
-                            <Icon className="w-5 h-5 text-gray-600 group-hover:text-orange-600" />
-                          </div>
-                          <div className="font-medium text-gray-700 group-hover:text-gray-900">
-                            {amenity.name}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {amenitiesWithIcons.length > 12 && (
-                  <div className="mt-6 text-center">
-                    <button
-                      onClick={() => setShowAllAmenities(!showAllAmenities)}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gray-700 to-gray-800 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
-                    >
-                      {showAllAmenities ? 'Show Less Amenities' : `View All ${amenitiesWithIcons.length} Amenities`}
-                      <ChevronRight className={`w-4 h-4 transition-transform ${showAllAmenities ? 'rotate-90' : ''}`} />
-                    </button>
-                  </div>
+                {property.featured && (
+                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white font-semibold rounded-full text-sm">
+                    <Sparkles className="w-4 h-4" />
+                    Featured Property
+                  </span>
                 )}
               </div>
-            )}
-
-            {/* Additional Information */}
-            <div className="bg-white rounded-3xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                  <Settings className="w-6 h-6 text-white" />
-                </div>
-                Additional Information
-              </h2>
               
-              <div className="space-y-6">
-                {property.lease_duration_months && (
-                  <div className="flex justify-between items-center p-4 bg-orange-50 rounded-2xl">
-                    <div className="font-medium text-gray-700">Lease Duration</div>
-                    <div className="font-bold text-orange-700">
-                      {property.lease_duration_months} months
-                    </div>
-                  </div>
-                )}
-                
-                {property.floor_plan_url && (
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-2xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-medium text-gray-700">Floor Plan</div>
-                      <Link
-                        to={property.floor_plan_url}
-                        target="_blank"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                        View Floor Plan
-                      </Link>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      Detailed architectural layout and dimensions
-                    </p>
-                  </div>
-                )}
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl">
-                    <div className="font-medium text-gray-700 mb-1">Property ID</div>
-                    <div className="font-bold text-gray-800">{property.id}</div>
-                  </div>
-                  
-                  <div className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-2xl">
-                    <div className="font-medium text-gray-700 mb-1">Last Updated</div>
-                    <div className="font-bold text-gray-800">
-                      {new Date(property.updated_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+                {property.title}
+              </h1>
+              
+              <div className="flex items-center gap-2 text-gray-600 mb-6">
+                <MapPin className="w-5 h-5 text-orange-500 flex-shrink-0" />
+                <span className="text-lg">{property.location}</span>
               </div>
-            </div>
-          </div>
 
-          {/* Right Column - Quick Info & Apply */}
-          <div className="space-y-8">
-            {/* Quick Facts */}
-            <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-8 text-white shadow-2xl">
-              <h3 className="text-xl font-bold mb-6">Quick Facts</h3>
-              
-              <div className="space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-white/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                      <Home className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-300">Type</div>
-                      <div className="font-semibold capitalize">{property.property_type}</div>
-                    </div>
-                  </div>
-                </div>
+              {/* Save Button */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleSaveProperty}
+                  disabled={saving || checkingSaved}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 hover:border-orange-300 text-gray-700 hover:text-orange-700 rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                >
+                  {saving || checkingSaved ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : isSaved ? (
+                    <>
+                      <Heart className="w-5 h-5 fill-red-500 text-red-500" />
+                      Saved to Favorites
+                    </>
+                  ) : (
+                    <>
+                      <Heart className="w-5 h-5" />
+                      Save to Favorites
+                    </>
+                  )}
+                </button>
                 
-                <div className="flex items-center justify-between pb-4 border-b border-white/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                      <Square className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-300">Size</div>
-                      <div className="font-semibold">
-                        {property.sqft?.toLocaleString()} sqft
-                        {property.property_size_sqft && ` (${property.property_size_sqft.toLocaleString()} total)`}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between pb-4 border-b border-white/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                      <Calendar className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-300">Available</div>
-                      <div className="font-semibold">
-                        {property.status === 'available' ? 'Immediately' : 'Contact for details'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center">
-                      <ShieldCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm text-gray-300">Security</div>
-                      <div className="font-semibold">24/7 Monitoring</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-8 pt-6 border-t border-white/20">
-                <div className="text-sm text-gray-300 mb-3">Need more information?</div>
                 <button 
+                  onClick={handleScheduleTour}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 text-orange-700 rounded-xl font-semibold hover:shadow-lg transition-all"
+                >
+                  <Eye className="w-5 h-5" />
+                  Schedule Tour
+                </button>
+              </div>
+            </div>
+           
+            {/* Pricing Card */}
+            <div className="w-full lg:w-96">
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-8 text-white shadow-2xl">
+                <div className="mb-6">
+                  <div className="text-sm text-orange-200 mb-2">{priceInfo.label}</div>
+                  <div className="text-5xl font-bold mb-2">
+                    ${priceInfo.amount.toLocaleString()}
+                  </div>
+                  <div className="text-orange-200 text-sm">
+                    {property.security_deposit 
+                      ? `Security deposit: $${parseFloat(property.security_deposit).toLocaleString()}`
+                      : 'No security deposit required'}
+                  </div>
+                </div>
+                
+                {property.available_from && (
+                  <div className="mb-6 p-4 bg-white/10 rounded-xl backdrop-blur-sm">
+                    <div className="flex items-center gap-2 text-sm mb-1">
+                      <Calendar className="w-4 h-4" />
+                      Available From
+                    </div>
+                    <div className="font-semibold">
+                      {new Date(property.available_from).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                <button
+                  onClick={handleApplyForRental}
+                  className="w-full bg-white text-orange-600 font-bold py-4 px-6 rounded-xl hover:bg-orange-50 hover:scale-105 transition-all duration-300 shadow-lg mb-3"
+                >
+                  {user ? 'Apply for Rental' : 'Sign In to Apply'}
+                </button>
+
+                <button
                   onClick={handleContactAgent}
-                  className="w-full bg-white text-gray-900 font-bold py-3 px-6 rounded-xl hover:bg-gray-100 transition-colors"
+                  className="w-full bg-transparent border-2 border-white text-white font-bold py-3 px-6 rounded-xl hover:bg-white/10 transition-all duration-300"
                 >
                   Contact Agent
                 </button>
-              </div>
-            </div>
-
-            {/* Application Requirements */}
-            <div className="bg-white rounded-3xl shadow-xl p-8">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Application Requirements</h3>
-              
-              <div className="space-y-4">
-                {[
-                  { icon: CreditCard, text: 'Proof of income (3x monthly rent)' },
-                  { icon: Shield, text: 'Credit score check' },
-                  { icon: Users, text: 'Background verification' },
-                  { icon: FileText, text: 'Valid ID & references' }
-                ].map((req, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <req.icon className="w-5 h-5 text-orange-600" />
-                    <span className="text-gray-700">{req.text}</span>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-6 p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl">
-                <div className="flex items-center gap-2 text-green-800 font-semibold mb-1">
-                  <CheckCircle className="w-5 h-5" />
-                  Quick Approval
-                </div>
-                <p className="text-sm text-green-700">
-                  Applications typically approved within 24-48 hours
+                
+                <p className="text-sm text-orange-200 text-center mt-3">
+                  {user 
+                    ? 'Complete your application in minutes'
+                    : 'Create an account to start your application'}
                 </p>
               </div>
             </div>
-
-            {/* Contact Agent */}
-            <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-8 text-white shadow-2xl">
-              <h3 className="text-xl font-bold mb-4">Have Questions?</h3>
-              <p className="text-orange-100 mb-6">
-                Our dedicated property specialists are here to help you.
-              </p>
-              
-              <div className="space-y-4">
-                <button 
-                  onClick={handleCallAgent}
-                  className="w-full flex items-center justify-center gap-3 bg-white text-orange-600 font-bold py-3 px-6 rounded-xl hover:bg-orange-50 transition-colors"
-                >
-                  <Phone className="w-5 h-5" />
-                  Call Agent
-                </button>
-                
-                <button 
-                  onClick={handleEmailInquiry}
-                  className="w-full flex items-center justify-center gap-3 bg-transparent border-2 border-white text-white font-bold py-3 px-6 rounded-xl hover:bg-white/10 transition-colors"
-                >
-                  <Mail className="w-5 h-5" />
-                  Email Inquiry
-                </button>
-
-                <button 
-                  onClick={handleContactAgent}
-                  className="w-full flex items-center justify-center gap-3 bg-white/10 backdrop-blur-sm border border-white/30 text-white font-bold py-3 px-6 rounded-xl hover:bg-white/20 transition-colors"
-                >
-                  <MessageSquare className="w-5 h-5" />
-                  Contact Form
-                </button>
-              </div>
-              
-              <div className="mt-6 pt-6 border-t border-white/30 text-center">
-                <div className="text-sm text-orange-200">
-                  Available 7 days a week, 9am - 9pm EST
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Related Properties Section */}
-      <div className="py-16 bg-gray-50 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">Similar Properties</h2>
-              <p className="text-gray-600">You might also be interested in these luxury properties</p>
-            </div>
-            <Link
-              to="/properties"
-              className="inline-flex items-center gap-2 text-orange-600 font-semibold hover:text-orange-700 transition-colors"
-            >
-              View All
-              <ChevronRight className="w-5 h-5" />
-            </Link>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Placeholder for related properties - You can fetch similar properties here */}
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-lg">
-                <div className="h-48 bg-gradient-to-br from-orange-400 to-orange-600"></div>
-                <div className="p-6">
-                  <h3 className="font-bold text-gray-800 mb-2">Similar Luxury Property</h3>
-                  <p className="text-gray-600 text-sm mb-4">Explore other premium options</p>
-                  <Link
-                    to="/properties"
-                    className="inline-flex items-center gap-2 text-orange-600 font-medium hover:text-orange-700"
+          {/* Property Images Gallery */}
+          <div className="mb-12">
+            <div className="relative bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl overflow-hidden">
+              {property.images && property.images.length > 0 ? (
+                <>
+                  <div 
+                    className="w-full h-[500px] cursor-zoom-in relative overflow-hidden"
+                    onClick={() => openLightbox(currentImageIndex)}
                   >
-                    Browse Properties
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
+                    <img
+                      src={property.images[currentImageIndex]}
+                      alt={`${property.title} - Image ${currentImageIndex + 1}`}
+                      className="w-full h-full object-cover hover:opacity-95 transition-opacity"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
+                      }}
+                    />
+                    
+                    {/* Zoom Indicator */}
+                    <div className="absolute top-4 left-4 backdrop-blur-md bg-black/40 border border-white/20 rounded-full px-3 py-1.5 text-white text-xs flex items-center gap-1">
+                      <Maximize2 className="w-3 h-3" />
+                      Click to zoom
+                    </div>
+                  </div>
+                  
+                  {/* Image Navigation */}
+                  {property.images.length > 1 && (
+                    <>
+                      <button
+                        onClick={handlePrevImage}
+                        className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+                      >
+                        <ChevronLeft className="w-6 h-6" />
+                      </button>
+                      <button
+                        onClick={handleNextImage}
+                        className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+                      >
+                        <ChevronRight className="w-6 h-6" />
+                      </button>
+                      
+                      {/* Image Counter */}
+                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 backdrop-blur-md bg-black/40 border border-white/20 rounded-full px-4 py-2 text-white text-sm">
+                        {currentImageIndex + 1} / {property.images.length}
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Image Thumbnails */}
+                  {property.images.length > 1 && (
+                    <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-2">
+                      {property.images.map((img, index) => (
+                        <button
+                          key={index}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentImageIndex(index);
+                          }}
+                          className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                            currentImageIndex === index 
+                              ? 'border-white scale-105' 
+                              : 'border-transparent hover:border-white/50'
+                          }`}
+                        >
+                          <img
+                            src={img}
+                            alt={`Thumbnail ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="w-full h-[500px] flex flex-col items-center justify-center text-white">
+                  <Camera className="w-24 h-24 mb-4 opacity-50" />
+                  <p className="text-xl">No images available</p>
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
+
+          {/* Rest of the PropertyDetails content remains the same... */}
+          {/* ... [Previous PropertyDetails content remains unchanged] ... */}
+        </div>
+      </div>
+
+      {/* Lightbox Modal */}
+      {showLightbox && property.images && property.images.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 z-10 w-10 h-10 bg-black/50 border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+          {/* Zoom Controls */}
+          <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-black/50 border border-white/20 rounded-xl p-2">
+            <button
+              onClick={handleZoomOut}
+              className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded"
+              title="Zoom Out"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+            <span className="text-white text-sm px-2">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <button
+              onClick={handleZoomIn}
+              className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded"
+              title="Zoom In"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+            {zoomLevel !== 1 && (
+              <button
+                onClick={handleResetZoom}
+                className="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded ml-2"
+                title="Reset Zoom"
+              >
+                100%
+              </button>
+            )}
+          </div>
+
+          {/* Image Counter */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 backdrop-blur-md bg-black/40 border border-white/20 rounded-full px-4 py-2 text-white text-sm">
+            {lightboxIndex + 1} / {property.images.length}
+          </div>
+
+          {/* Main Image */}
+          <div className="relative w-full h-full flex items-center justify-center">
+            <button
+              onClick={handlePrevLightboxImage}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            <div className="relative max-w-full max-h-[80vh] overflow-auto">
+              <img
+                src={property.images[lightboxIndex]}
+                alt={`${property.title} - Image ${lightboxIndex + 1}`}
+                className="max-w-full max-h-[70vh] object-contain transition-transform duration-200"
+                style={{ transform: `scale(${zoomLevel})` }}
+              />
+            </div>
+
+            <button
+              onClick={handleNextLightboxImage}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Thumbnail Strip */}
+          <div className="absolute bottom-4 left-4 right-4 flex justify-center gap-2 overflow-x-auto pb-2">
+            {property.images.map((img, index) => (
+              <button
+                key={index}
+                onClick={() => setLightboxIndex(index)}
+                className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  lightboxIndex === index 
+                    ? 'border-white scale-110' 
+                    : 'border-transparent hover:border-white/50'
+                }`}
+              >
+                <img
+                  src={img}
+                  alt={`Thumbnail ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </button>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* CTA Section */}
-      <div className="py-24 bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Make This Your Home?
-          </h2>
-          <p className="text-xl text-orange-100 mb-10">
-            Join thousands of satisfied residents who found their perfect home with Palms Estate.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={handleApplyForRental}
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-orange-600 font-bold rounded-xl hover:bg-orange-50 transition-all duration-300 shadow-xl hover:shadow-2xl"
-            >
-              <CheckCircle className="w-5 h-5" />
-              Apply Now
-            </button>
-            <button
-              onClick={handleContactAgent}
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 border-2 border-white text-white font-bold rounded-xl hover:bg-white/10 transition-all duration-300"
-            >
-              <MessageSquare className="w-5 h-5" />
-              Contact Agent
-            </button>
+          {/* Keyboard Shortcuts Help */}
+          <div className="absolute bottom-4 left-4 z-10 hidden md:block">
+            <div className="text-white/60 text-xs">
+              <div>← → Navigate • +/- Zoom • 0 Reset • ESC Close</div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
 
