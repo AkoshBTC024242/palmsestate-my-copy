@@ -1,14 +1,18 @@
-// src/pages/Properties.jsx - COMPLETE UPDATED VERSION WITH HOME PAGE STYLING
+// src/pages/Properties.jsx - UPDATED WITH WORKING FAVORITE BUTTON
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   MapPin, Bed, Bath, Square, Loader, Home, 
   Shield, Star, Heart, Eye, ChevronRight,
-  Sparkles, Filter, ArrowUpDown, Search
+  Sparkles, Filter, ArrowUpDown, Search,
+  CheckCircle, Loader2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 function Properties() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [properties, setProperties] = useState([]);
   const [filteredProperties, setFilteredProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +25,8 @@ function Properties() {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [savedProperties, setSavedProperties] = useState(new Set());
+  const [savingStates, setSavingStates] = useState({});
 
   useEffect(() => {
     loadProperties();
@@ -29,6 +35,12 @@ function Properties() {
   useEffect(() => {
     filterProperties();
   }, [properties, filters, searchQuery]);
+
+  useEffect(() => {
+    if (user) {
+      loadSavedProperties();
+    }
+  }, [user]);
 
   const loadProperties = async () => {
     try {
@@ -53,6 +65,79 @@ function Properties() {
       setError('Failed to load properties. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSavedProperties = async () => {
+    try {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('saved_properties')
+        .select('property_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (data) {
+        const savedIds = new Set(data.map(item => item.property_id.toString()));
+        setSavedProperties(savedIds);
+      }
+    } catch (error) {
+      console.error('Error loading saved properties:', error);
+    }
+  };
+
+  const handleSaveProperty = async (propertyId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!user) {
+      navigate('/signin');
+      return;
+    }
+
+    try {
+      setSavingStates(prev => ({ ...prev, [propertyId]: true }));
+      const propertyIdNum = parseInt(propertyId);
+      
+      if (isNaN(propertyIdNum)) return;
+
+      const isCurrentlySaved = savedProperties.has(propertyId.toString());
+
+      if (isCurrentlySaved) {
+        // Unsave
+        await supabase
+          .from('saved_properties')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('property_id', propertyIdNum);
+        
+        setSavedProperties(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(propertyId.toString());
+          return newSet;
+        });
+      } else {
+        // Save
+        await supabase
+          .from('saved_properties')
+          .insert({
+            user_id: user.id,
+            property_id: propertyIdNum,
+            saved_at: new Date().toISOString()
+          });
+        
+        setSavedProperties(prev => {
+          const newSet = new Set(prev);
+          newSet.add(propertyId.toString());
+          return newSet;
+        });
+      }
+    } catch (error) {
+      console.error('Error saving property:', error);
+    } finally {
+      setSavingStates(prev => ({ ...prev, [propertyId]: false }));
     }
   };
 
@@ -160,11 +245,6 @@ function Properties() {
       townhouse: Home
     };
     return icons[type] || Home;
-  };
-
-  const handleSaveProperty = async (propertyId) => {
-    // Implement save functionality
-    console.log('Save property:', propertyId);
   };
 
   if (loading) {
@@ -371,6 +451,8 @@ function Properties() {
               const PropertyTypeIcon = getPropertyTypeIcon(property.property_type);
               const propertyImage = getPropertyImage(property);
               const amenities = getAmenitiesList(property);
+              const isSaved = savedProperties.has(property.id.toString());
+              const isSaving = savingStates[property.id];
 
               return (
                 <div 
@@ -378,95 +460,103 @@ function Properties() {
                   className="group bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100"
                 >
                   {/* Property Image with Gradient Overlay */}
-                  <div className="relative h-64 overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600">
-                    {propertyImage ? (
-                      <img
-                        src={propertyImage}
-                        alt={property.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Home className="w-16 h-16 text-white" />
-                      </div>
-                    )}
-
-                    {/* Image Overlay Gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                    {/* Top Badges */}
-                    <div className="absolute top-4 left-4 flex flex-col gap-2">
-                      {property.featured && (
-                        <span className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-full text-xs flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          Featured
-                        </span>
+                  <Link to={`/properties/${property.id}`} className="block">
+                    <div className="relative h-64 overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600">
+                      {propertyImage ? (
+                        <img
+                          src={propertyImage}
+                          alt={property.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Home className="w-16 h-16 text-white" />
+                        </div>
                       )}
-                      <span className="px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-800 font-semibold rounded-full text-xs capitalize">
-                        {property.property_type}
-                      </span>
-                    </div>
 
-                    {/* Price Badge */}
-                    <div className="absolute top-4 right-4 backdrop-blur-md bg-black/50 border border-white/20 rounded-xl p-3">
-                      <div className="text-lg font-bold text-white">
-                        {formatPrice(property)}
+                      {/* Image Overlay Gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                      {/* Top Badges */}
+                      <div className="absolute top-4 left-4 flex flex-col gap-2">
+                        {property.featured && (
+                          <span className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-full text-xs flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            Featured
+                          </span>
+                        )}
+                        <span className="px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-800 font-semibold rounded-full text-xs capitalize">
+                          {property.property_type}
+                        </span>
+                      </div>
+
+                      {/* Price Badge */}
+                      <div className="absolute top-4 right-4 backdrop-blur-md bg-black/50 border border-white/20 rounded-xl p-3">
+                        <div className="text-lg font-bold text-white">
+                          {formatPrice(property)}
+                        </div>
+                      </div>
+
+                      {/* Save Button */}
+                      <button
+                        onClick={(e) => handleSaveProperty(property.id, e)}
+                        disabled={isSaving}
+                        className="absolute bottom-4 right-4 w-10 h-10 backdrop-blur-md bg-black/40 border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors disabled:opacity-50"
+                        aria-label={isSaved ? "Remove from saved" : "Save property"}
+                      >
+                        {isSaving ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : isSaved ? (
+                          <Heart className="w-5 h-5 fill-red-500 text-red-500" />
+                        ) : (
+                          <Heart className="w-5 h-5" />
+                        )}
+                      </button>
+
+                      {/* Quick View Button - Appears on Hover */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                        <div className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-xl font-semibold">
+                          <Eye className="w-4 h-4" />
+                          Quick View
+                        </div>
                       </div>
                     </div>
-
-                    {/* Save Button */}
-                    <button
-                      onClick={() => handleSaveProperty(property.id)}
-                      className="absolute bottom-4 right-4 w-10 h-10 backdrop-blur-md bg-black/40 border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-                      aria-label="Save property"
-                    >
-                      <Heart className="w-5 h-5" />
-                    </button>
-
-                    {/* Quick View Button - Appears on Hover */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      <Link
-                        to={`/properties/${property.id}`}
-                        className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-xl font-semibold hover:bg-orange-50 transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                        Quick View
-                      </Link>
-                    </div>
-                  </div>
+                  </Link>
 
                   {/* Property Details */}
                   <div className="p-6">
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-bold text-xl text-gray-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
-                          {property.title}
-                        </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          property.status === 'available' 
-                            ? 'bg-green-100 text-green-800' 
-                            : property.status === 'rented'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          {property.status === 'available' ? 'Available' : 
-                           property.status === 'rented' ? 'Rented' : 'Maintenance'}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center text-gray-600 mb-3">
-                        <MapPin className="w-4 h-4 mr-2 text-orange-500 flex-shrink-0" />
-                        <span className="truncate">{property.location}</span>
-                      </div>
+                    <Link to={`/properties/${property.id}`} className="block">
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-bold text-xl text-gray-900 line-clamp-1 group-hover:text-orange-600 transition-colors">
+                            {property.title}
+                          </h3>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            property.status === 'available' 
+                              ? 'bg-green-100 text-green-800' 
+                              : property.status === 'rented'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {property.status === 'available' ? 'Available' : 
+                             property.status === 'rented' ? 'Rented' : 'Maintenance'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center text-gray-600 mb-3">
+                          <MapPin className="w-4 h-4 mr-2 text-orange-500 flex-shrink-0" />
+                          <span className="truncate">{property.location}</span>
+                        </div>
 
-                      <p className="text-gray-600 text-sm line-clamp-2 mb-4">
-                        {property.description || 'Premium luxury property with exceptional features and amenities.'}
-                      </p>
-                    </div>
+                        <p className="text-gray-600 text-sm line-clamp-2 mb-4">
+                          {property.description || 'Premium luxury property with exceptional features and amenities.'}
+                        </p>
+                      </div>
+                    </Link>
 
                     {/* Property Stats */}
                     <div className="grid grid-cols-3 gap-4 py-4 border-y border-gray-100 mb-4">
