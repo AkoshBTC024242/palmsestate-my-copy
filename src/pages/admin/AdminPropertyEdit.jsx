@@ -1,4 +1,4 @@
-// src/pages/admin/AdminPropertyEdit.jsx - FINAL VERSION
+// src/pages/admin/AdminPropertyEdit.jsx - UPDATED WITH MULTIPLE IMAGES & DYNAMIC PRICING
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -10,7 +10,9 @@ import {
   Shield, Utensils, Sun, Droplets, Thermometer,
   Users, Coffee, Wind, Snowflake as SnowflakeIcon,
   Layers, ChevronRight, Key, CalendarDays,
-  PawPrint, Sofa, FileText
+  PawPrint, Sofa, FileText, Trash2, Plus,
+  Home as HomeIcon, Building, Castle, Mountain,
+  Warehouse, Building as BuildingIcon
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -34,21 +36,25 @@ const AMENITIES_OPTIONS = [
   { id: 'hot_tub', label: 'Hot Tub/Jacuzzi', icon: Waves },
 ];
 
-// Property Type Configuration - MAPPED TO YOUR ACTUAL SCHEMA
+// Property Type Configuration with PRICING LABELS
 const PROPERTY_TYPE_CONFIG = {
   villa: {
     name: 'Villa',
-    icon: Home,
+    icon: HomeIcon,
+    pricingLabel: 'Weekly Rental Price',
+    pricingField: 'price_per_week',
     fields: [
       { name: 'has_private_pool', label: 'Private Pool', type: 'checkbox', dbField: 'amenities', value: 'Private Pool' },
-      { name: 'garden_size_sqft', label: 'Garden Size (sqft)', type: 'number', dbField: 'property_size_sqft' },
+      { name: 'garden_size_sqft', label: 'Garden Size (sqft)', type: 'number', dbField: 'custom_fields', subfield: 'garden_size' },
       { name: 'staff_quarters', label: 'Staff Quarters', type: 'checkbox', dbField: 'amenities', value: 'Staff Quarters' },
       { name: 'private_beach_access', label: 'Private Beach Access', type: 'checkbox', dbField: 'amenities', value: 'Private Beach' },
     ]
   },
   apartment: {
     name: 'Apartment',
-    icon: Building2,
+    icon: Building,
+    pricingLabel: 'Monthly Rent',
+    pricingField: 'rent_amount',
     fields: [
       { name: 'apartment_floor', label: 'Floor Number', type: 'number', dbField: 'custom_fields', subfield: 'floor' },
       { name: 'has_concierge', label: '24/7 Concierge', type: 'checkbox', dbField: 'amenities', value: 'Concierge' },
@@ -59,6 +65,8 @@ const PROPERTY_TYPE_CONFIG = {
   penthouse: {
     name: 'Penthouse',
     icon: Layers,
+    pricingLabel: 'Weekly Luxury Rate',
+    pricingField: 'price_per_week',
     fields: [
       { name: 'rooftop_access', label: 'Private Rooftop', type: 'checkbox', dbField: 'amenities', value: 'Rooftop' },
       { name: 'private_elevator', label: 'Private Elevator', type: 'checkbox', dbField: 'amenities', value: 'Private Elevator' },
@@ -68,7 +76,9 @@ const PROPERTY_TYPE_CONFIG = {
   },
   mansion: {
     name: 'Mansion',
-    icon: Home,
+    icon: Castle,
+    pricingLabel: 'Monthly Estate Rate',
+    pricingField: 'rent_amount',
     fields: [
       { name: 'estate_size_acres', label: 'Estate Size (acres)', type: 'number', dbField: 'custom_fields', subfield: 'estate_size' },
       { name: 'guest_houses', label: 'Guest Houses', type: 'number', dbField: 'custom_fields', subfield: 'guest_houses' },
@@ -78,7 +88,9 @@ const PROPERTY_TYPE_CONFIG = {
   },
   chalet: {
     name: 'Chalet',
-    icon: Home,
+    icon: Mountain,
+    pricingLabel: 'Weekly Seasonal Rate',
+    pricingField: 'price_per_week',
     fields: [
       { name: 'ski_in_out', label: 'Ski-In/Ski-Out', type: 'checkbox', dbField: 'amenities', value: 'Ski Access' },
       { name: 'fireplace', label: 'Fireplace', type: 'checkbox', dbField: 'amenities', value: 'Fireplace' },
@@ -88,7 +100,9 @@ const PROPERTY_TYPE_CONFIG = {
   },
   cottage: {
     name: 'Cottage',
-    icon: Home,
+    icon: HomeIcon,
+    pricingLabel: 'Weekly Rental',
+    pricingField: 'price_per_week',
     fields: [
       { name: 'waterfront', label: 'Waterfront', type: 'checkbox', dbField: 'amenities', value: 'Waterfront' },
       { name: 'boat_dock', label: 'Boat Dock', type: 'checkbox', dbField: 'amenities', value: 'Boat Dock' },
@@ -98,7 +112,9 @@ const PROPERTY_TYPE_CONFIG = {
   },
   condo: {
     name: 'Condominium',
-    icon: Building2,
+    icon: BuildingIcon,
+    pricingLabel: 'Purchase Price',
+    pricingField: 'price',
     fields: [
       { name: 'hoa_fee', label: 'HOA Fee ($/month)', type: 'number', dbField: 'custom_fields', subfield: 'hoa_fee' },
       { name: 'unit_number', label: 'Unit Number', type: 'text', dbField: 'custom_fields', subfield: 'unit_number' },
@@ -108,7 +124,9 @@ const PROPERTY_TYPE_CONFIG = {
   },
   townhouse: {
     name: 'Townhouse',
-    icon: Home,
+    icon: Warehouse,
+    pricingLabel: 'Monthly Rent',
+    pricingField: 'rent_amount',
     fields: [
       { name: 'shared_walls', label: 'Shared Walls', type: 'number', dbField: 'custom_fields', subfield: 'shared_walls' },
       { name: 'private_entrance', label: 'Private Entrance', type: 'checkbox', dbField: 'amenities', value: 'Private Entrance' },
@@ -127,9 +145,7 @@ function AdminPropertyEdit() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [uploadingImages, setUploadingImages] = useState([]);
   const [selectedAmenities, setSelectedAmenities] = useState([]);
   const [step, setStep] = useState(isEditing ? 'form' : 'select-type');
   const [typeSpecificData, setTypeSpecificData] = useState({});
@@ -167,6 +183,11 @@ function AdminPropertyEdit() {
     // Custom fields JSON for type-specific data
     custom_fields: {}
   });
+
+  // Image handling state
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [mainImageIndex, setMainImageIndex] = useState(0);
 
   // Load property data if editing
   useEffect(() => {
@@ -227,7 +248,17 @@ function AdminPropertyEdit() {
         };
         
         setFormData(formattedData);
-        setImagePreview(formattedData.image_url);
+        
+        // Set up images array for display
+        const imagesArray = data.images || [];
+        if (data.image_url && !imagesArray.includes(data.image_url)) {
+          imagesArray.unshift(data.image_url);
+        }
+        setImagePreviews(imagesArray);
+        
+        // Find main image index
+        const mainImgIndex = imagesArray.findIndex(img => img === data.image_url);
+        setMainImageIndex(mainImgIndex >= 0 ? mainImgIndex : 0);
         
         // Parse amenities
         if (data.amenities) {
@@ -270,7 +301,6 @@ function AdminPropertyEdit() {
     if (typeConfig) {
       typeConfig.fields.forEach(field => {
         if (field.dbField === 'amenities') {
-          // Check if amenity exists in the amenities string
           const hasAmenity = dbData.amenities?.includes(field.value) || false;
           extracted[field.name] = hasAmenity;
         } else if (field.dbField === 'custom_fields' && dbData.custom_fields) {
@@ -319,27 +349,68 @@ function AdminPropertyEdit() {
     );
   };
 
-  const handleImageUpload = async (file) => {
-    try {
-      setUploadingImage(true);
+  const handleMultipleImageUpload = async (files) => {
+    const newFiles = Array.from(files);
+    const newPreviews = [...imagePreviews];
+    const newUploading = [...uploadingImages];
+    
+    for (const file of newFiles) {
+      const fileId = Date.now() + Math.random();
+      newUploading.push(fileId);
       
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-      
-      setImageFile(file);
+      try {
+        // Create preview
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newPreviews.push(reader.result);
+          setImagePreviews([...newPreviews]);
+          
+          // Remove from uploading
+          setUploadingImages(prev => prev.filter(id => id !== fileId));
+        };
+        reader.readAsDataURL(file);
+        
+        // Add to files array
+        setImageFiles(prev => [...prev, file]);
+        
+      } catch (err) {
+        console.error('Image upload error:', err);
+        setUploadingImages(prev => prev.filter(id => id !== fileId));
+      }
+    }
+    
+    setUploadingImages(newUploading);
+  };
+
+  const removeImage = (index) => {
+    const newPreviews = [...imagePreviews];
+    const newFiles = [...imageFiles];
+    
+    newPreviews.splice(index, 1);
+    
+    // Adjust files array if needed
+    if (index < newFiles.length) {
+      newFiles.splice(index, 1);
+    }
+    
+    setImagePreviews(newPreviews);
+    setImageFiles(newFiles);
+    
+    // Adjust main image index if needed
+    if (mainImageIndex >= newPreviews.length) {
+      setMainImageIndex(newPreviews.length - 1);
+    } else if (mainImageIndex === index && newPreviews.length > 0) {
+      setMainImageIndex(0);
+    }
+  };
+
+  const setAsMainImage = (index) => {
+    setMainImageIndex(index);
+    if (imagePreviews[index]) {
       setFormData(prev => ({
         ...prev,
-        image_url: URL.createObjectURL(file)
+        image_url: imagePreviews[index]
       }));
-      
-    } catch (err) {
-      console.error('Image upload error:', err);
-      setError('Failed to upload image. Please try again.');
-    } finally {
-      setUploadingImage(false);
     }
   };
 
@@ -364,15 +435,14 @@ function AdminPropertyEdit() {
   };
 
   const prepareFormDataForDatabase = () => {
+    const typeConfig = PROPERTY_TYPE_CONFIG[formData.property_type];
     const propertyData = {
       title: formData.title.trim(),
       description: formData.description.trim(),
       location: formData.location.trim(),
-      price: parseFloat(formData.price) || 0,
       bedrooms: parseInt(formData.bedrooms) || 0,
       bathrooms: parseInt(formData.bathrooms) || 0,
       sqft: parseInt(formData.sqft) || 0,
-      image_url: formData.image_url,
       status: formData.status,
       category: formData.category,
       featured: formData.featured,
@@ -381,7 +451,6 @@ function AdminPropertyEdit() {
       
       // Schema fields
       security_deposit: formData.security_deposit ? parseFloat(formData.security_deposit) : null,
-      rent_amount: formData.rent_amount ? parseFloat(formData.rent_amount) : null,
       lease_duration_months: formData.lease_duration_months ? parseInt(formData.lease_duration_months) : null,
       available_from: formData.available_from || null,
       property_size_sqft: formData.property_size_sqft ? parseInt(formData.property_size_sqft) : null,
@@ -389,15 +458,40 @@ function AdminPropertyEdit() {
       parking_spots: formData.parking_spots ? parseInt(formData.parking_spots) : null,
       pet_friendly: formData.pet_friendly,
       furnished: formData.furnished,
-      images: formData.images,
+      images: imagePreviews, // Use all image previews
       floor_plan_url: formData.floor_plan_url
     };
     
-    // Add price_per_week
-    if (formData.price_per_week) {
-      propertyData.price_per_week = parseFloat(formData.price_per_week);
-    } else {
-      propertyData.price_per_week = parseFloat(formData.price) || 0;
+    // Set main image URL
+    if (imagePreviews.length > 0 && mainImageIndex < imagePreviews.length) {
+      propertyData.image_url = imagePreviews[mainImageIndex];
+    } else if (formData.image_url) {
+      propertyData.image_url = formData.image_url;
+    }
+    
+    // Set pricing based on property type
+    if (typeConfig) {
+      const priceField = typeConfig.pricingField;
+      const priceValue = formData[priceField] || formData.price;
+      
+      if (priceValue) {
+        propertyData[priceField] = parseFloat(priceValue);
+        
+        // Also set the main price field for sorting/filtering
+        if (priceField !== 'price') {
+          propertyData.price = parseFloat(priceValue);
+        }
+      }
+      
+      // Set rent_amount for rental properties
+      if (typeConfig.pricingLabel.includes('Rent') || typeConfig.pricingLabel.includes('Monthly')) {
+        propertyData.rent_amount = parseFloat(priceValue) || null;
+      }
+      
+      // Set price_per_week for weekly rentals
+      if (typeConfig.pricingLabel.includes('Weekly')) {
+        propertyData.price_per_week = parseFloat(priceValue) || null;
+      }
     }
     
     // Process amenities
@@ -407,7 +501,6 @@ function AdminPropertyEdit() {
     });
     
     // Add type-specific amenities
-    const typeConfig = PROPERTY_TYPE_CONFIG[formData.property_type];
     if (typeConfig) {
       typeConfig.fields.forEach(field => {
         if (field.dbField === 'amenities' && typeSpecificData[field.name]) {
@@ -447,8 +540,19 @@ function AdminPropertyEdit() {
       return;
     }
     
-    if (!formData.price || parseFloat(formData.price) <= 0) {
-      setError('Valid price is required');
+    // Get current type config for pricing validation
+    const typeConfig = PROPERTY_TYPE_CONFIG[formData.property_type];
+    const priceField = typeConfig?.pricingField || 'price';
+    const priceValue = formData[priceField] || formData.price;
+    
+    if (!priceValue || parseFloat(priceValue) <= 0) {
+      setError(`Valid ${typeConfig?.pricingLabel?.toLowerCase() || 'price'} is required`);
+      return;
+    }
+    
+    // Validate at least one image
+    if (imagePreviews.length === 0 && !formData.image_url) {
+      setError('At least one image is required');
       return;
     }
     
@@ -529,8 +633,9 @@ function AdminPropertyEdit() {
                   <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500" />
                 </div>
                 <h3 className="font-semibold text-gray-900">{config.name}</h3>
-                <p className="text-sm text-gray-600 mt-2">
-                  {config.fields.length} specific fields
+                <p className="text-sm text-gray-600 mt-1">{config.pricingLabel}</p>
+                <p className="text-xs text-gray-500 mt-2">
+                  {config.fields.length} specific features
                 </p>
               </button>
             );
@@ -694,7 +799,7 @@ function AdminPropertyEdit() {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <TypeIcon className="w-5 h-5 text-orange-600" />
-              {currentTypeConfig.name} Specific Details
+              {currentTypeConfig.name} Specific Features
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {currentTypeConfig.fields.map((field) => (
@@ -712,7 +817,7 @@ function AdminPropertyEdit() {
                         className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
                       />
                       <label htmlFor={field.name} className="ml-2 text-sm text-gray-700">
-                        Yes
+                        Included
                       </label>
                     </div>
                   ) : (
@@ -729,6 +834,142 @@ function AdminPropertyEdit() {
             </div>
           </div>
 
+          {/* Multiple Images Upload */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Image className="w-5 h-5 text-orange-600" />
+              Property Images
+            </h2>
+            
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-gray-600">
+                    Upload multiple images. The first image will be used as the main display image.
+                    {mainImageIndex >= 0 && (
+                      <span className="ml-2 text-orange-600 font-medium">
+                        {imagePreviews[mainImageIndex] ? `Main image: #${mainImageIndex + 1}` : 'No main image set'}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    id="multi-image-upload"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => handleMultipleImageUpload(e.target.files)}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="multi-image-upload"
+                    className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-4 rounded-lg cursor-pointer transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Images
+                  </label>
+                </div>
+              </div>
+
+              {imagePreviews.length === 0 ? (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+                  <Image className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">No images uploaded yet</p>
+                  <p className="text-sm text-gray-500">Upload JPG, PNG or WebP images (max 5MB each)</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative group">
+                      <div className={`aspect-square rounded-lg overflow-hidden border-2 ${
+                        mainImageIndex === index ? 'border-orange-500' : 'border-gray-200'
+                      }`}>
+                        <img
+                          src={preview}
+                          alt={`Property ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      {/* Overlay actions */}
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAsMainImage(index)}
+                          className={`p-2 rounded-full ${
+                            mainImageIndex === index 
+                              ? 'bg-green-600 text-white' 
+                              : 'bg-white/90 text-gray-800 hover:bg-white'
+                          }`}
+                          title={mainImageIndex === index ? "Main Image" : "Set as Main"}
+                        >
+                          {mainImageIndex === index ? (
+                            <Eye className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="p-2 bg-red-600 text-white rounded-full hover:bg-red-700"
+                          title="Remove Image"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      {/* Badge for main image */}
+                      {mainImageIndex === index && (
+                        <div className="absolute top-2 left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded">
+                          Main
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {/* Add more button */}
+                  <div className="aspect-square border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-orange-400 transition-colors">
+                    <label htmlFor="multi-image-upload" className="flex flex-col items-center p-4 cursor-pointer">
+                      <Plus className="w-8 h-8 text-gray-400 mb-2" />
+                      <span className="text-sm text-gray-600">Add More</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Image URL fallback */}
+            <div className="pt-4 border-t border-gray-200">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Or add image by URL
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={formData.image_url}
+                  onChange={handleChange}
+                  name="image_url"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                  placeholder="https://images.unsplash.com/photo-..."
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (formData.image_url) {
+                      setImagePreviews(prev => [...prev, formData.image_url]);
+                      setFormData(prev => ({ ...prev, image_url: '' }));
+                    }
+                  }}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  Add URL
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Pricing & Details */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -736,22 +977,36 @@ function AdminPropertyEdit() {
               Pricing & Details
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Dynamic Pricing Field */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price per Week ($) *
+                  {currentTypeConfig.pricingLabel} ($) *
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
-                    name="price"
-                    value={formData.price}
-                    onChange={(e) => handleNumberChange('price', e.target.value)}
+                    name={currentTypeConfig.pricingField}
+                    value={formData[currentTypeConfig.pricingField] || formData.price}
+                    onChange={(e) => {
+                      const numValue = e.target.value.replace(/[^0-9]/g, '');
+                      setFormData(prev => ({
+                        ...prev,
+                        [currentTypeConfig.pricingField]: numValue,
+                        price: numValue // Also update main price field
+                      }));
+                    }}
                     className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    placeholder="35000"
+                    placeholder={currentTypeConfig.pricingField === 'price_per_week' ? "35000" : "5000"}
                     required
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {currentTypeConfig.pricingField === 'price_per_week' && "Monthly equivalent: $" + 
+                    (formData[currentTypeConfig.pricingField] ? (parseFloat(formData[currentTypeConfig.pricingField]) * 4).toLocaleString() : "0")}
+                  {currentTypeConfig.pricingField === 'rent_amount' && "Weekly equivalent: $" + 
+                    (formData[currentTypeConfig.pricingField] ? (parseFloat(formData[currentTypeConfig.pricingField]) / 4).toLocaleString() : "0")}
+                </p>
               </div>
 
               <div>
@@ -770,6 +1025,25 @@ function AdminPropertyEdit() {
                   />
                 </div>
               </div>
+
+              {/* Additional Pricing for Condos */}
+              {formData.property_type === 'condo' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    HOA Fee ($/month)
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={typeSpecificData.hoa_fee || ''}
+                      onChange={(e) => handleTypeSpecificChange('hoa_fee', e.target.value.replace(/[^0-9]/g, ''))}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      placeholder="500"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -820,34 +1094,6 @@ function AdminPropertyEdit() {
                     placeholder="5000"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Property Size (sqft)
-                </label>
-                <input
-                  type="text"
-                  name="property_size_sqft"
-                  value={formData.property_size_sqft}
-                  onChange={(e) => handleNumberChange('property_size_sqft', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="Total property area"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Parking Spots
-                </label>
-                <input
-                  type="text"
-                  name="parking_spots"
-                  value={formData.parking_spots}
-                  onChange={(e) => handleNumberChange('parking_spots', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  placeholder="2"
-                />
               </div>
 
               <div>
@@ -973,8 +1219,13 @@ function AdminPropertyEdit() {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Tag className="w-5 h-5 text-orange-600" />
-              Amenities
+              Amenities & Features
             </h2>
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">
+                Select all amenities available. These will be displayed on the property page.
+              </p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {AMENITIES_OPTIONS.map((amenity) => {
                 const Icon = amenity.icon;
@@ -1002,85 +1253,40 @@ function AdminPropertyEdit() {
                 );
               })}
             </div>
+            
+            {/* Selected Amenities Summary */}
+            {selectedAmenities.length > 0 && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Selected ({selectedAmenities.length}):
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedAmenities.map(amenityId => {
+                    const amenity = AMENITIES_OPTIONS.find(a => a.id === amenityId);
+                    return amenity ? (
+                      <span
+                        key={amenityId}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
+                      >
+                        {amenity.label}
+                        <button
+                          type="button"
+                          onClick={() => toggleAmenity(amenityId)}
+                          className="text-orange-600 hover:text-orange-800 ml-1"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* Image Upload */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Image className="w-5 h-5 text-orange-600" />
-              Property Image
-            </h2>
-            
-            <div className="mb-4">
-              {imagePreview ? (
-                <div className="relative">
-                  <img src={imagePreview} alt="Property" className="w-full h-48 object-cover rounded-lg" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImagePreview('');
-                      setFormData(prev => ({ ...prev, image_url: '' }));
-                    }}
-                    className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full hover:bg-red-700"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-sm text-gray-600 mb-2">Upload property image</p>
-                  <p className="text-xs text-gray-500">JPG, PNG or WebP (max 5MB)</p>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <input
-                type="file"
-                id="image-upload"
-                accept="image/*"
-                onChange={(e) => e.target.files[0] && handleImageUpload(e.target.files[0])}
-                className="hidden"
-              />
-              <label
-                htmlFor="image-upload"
-                className="block w-full text-center border-2 border-dashed border-gray-300 hover:border-orange-400 text-gray-700 hover:text-orange-700 font-medium py-3 px-4 rounded-lg cursor-pointer transition-colors"
-              >
-                {uploadingImage ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Uploading...
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    <Upload className="w-4 h-4" />
-                    {imagePreview ? 'Change Image' : 'Upload Image'}
-                  </span>
-                )}
-              </label>
-              
-              {!imagePreview && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Or use image URL
-                  </label>
-                  <input
-                    type="text"
-                    name="image_url"
-                    value={formData.image_url}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    placeholder="https://images.unsplash.com/photo-..."
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Settings */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -1128,9 +1334,11 @@ function AdminPropertyEdit() {
                     <span className="font-medium capitalize">{formData.property_type}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Weekly Price:</span>
+                    <span>{currentTypeConfig.pricingLabel}:</span>
                     <span className="font-medium">
-                      ${formData.price ? parseFloat(formData.price).toLocaleString() : '0'}
+                      ${formData[currentTypeConfig.pricingField] || formData.price 
+                        ? parseFloat(formData[currentTypeConfig.pricingField] || formData.price).toLocaleString() 
+                        : '0'}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -1149,6 +1357,12 @@ function AdminPropertyEdit() {
                     <span>Size:</span>
                     <span className="font-medium">
                       {formData.sqft?.toLocaleString()} sqft
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Images:</span>
+                    <span className="font-medium">
+                      {imagePreviews.length}
                     </span>
                   </div>
                   <div className="flex justify-between">
