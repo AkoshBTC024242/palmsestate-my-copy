@@ -1,4 +1,4 @@
-// src/pages/PropertyDetails.jsx - UPDATED WITH WORKING CONTACT LINKS
+// src/pages/PropertyDetails.jsx - UPDATED WITH IMAGE LIGHTBOX AND REORGANIZED CONTENT
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,7 +17,7 @@ import {
   FireExtinguisher, Microwave, Refrigerator,
   Fan, Printer, Gamepad2, Projector, Piano,
   Wine, Bike, Zap, Settings as SettingsIcon, Camera,
-  FileText, MessageSquare
+  FileText, MessageSquare, X, Maximize2, Download
 } from 'lucide-react';
 
 // Property Type Configuration for Icons and Labels
@@ -164,6 +164,8 @@ function PropertyDetails() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showAllAmenities, setShowAllAmenities] = useState(false);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
+  const [lightboxImageIndex, setLightboxImageIndex] = useState(0);
 
   useEffect(() => {
     loadProperty();
@@ -202,11 +204,19 @@ function PropertyDetails() {
           ? data.amenities.split(',').map(a => a.trim()).filter(a => a.length > 0)
           : [];
         
+        // Ensure images is an array
+        let images = [];
+        if (data.images && Array.isArray(data.images)) {
+          images = data.images;
+        } else if (data.image_url) {
+          images = [data.image_url];
+        }
+        
         setProperty({
           ...data,
           custom_fields: customFields,
           amenities: amenitiesList,
-          images: data.images || [data.image_url].filter(Boolean),
+          images: images,
         });
       } else {
         navigate('/properties');
@@ -334,6 +344,40 @@ function PropertyDetails() {
   const handlePrevImage = () => {
     if (property.images && property.images.length > 0) {
       setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
+    }
+  };
+
+  const handleOpenLightbox = (index) => {
+    setLightboxImageIndex(index);
+    setShowLightbox(true);
+    document.body.style.overflow = 'hidden'; // Prevent scrolling
+  };
+
+  const handleCloseLightbox = () => {
+    setShowLightbox(false);
+    document.body.style.overflow = 'auto'; // Restore scrolling
+  };
+
+  const handleNextLightboxImage = () => {
+    if (property.images && property.images.length > 0) {
+      setLightboxImageIndex((prev) => (prev + 1) % property.images.length);
+    }
+  };
+
+  const handlePrevLightboxImage = () => {
+    if (property.images && property.images.length > 0) {
+      setLightboxImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
+    }
+  };
+
+  const handleDownloadImage = () => {
+    if (property.images && property.images[lightboxImageIndex]) {
+      const link = document.createElement('a');
+      link.href = property.images[lightboxImageIndex];
+      link.download = `${property.title}-image-${lightboxImageIndex + 1}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
   };
 
@@ -482,6 +526,30 @@ function PropertyDetails() {
     }
   };
 
+  // Handle keyboard events for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!showLightbox) return;
+      
+      switch (e.key) {
+        case 'Escape':
+          handleCloseLightbox();
+          break;
+        case 'ArrowRight':
+          handleNextLightboxImage();
+          break;
+        case 'ArrowLeft':
+          handlePrevLightboxImage();
+          break;
+        default:
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showLightbox, lightboxImageIndex]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-white to-orange-50 pt-20">
@@ -550,6 +618,81 @@ function PropertyDetails() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-orange-50 pt-20">
+      {/* Image Lightbox Modal */}
+      {showLightbox && property.images && property.images.length > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+          <div className="relative w-full h-full max-w-7xl mx-auto p-4">
+            {/* Close button */}
+            <button
+              onClick={handleCloseLightbox}
+              className="absolute top-4 right-4 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+
+            {/* Download button */}
+            <button
+              onClick={handleDownloadImage}
+              className="absolute top-4 right-20 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+
+            {/* Navigation buttons */}
+            <button
+              onClick={handlePrevLightboxImage}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            <button
+              onClick={handleNextLightboxImage}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 w-12 h-12 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center transition-colors"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+
+            {/* Main Image */}
+            <div className="w-full h-full flex items-center justify-center">
+              <img
+                src={property.images[lightboxImageIndex]}
+                alt={`${property.title} - Image ${lightboxImageIndex + 1}`}
+                className="max-w-full max-h-full object-contain rounded-lg"
+              />
+            </div>
+
+            {/* Image counter */}
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
+              {lightboxImageIndex + 1} / {property.images.length}
+            </div>
+
+            {/* Thumbnails */}
+            {property.images.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 mt-4">
+                {property.images.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setLightboxImageIndex(index)}
+                    className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                      lightboxImageIndex === index 
+                        ? 'border-white scale-110' 
+                        : 'border-transparent hover:border-white/50'
+                    }`}
+                  >
+                    <img
+                      src={img}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Back Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         <Link
@@ -684,18 +827,32 @@ function PropertyDetails() {
         
         {/* Property Images Gallery */}
         <div className="mb-12">
-          <div className="relative bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl overflow-hidden">
+          <div className="relative bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl overflow-hidden group">
             {property.images && property.images.length > 0 ? (
               <>
-                <img
-                  src={property.images[currentImageIndex]}
-                  alt={`${property.title} - Image ${currentImageIndex + 1}`}
-                  className="w-full h-[500px] object-cover"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
-                  }}
-                />
+                <div 
+                  className="cursor-zoom-in"
+                  onClick={() => handleOpenLightbox(currentImageIndex)}
+                >
+                  <img
+                    src={property.images[currentImageIndex]}
+                    alt={`${property.title} - Image ${currentImageIndex + 1}`}
+                    className="w-full h-[500px] object-cover group-hover:scale-105 transition-transform duration-700"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.parentElement.classList.add('flex', 'items-center', 'justify-center');
+                    }}
+                  />
+                </div>
+                
+                {/* Fullscreen button */}
+                <button
+                  onClick={() => handleOpenLightbox(currentImageIndex)}
+                  className="absolute top-4 right-4 w-12 h-12 bg-black/50 hover:bg-black/70 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center text-white transition-colors"
+                  title="View fullscreen"
+                >
+                  <Maximize2 className="w-5 h-5" />
+                </button>
                 
                 {/* Image Navigation */}
                 {property.images.length > 1 && (
@@ -727,10 +884,10 @@ function PropertyDetails() {
                       <button
                         key={index}
                         onClick={() => setCurrentImageIndex(index)}
-                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                        className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
                           currentImageIndex === index 
-                            ? 'border-white' 
-                            : 'border-transparent'
+                            ? 'border-white scale-110' 
+                            : 'border-transparent hover:border-white/50'
                         }`}
                       >
                         <img
@@ -925,7 +1082,7 @@ function PropertyDetails() {
             </div>
           </div>
 
-          {/* Right Column - Quick Info & Apply */}
+          {/* Right Column - Quick Info */}
           <div className="space-y-8">
             {/* Quick Facts */}
             <div className="bg-gradient-to-br from-gray-900 to-black rounded-3xl p-8 text-white shadow-2xl">
@@ -997,35 +1154,6 @@ function PropertyDetails() {
               </div>
             </div>
 
-            {/* Application Requirements */}
-            <div className="bg-white rounded-3xl shadow-xl p-8">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Application Requirements</h3>
-              
-              <div className="space-y-4">
-                {[
-                  { icon: CreditCard, text: 'Proof of income (3x monthly rent)' },
-                  { icon: Shield, text: 'Credit score check' },
-                  { icon: Users, text: 'Background verification' },
-                  { icon: FileText, text: 'Valid ID & references' }
-                ].map((req, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                    <req.icon className="w-5 h-5 text-orange-600" />
-                    <span className="text-gray-700">{req.text}</span>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-6 p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl">
-                <div className="flex items-center gap-2 text-green-800 font-semibold mb-1">
-                  <CheckCircle className="w-5 h-5" />
-                  Quick Approval
-                </div>
-                <p className="text-sm text-green-700">
-                  Applications typically approved within 24-48 hours
-                </p>
-              </div>
-            </div>
-
             {/* Contact Agent */}
             <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-3xl p-8 text-white shadow-2xl">
               <h3 className="text-xl font-bold mb-4">Have Questions?</h3>
@@ -1067,10 +1195,163 @@ function PropertyDetails() {
             </div>
           </div>
         </div>
+
+        {/* Application Requirements Section - Moved Below Property Details */}
+        <div className="mt-12 bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-200">
+          {/* Application Header */}
+          <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-8 text-white">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+                <FileText className="w-8 h-8" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold">Ready to Apply?</h2>
+                <p className="text-orange-100">Complete your rental application in minutes</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-4">
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex-1 min-w-[200px]">
+                <div className="text-sm text-orange-200 mb-1">Application Fee</div>
+                <div className="text-2xl font-bold">$75</div>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex-1 min-w-[200px]">
+                <div className="text-sm text-orange-200 mb-1">Approval Time</div>
+                <div className="text-2xl font-bold">24-48 Hours</div>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4 flex-1 min-w-[200px]">
+                <div className="text-sm text-orange-200 mb-1">Security Deposit</div>
+                <div className="text-2xl font-bold">
+                  ${property.security_deposit ? parseFloat(property.security_deposit).toLocaleString() : '0'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Application Content */}
+          <div className="p-8">
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Left Column - Requirements */}
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">Application Requirements</h3>
+                
+                <div className="space-y-4 mb-8">
+                  {[
+                    { icon: CreditCard, text: 'Proof of income (3x monthly rent)', description: 'Recent pay stubs, tax returns, or bank statements' },
+                    { icon: Shield, text: 'Credit score check', description: 'Minimum 650 credit score required' },
+                    { icon: Users, text: 'Background verification', description: 'Criminal and eviction history check' },
+                    { icon: FileText, text: 'Valid ID & references', description: 'Government-issued ID and 2 references' }
+                  ].map((req, index) => (
+                    <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-2xl hover:bg-orange-50 transition-colors">
+                      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0">
+                        <req.icon className="w-6 h-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-800 mb-1">{req.text}</div>
+                        <div className="text-sm text-gray-600">{req.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-2xl">
+                  <div className="flex items-center gap-2 text-green-800 font-semibold mb-2">
+                    <CheckCircle className="w-5 h-5" />
+                    Digital Application Process
+                  </div>
+                  <p className="text-green-700 text-sm">
+                    Submit all documents online. No paperwork required. Track your application status in real-time.
+                  </p>
+                </div>
+              </div>
+
+              {/* Right Column - Apply Now */}
+              <div>
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">Start Your Application</h3>
+                
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl p-6 mb-6">
+                  <div className="text-center mb-6">
+                    <div className="text-5xl font-bold text-orange-700 mb-2">$75</div>
+                    <div className="text-orange-600 font-medium">One-time application fee</div>
+                  </div>
+                  
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <span className="text-gray-700">No commitment until approved</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <span className="text-gray-700">Secure document upload</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <span className="text-gray-700">24/7 application tracking</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <span className="text-gray-700">Digital signature support</span>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleApplyForRental}
+                    className="w-full bg-gradient-to-r from-orange-600 to-orange-500 text-white font-bold py-4 px-6 rounded-xl hover:shadow-lg transition-all duration-300 hover:scale-105"
+                  >
+                    {user ? 'Apply Now' : 'Sign In to Apply'}
+                  </button>
+                  
+                  <p className="text-center text-sm text-gray-600 mt-4">
+                    Application fee is refundable if not approved
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-gray-600 mb-4">Have questions about the application process?</p>
+                  <button
+                    onClick={handleContactAgent}
+                    className="inline-flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                    Chat with our support team
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Application Timeline */}
+            <div className="mt-8 pt-8 border-t border-gray-200">
+              <h3 className="text-2xl font-bold text-gray-800 mb-6">Application Timeline</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[
+                  { step: '1', title: 'Submit Application', time: '5-10 minutes', description: 'Fill out basic information and upload documents' },
+                  { step: '2', title: 'Document Review', time: '2-4 hours', description: 'Our team verifies your documents' },
+                  { step: '3', title: 'Background Check', time: '24 hours', description: 'Credit and background verification' },
+                  { step: '4', title: 'Approval & Move-in', time: '1-2 days', description: 'Sign lease and schedule move-in' }
+                ].map((step, index) => (
+                  <div key={index} className="relative">
+                    <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl p-6">
+                      <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl flex items-center justify-center font-bold text-xl mb-4">
+                        {step.step}
+                      </div>
+                      <h4 className="font-bold text-gray-800 mb-2">{step.title}</h4>
+                      <div className="text-orange-600 font-medium mb-2">{step.time}</div>
+                      <p className="text-sm text-gray-600">{step.description}</p>
+                    </div>
+                    {index < 3 && (
+                      <div className="hidden md:block absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2">
+                        <ChevronRight className="w-6 h-6 text-orange-400" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Related Properties Section */}
-      <div className="py-16 bg-gray-50 border-t border-gray-200">
+      <div className="py-16 bg-gray-50 border-t border-gray-200 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-12">
             <div>
