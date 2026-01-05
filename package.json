@@ -1,68 +1,40 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-
-export default defineConfig({
-  plugins: [
-    react({
-      // Enable fast refresh
-      fastRefresh: true,
-    }),
-  ],
-  build: {
-    // Optimize build output
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          // Split vendor chunks
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['lucide-react'],
-          stripe: ['@stripe/react-stripe-js', '@stripe/stripe-js'],
-          supabase: ['@supabase/supabase-js'],
-        },
-        // Add content hash for caching
-        chunkFileNames: 'assets/js/[name]-[hash].js',
-        entryFileNames: 'assets/js/[name]-[hash].js',
-        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
-      },
-    },
-    // Enable minification
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: false, // Keep console logs for debugging
-        drop_debugger: true,
-      },
-    },
-    // Disable source maps in production to reduce size
-    sourcemap: false,
-    // Chunk size warnings
-    chunkSizeWarningLimit: 1500,
+{
+  "name": "palmsestate",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  server: {
-    // Development server optimization
-    host: true,
-    port: 3000,
-    open: true,
-    cors: true,
-    // Enable HMR (Hot Module Replacement)
-    hmr: {
-      overlay: true,
-    },
+  "dependencies": {
+    "@stripe/react-stripe-js": "^2.8.0",
+    "@stripe/stripe-js": "^4.8.0",
+    "@supabase/supabase-js": "^2.45.4",
+    "lucide-react": "^0.344.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.2"
   },
-  preview: {
-    port: 4173,
-    host: true,
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "vite": "^6.4.1"
   },
-  // Optimize dependencies
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      'lucide-react',
-      '@supabase/supabase-js',
-    ],
-    // Force dependency pre-bundling
-    force: true,
+  "description": "",
+  "main": "index-CcWwstev.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AkoshBTC024242/palmsestate-my-copy.git"
   },
-});
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/AkoshBTC024242/palmsestate-my-copy/issues"
+  },
+  "homepage": "https://github.com/AkoshBTC024242/palmsestate-my-copy#readme"
+}
