@@ -1,3 +1,4 @@
+// vite.config.js - UPDATED FOR BETTER CHUNK SPLITTING
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -10,11 +11,47 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['lucide-react'],
-          stripe: ['@stripe/react-stripe-js', '@stripe/stripe-js'],
-          supabase: ['@supabase/supabase-js'],
+        manualChunks: (id) => {
+          // Group chunks more intelligently
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('react-router-dom')) {
+              return 'vendor-router';
+            }
+            if (id.includes('@supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('@stripe')) {
+              return 'vendor-stripe';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+            return 'vendor';
+          }
+          
+          // Group page chunks
+          if (id.includes('/pages/')) {
+            if (id.includes('/dashboard/') || id.includes('/admin/')) {
+              return 'chunk-dashboard';
+            }
+            if (id.includes('/pages/Home') || id.includes('/pages/Properties')) {
+              return 'chunk-public-main';
+            }
+            return 'chunk-pages';
+          }
+          
+          // Group components
+          if (id.includes('/components/')) {
+            return 'chunk-components';
+          }
+          
+          // Group contexts
+          if (id.includes('/contexts/')) {
+            return 'chunk-contexts';
+          }
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
@@ -29,7 +66,8 @@ export default defineConfig({
       },
     },
     sourcemap: false,
-    chunkSizeWarningLimit: 1500,
+    chunkSizeWarningLimit: 1000, // Lower warning limit to catch large chunks
+    reportCompressedSize: true,
   },
   server: {
     host: true,
@@ -38,10 +76,6 @@ export default defineConfig({
     hmr: {
       overlay: true,
     },
-  },
-  preview: {
-    port: 4173,
-    host: true,
   },
   optimizeDeps: {
     include: [
