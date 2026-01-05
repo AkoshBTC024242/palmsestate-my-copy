@@ -1,4 +1,4 @@
-// src/pages/Properties.jsx - FIXED FAVORITE BUTTON
+// src/pages/Properties.jsx - COMPLETELY FIXED FAVORITE BUTTON
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +29,12 @@ function Properties() {
   const [savingStates, setSavingStates] = useState({});
   const [notification, setNotification] = useState(null);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('Saved properties state:', Array.from(savedProperties));
+    console.log('User state:', user ? 'Logged in' : 'Not logged in');
+  }, [savedProperties, user]);
+
   useEffect(() => {
     loadProperties();
   }, []);
@@ -39,7 +45,11 @@ function Properties() {
 
   useEffect(() => {
     if (user) {
+      console.log('Loading saved properties for user:', user.id);
       loadSavedProperties();
+    } else {
+      console.log('No user, clearing saved properties');
+      setSavedProperties(new Set());
     }
   }, [user]);
 
@@ -67,7 +77,7 @@ function Properties() {
       if (error) throw error;
 
       if (data) {
-        console.log('Loaded properties:', data);
+        console.log('Loaded properties:', data.length);
         setProperties(data);
         setFilteredProperties(data);
       }
@@ -81,8 +91,13 @@ function Properties() {
 
   const loadSavedProperties = async () => {
     try {
-      if (!user) return;
+      if (!user) {
+        console.log('No user, skipping saved properties load');
+        return;
+      }
 
+      console.log('Loading saved properties for user ID:', user.id);
+      
       const { data, error } = await supabase
         .from('saved_properties')
         .select('property_id')
@@ -90,23 +105,89 @@ function Properties() {
 
       if (error) {
         console.error('Error loading saved properties:', error);
+        
+        // Check if table exists
+        if (error.code === '42P01') {
+          console.log('Saved properties table does not exist. Creating...');
+          await createSavedPropertiesTable();
+        }
         return;
       }
 
       if (data) {
+        console.log('Saved properties data:', data);
         const savedIds = new Set(data.map(item => item.property_id.toString()));
+        console.log('Parsed saved IDs:', Array.from(savedIds));
         setSavedProperties(savedIds);
+      } else {
+        console.log('No saved properties found');
+        setSavedProperties(new Set());
       }
     } catch (error) {
       console.error('Error loading saved properties:', error);
     }
   };
 
+  const createSavedPropertiesTable = async () => {
+    try {
+      console.log('Creating saved_properties table...');
+      
+      // Create the table
+      const { error: createError } = await supabase.rpc('create_saved_properties_table');
+      
+      if (createError) {
+        console.error('Error creating table via RPC:', createError);
+        
+        // If RPC doesn't exist, show SQL to run manually
+        setNotification({ 
+          type: 'error', 
+          message: 'Please run SQL in Supabase to enable favorites' 
+        });
+        
+        console.log(`
+          Run this SQL in Supabase SQL Editor:
+          
+          CREATE TABLE IF NOT EXISTS saved_properties (
+            id BIGSERIAL PRIMARY KEY,
+            user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+            property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+            saved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            UNIQUE(user_id, property_id)
+          );
+          
+          CREATE INDEX IF NOT EXISTS idx_saved_properties_user_id ON saved_properties(user_id);
+          CREATE INDEX IF NOT EXISTS idx_saved_properties_property_id ON saved_properties(property_id);
+          
+          ALTER TABLE saved_properties ENABLE ROW LEVEL SECURITY;
+          
+          CREATE POLICY "Users can view their own saved properties" 
+          ON saved_properties FOR SELECT 
+          USING (auth.uid() = user_id);
+          
+          CREATE POLICY "Users can insert their own saved properties" 
+          ON saved_properties FOR INSERT 
+          WITH CHECK (auth.uid() = user_id);
+          
+          CREATE POLICY "Users can delete their own saved properties" 
+          ON saved_properties FOR DELETE 
+          USING (auth.uid() = user_id);
+        `);
+      }
+    } catch (error) {
+      console.error('Error creating saved properties table:', error);
+    }
+  };
+
   const handleSaveProperty = async (propertyId, e) => {
+    console.log('handleSaveProperty called for property:', propertyId);
+    console.log('Event target:', e.target);
+    console.log('Current saved properties:', Array.from(savedProperties));
+    
     e.preventDefault();
     e.stopPropagation();
     
     if (!user) {
+      console.log('No user, redirecting to signin');
       setNotification({ 
         type: 'error', 
         message: 'Please sign in to save properties' 
@@ -120,14 +201,17 @@ function Properties() {
       const propertyIdNum = parseInt(propertyId);
       
       if (isNaN(propertyIdNum)) {
+        console.error('Invalid property ID:', propertyId);
         setNotification({ type: 'error', message: 'Invalid property ID' });
         return;
       }
 
       const isCurrentlySaved = savedProperties.has(propertyId.toString());
+      console.log('Is currently saved?', isCurrentlySaved);
 
       if (isCurrentlySaved) {
         // Unsave
+        console.log('Unsaving property:', propertyIdNum);
         const { error } = await supabase
           .from('saved_properties')
           .delete()
@@ -143,15 +227,18 @@ function Properties() {
           return;
         }
         
+        console.log('Successfully unsaved property');
         setSavedProperties(prev => {
           const newSet = new Set(prev);
           newSet.delete(propertyId.toString());
+          console.log('Updated saved properties after unsave:', Array.from(newSet));
           return newSet;
         });
         
         setNotification({ type: 'success', message: 'Removed from favorites' });
       } else {
         // Save
+        console.log('Saving property:', propertyIdNum);
         const { error } = await supabase
           .from('saved_properties')
           .insert({
@@ -169,16 +256,18 @@ function Properties() {
           return;
         }
         
+        console.log('Successfully saved property');
         setSavedProperties(prev => {
           const newSet = new Set(prev);
           newSet.add(propertyId.toString());
+          console.log('Updated saved properties after save:', Array.from(newSet));
           return newSet;
         });
         
         setNotification({ type: 'success', message: 'Saved to favorites' });
       }
     } catch (error) {
-      console.error('Error saving property:', error);
+      console.error('Error in handleSaveProperty:', error);
       setNotification({ type: 'error', message: 'An error occurred' });
     } finally {
       setSavingStates(prev => ({ ...prev, [propertyId]: false }));
@@ -335,7 +424,7 @@ function Properties() {
     <>
       {/* Simple Notification */}
       {notification && (
-        <div className="fixed top-24 right-4 z-50">
+        <div className="fixed top-24 right-4 z-50 animate-fade-in">
           <div className={`px-4 py-3 rounded-lg shadow-lg ${
             notification.type === 'success' 
               ? 'bg-green-500 text-white' 
@@ -508,7 +597,7 @@ function Properties() {
           </div>
         </div>
 
-        {/* Properties Grid */}
+        {/* Properties Grid - FIXED VERSION */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {filteredProperties.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -519,14 +608,17 @@ function Properties() {
                 const isSaved = savedProperties.has(property.id.toString());
                 const isSaving = savingStates[property.id];
 
+                console.log(`Property ${property.id}: isSaved = ${isSaved}, isSaving = ${isSaving}`);
+
                 return (
                   <div 
                     key={property.id} 
                     className="group bg-white rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 border border-gray-100"
                   >
-                    {/* Property Image with Gradient Overlay */}
-                    <Link to={`/properties/${property.id}`} className="block">
-                      <div className="relative h-64 overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600">
+                    {/* Property Image Container - FIXED: Separate from Link */}
+                    <div className="relative h-64 overflow-hidden bg-gradient-to-br from-orange-400 to-orange-600">
+                      {/* Image wrapped in Link for navigation */}
+                      <Link to={`/properties/${property.id}`} className="block h-full">
                         {propertyImage ? (
                           <img
                             src={propertyImage}
@@ -542,36 +634,42 @@ function Properties() {
                             <Home className="w-16 h-16 text-white" />
                           </div>
                         )}
+                      </Link>
 
-                        {/* Image Overlay Gradient */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      {/* Image Overlay Gradient */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                        {/* Top Badges */}
-                        <div className="absolute top-4 left-4 flex flex-col gap-2">
-                          {property.featured && (
-                            <span className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-full text-xs flex items-center gap-1">
-                              <Sparkles className="w-3 h-3" />
-                              Featured
-                            </span>
-                          )}
-                          <span className="px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-800 font-semibold rounded-full text-xs capitalize">
-                            {property.property_type}
+                      {/* Top Badges */}
+                      <div className="absolute top-4 left-4 flex flex-col gap-2">
+                        {property.featured && (
+                          <span className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-full text-xs flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            Featured
                           </span>
-                        </div>
+                        )}
+                        <span className="px-3 py-1.5 bg-white/90 backdrop-blur-sm text-gray-800 font-semibold rounded-full text-xs capitalize">
+                          {property.property_type}
+                        </span>
+                      </div>
 
-                        {/* Price Badge */}
-                        <div className="absolute top-4 right-4 backdrop-blur-md bg-black/50 border border-white/20 rounded-xl p-3">
-                          <div className="text-lg font-bold text-white">
-                            {formatPrice(property)}
-                          </div>
+                      {/* Price Badge */}
+                      <div className="absolute top-4 right-4 backdrop-blur-md bg-black/50 border border-white/20 rounded-xl p-3">
+                        <div className="text-lg font-bold text-white">
+                          {formatPrice(property)}
                         </div>
+                      </div>
 
-                        {/* Save Button - FIXED: Now properly connected to handleSaveProperty */}
+                      {/* Save Button - COMPLETELY FIXED: Outside of Link, proper z-index */}
+                      <div className="absolute bottom-4 right-4 z-10">
                         <button
-                          onClick={(e) => handleSaveProperty(property.id, e)}
+                          onClick={(e) => {
+                            console.log('Favorite button clicked for property:', property.id);
+                            handleSaveProperty(property.id, e);
+                          }}
                           disabled={isSaving}
-                          className="absolute bottom-4 right-4 w-10 h-10 backdrop-blur-md bg-black/40 border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors disabled:opacity-50"
-                          aria-label={isSaved ? "Remove from saved" : "Save property"}
+                          className="w-10 h-10 backdrop-blur-md bg-black/40 border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors disabled:opacity-50"
+                          aria-label={isSaved ? "Remove from favorites" : "Save to favorites"}
+                          title={isSaved ? "Remove from favorites" : "Save to favorites"}
                         >
                           {isSaving ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -581,16 +679,16 @@ function Properties() {
                             <Heart className="w-5 h-5" />
                           )}
                         </button>
+                      </div>
 
-                        {/* Quick View Button - Appears on Hover */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                          <div className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-xl font-semibold">
-                            <Eye className="w-4 h-4" />
-                            Quick View
-                          </div>
+                      {/* Quick View Button - Appears on Hover */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
+                        <div className="flex items-center gap-2 px-6 py-3 bg-white text-orange-600 rounded-xl font-semibold">
+                          <Eye className="w-4 h-4" />
+                          Quick View
                         </div>
                       </div>
-                    </Link>
+                    </div>
 
                     {/* Property Details */}
                     <div className="p-6">
