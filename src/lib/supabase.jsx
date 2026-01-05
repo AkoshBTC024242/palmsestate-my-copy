@@ -375,5 +375,21 @@ export const fetchSavedProperties = async (userId) => {
       data: [],
       count: 0
     };
+    // Add this function at the end of your supabase.js file, before the closing }
+export const resendVerificationEmail = async (email) => {
+  try {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    console.error('Error resending verification email:', error);
+    return { success: false, error: error.message };
   }
 };
