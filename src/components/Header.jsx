@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Menu, X, User, LogOut, Settings, FileText, Home as HomeIcon, Heart, Shield } from 'lucide-react';
+import PreloadLink from './PreloadLink';
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,12 +12,6 @@ export default function Header() {
   const navigate = useNavigate();
   const { user, signOut, isAdmin } = useAuth();
   const userMenuRef = useRef(null);
-
-  // Debug logging
-  useEffect(() => {
-    console.log('🔍 Header: user =', user);
-    console.log('🔍 Header: isAdmin =', isAdmin);
-  }, [user, isAdmin]);
 
   // Handle scroll effect
   useEffect(() => {
@@ -42,6 +37,8 @@ export default function Header() {
     try {
       await signOut();
       navigate('/');
+      setShowUserMenu(false);
+      setIsOpen(false);
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -67,7 +64,7 @@ export default function Header() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
+          <PreloadLink to="/" className="flex items-center space-x-3 group">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
               <div className="relative w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -82,12 +79,12 @@ export default function Header() {
               </div>
               <div className="text-xs text-gray-500">Premium Rentals</div>
             </div>
-          </Link>
+          </PreloadLink>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation with PreloadLink */}
           <div className="hidden md:flex items-center space-x-1">
             {navigation.map((item) => (
-              <Link
+              <PreloadLink
                 key={item.name}
                 to={item.path}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
@@ -97,7 +94,7 @@ export default function Header() {
                 }`}
               >
                 {item.name}
-              </Link>
+              </PreloadLink>
             ))}
           </div>
 
@@ -117,7 +114,7 @@ export default function Header() {
                   </span>
                 </button>
 
-                {/* Dropdown Menu - Admin Dashboard BELOW Dashboard */}
+                {/* Dropdown Menu */}
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-orange-50 to-orange-100">
@@ -128,54 +125,52 @@ export default function Header() {
                     </div>
 
                     <div className="py-2">
-                      {/* Dashboard FIRST */}
-                      <Link
+                      <PreloadLink
                         to="/dashboard"
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                       >
                         <HomeIcon className="w-4 h-4 mr-3" />
                         Dashboard
-                      </Link>
+                      </PreloadLink>
 
-                      {/* Admin Dashboard BELOW Dashboard - Only for Admins */}
                       {isAdmin && (
-                        <Link
+                        <PreloadLink
                           to="/admin"
                           onClick={() => setShowUserMenu(false)}
                           className="flex items-center px-4 py-3 text-sm font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors border-l-4 border-orange-500"
                         >
                           <Shield className="w-4 h-4 mr-3" />
                           Admin Dashboard
-                        </Link>
+                        </PreloadLink>
                       )}
 
-                      <Link
+                      <PreloadLink
                         to="/dashboard/applications"
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                       >
                         <FileText className="w-4 h-4 mr-3" />
                         My Applications
-                      </Link>
+                      </PreloadLink>
 
-                      <Link
+                      <PreloadLink
                         to="/dashboard/saved"
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                       >
                         <Heart className="w-4 h-4 mr-3" />
                         Saved Properties
-                      </Link>
+                      </PreloadLink>
 
-                      <Link
+                      <PreloadLink
                         to="/dashboard/settings"
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
                       >
                         <Settings className="w-4 h-4 mr-3" />
                         Settings
-                      </Link>
+                      </PreloadLink>
 
                       <div className="border-t border-gray-100 mt-2 pt-2">
                         <button
@@ -192,18 +187,18 @@ export default function Header() {
               </div>
             ) : (
               <div className="flex items-center space-x-3">
-                <Link
+                <PreloadLink
                   to="/signin"
                   className="px-5 py-2 text-sm font-medium text-gray-700 hover:text-orange-600 transition-colors"
                 >
                   Sign In
-                </Link>
-                <Link
+                </PreloadLink>
+                <PreloadLink
                   to="/signup"
                   className="px-5 py-2 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Get Started
-                </Link>
+                </PreloadLink>
               </div>
             )}
           </div>
@@ -222,7 +217,7 @@ export default function Header() {
           <div className="md:hidden py-4 border-t border-gray-100">
             <div className="space-y-1">
               {navigation.map((item) => (
-                <Link
+                <PreloadLink
                   key={item.name}
                   to={item.path}
                   onClick={() => setIsOpen(false)}
@@ -233,7 +228,7 @@ export default function Header() {
                   }`}
                 >
                   {item.name}
-                </Link>
+                </PreloadLink>
               ))}
 
               {user ? (
@@ -243,44 +238,43 @@ export default function Header() {
                       {user.email}
                     </div>
 
-                    <Link
+                    <PreloadLink
                       to="/dashboard"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors rounded-lg"
                     >
                       <HomeIcon className="w-4 h-4 mr-3" />
                       Dashboard
-                    </Link>
+                    </PreloadLink>
 
-                    {/* Admin Dashboard for Mobile - BELOW Dashboard */}
                     {isAdmin && (
-                      <Link
+                      <PreloadLink
                         to="/admin"
                         onClick={() => setIsOpen(false)}
                         className="flex items-center px-4 py-3 text-sm font-semibold text-orange-700 bg-orange-50 hover:bg-orange-100 transition-colors rounded-lg border-l-4 border-orange-500"
                       >
                         <Shield className="w-4 h-4 mr-3" />
                         Admin Dashboard
-                      </Link>
+                      </PreloadLink>
                     )}
 
-                    <Link
+                    <PreloadLink
                       to="/dashboard/applications"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors rounded-lg"
                     >
                       <FileText className="w-4 h-4 mr-3" />
                       My Applications
-                    </Link>
+                    </PreloadLink>
 
-                    <Link
+                    <PreloadLink
                       to="/dashboard/saved"
                       onClick={() => setIsOpen(false)}
                       className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors rounded-lg"
                     >
                       <Heart className="w-4 h-4 mr-3" />
                       Saved Properties
-                    </Link>
+                    </PreloadLink>
 
                     <button
                       onClick={handleSignOut}
@@ -293,20 +287,20 @@ export default function Header() {
                 </>
               ) : (
                 <div className="pt-4 mt-4 border-t border-gray-100 space-y-2">
-                  <Link
+                  <PreloadLink
                     to="/signin"
                     onClick={() => setIsOpen(false)}
                     className="block px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors rounded-lg"
                   >
                     Sign In
-                  </Link>
-                  <Link
+                  </PreloadLink>
+                  <PreloadLink
                     to="/signup"
                     onClick={() => setIsOpen(false)}
                     className="block px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all rounded-lg text-center"
                   >
                     Get Started
-                  </Link>
+                  </PreloadLink>
                 </div>
               )}
             </div>
