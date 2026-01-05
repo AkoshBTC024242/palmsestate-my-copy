@@ -6,10 +6,6 @@ export default defineConfig({
     react({
       // Enable fast refresh
       fastRefresh: true,
-      // Remove problematic babel configuration
-      babel: {
-        // Remove the problematic plugin
-      },
     }),
   ],
   build: {
@@ -22,8 +18,6 @@ export default defineConfig({
           ui: ['lucide-react'],
           stripe: ['@stripe/react-stripe-js', '@stripe/stripe-js'],
           supabase: ['@supabase/supabase-js'],
-          charts: ['apexcharts', 'react-apexcharts'],
-          forms: ['react-hook-form', 'zod'],
         },
         // Add content hash for caching
         chunkFileNames: 'assets/js/[name]-[hash].js',
@@ -67,16 +61,8 @@ export default defineConfig({
       'react-router-dom',
       'lucide-react',
       '@supabase/supabase-js',
-      'axios',
-      'apexcharts',
     ],
     // Force dependency pre-bundling
     force: true,
-  },
-  // Resolve configuration to prevent missing module errors
-  resolve: {
-    alias: {
-      // Add any necessary aliases here
-    },
   },
 });
