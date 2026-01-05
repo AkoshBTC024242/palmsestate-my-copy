@@ -1,4 +1,4 @@
-// src/pages/Properties.jsx - SIMPLIFIED WORKING VERSION
+// src/pages/Properties.jsx - FIXED DUPLICATE SAVE ERROR
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -84,26 +84,15 @@ function Properties() {
     try {
       if (!user) return;
 
-      // First check if table exists
-      const { error: tableCheckError } = await supabase
-        .from('saved_properties')
-        .select('property_id')
-        .limit(1);
-
-      if (tableCheckError && tableCheckError.code === '42P01') {
-        // Table doesn't exist, create it
-        console.log('Creating saved_properties table...');
-        await createSavedPropertiesTable();
-        return;
-      }
-
-      // Table exists, load saved properties
       const { data, error } = await supabase
         .from('saved_properties')
         .select('property_id')
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading saved properties:', error);
+        return;
+      }
 
       if (data) {
         const savedIds = new Set(data.map(item => item.property_id.toString()));
@@ -111,80 +100,6 @@ function Properties() {
       }
     } catch (error) {
       console.error('Error loading saved properties:', error);
-    }
-  };
-
-  const createSavedPropertiesTable = async () => {
-    try {
-      // Create table using a function call
-      const { error } = await supabase.rpc('create_saved_properties_table');
-      
-      if (error) {
-        console.error('Error creating table via RPC:', error);
-        // Fallback: Try direct SQL if RPC doesn't exist
-        await createTableWithDirectSQL();
-      }
-    } catch (error) {
-      console.error('Error creating saved properties table:', error);
-      await createTableWithDirectSQL();
-    }
-  };
-
-  const createTableWithDirectSQL = async () => {
-    try {
-      // This is a fallback method - might not work in all environments
-      const { error } = await supabase
-        .from('saved_properties')
-        .insert([{ 
-          user_id: user?.id || '00000000-0000-0000-0000-000000000000', 
-          property_id: 1 
-        }])
-        .select()
-        .single();
-
-      // If insert fails with table doesn't exist error, show manual SQL
-      if (error && error.code === '42P01') {
-        setNotification({ 
-          type: 'error', 
-          message: 'Favorites feature needs setup. Contact admin.' 
-        });
-        console.log(`
-          MANUAL SETUP REQUIRED:
-          
-          Run this SQL in Supabase SQL Editor:
-          
-          1. Create the table:
-          CREATE TABLE IF NOT EXISTS saved_properties (
-            id BIGSERIAL PRIMARY KEY,
-            user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-            property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
-            saved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            UNIQUE(user_id, property_id)
-          );
-          
-          2. Create indexes:
-          CREATE INDEX IF NOT EXISTS idx_saved_properties_user_id ON saved_properties(user_id);
-          CREATE INDEX IF NOT EXISTS idx_saved_properties_property_id ON saved_properties(property_id);
-          
-          3. Enable RLS:
-          ALTER TABLE saved_properties ENABLE ROW LEVEL SECURITY;
-          
-          4. Create policies:
-          CREATE POLICY "Users can view their own saved properties" 
-          ON saved_properties FOR SELECT 
-          USING (auth.uid() = user_id);
-          
-          CREATE POLICY "Users can insert their own saved properties" 
-          ON saved_properties FOR INSERT 
-          WITH CHECK (auth.uid() = user_id);
-          
-          CREATE POLICY "Users can delete their own saved properties" 
-          ON saved_properties FOR DELETE 
-          USING (auth.uid() = user_id);
-        `);
-      }
-    } catch (error) {
-      console.error('Error in direct SQL method:', error);
     }
   };
 
@@ -213,7 +128,7 @@ function Properties() {
       const isCurrentlySaved = savedProperties.has(propertyId.toString());
 
       if (isCurrentlySaved) {
-        // Try to unsave
+        // Unsave
         const { error } = await supabase
           .from('saved_properties')
           .delete()
@@ -222,15 +137,11 @@ function Properties() {
         
         if (error) {
           console.error('Error unsaving property:', error);
-          if (error.code === '42P01') {
-            // Table doesn't exist
-            setNotification({ 
-              type: 'error', 
-              message: 'Favorites feature not available yet' 
-            });
-            return;
-          }
-          throw error;
+          setNotification({ 
+            type: 'error', 
+            message: 'Failed to remove from favorites' 
+          });
+          return;
         }
         
         // Update local state
@@ -242,26 +153,37 @@ function Properties() {
         
         setNotification({ type: 'success', message: 'Removed from favorites' });
       } else {
-        // Try to save
+        // Save - using upsert to handle duplicate entries gracefully
         const { error } = await supabase
           .from('saved_properties')
-          .insert({
+          .upsert({
             user_id: user.id,
             property_id: propertyIdNum,
             saved_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,property_id'
           });
         
         if (error) {
           console.error('Error saving property:', error);
-          if (error.code === '42P01') {
-            // Table doesn't exist
-            setNotification({ 
-              type: 'error', 
-              message: 'Favorites feature not available yet' 
+          
+          // If it's a duplicate error, just update the local state
+          if (error.code === '23505') { // Unique violation
+            console.log('Property already saved, updating local state');
+            setSavedProperties(prev => {
+              const newSet = new Set(prev);
+              newSet.add(propertyId.toString());
+              return newSet;
             });
+            setNotification({ type: 'success', message: 'Saved to favorites' });
             return;
           }
-          throw error;
+          
+          setNotification({ 
+            type: 'error', 
+            message: 'Failed to save property' 
+          });
+          return;
         }
         
         // Update local state
@@ -277,7 +199,7 @@ function Properties() {
       console.error('Error saving property:', error);
       setNotification({ 
         type: 'error', 
-        message: 'Failed to save. Please try again.' 
+        message: 'An unexpected error occurred' 
       });
     } finally {
       setSavingStates(prev => ({ ...prev, [propertyId]: false }));
@@ -661,7 +583,7 @@ function Properties() {
                         </div>
                       </div>
 
-                      {/* FAVORITE BUTTON - FIXED POSITION */}
+                      {/* FAVORITE BUTTON - FIXED: Now properly handles duplicates */}
                       <div className="absolute bottom-4 right-4 z-10">
                         <button
                           onClick={(e) => handleSaveProperty(property.id, e)}
