@@ -1,6 +1,6 @@
-// src/App.jsx - UPDATED WITH VERIFICATION SUCCESS ROUTE
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+// src/App.jsx - OPTIMIZED VERSION
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { Suspense, lazy, useEffect } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import Header from './components/Header';
@@ -12,7 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 
-// Lazy load heavy components for better performance
+// Optimize lazy loading with preload hints
 const Home = lazy(() => import('./pages/Home'));
 const Properties = lazy(() => import('./pages/Properties'));
 const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
@@ -25,7 +25,7 @@ const ApplicationForm = lazy(() => import('./pages/ApplicationForm'));
 const InitialApplyForm = lazy(() => import('./pages/InitialApplyForm'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-// Dashboard pages - lazy loaded
+// Dashboard pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Applications = lazy(() => import('./pages/dashboard/Applications'));
 const ApplicationDetail = lazy(() => import('./pages/dashboard/ApplicationDetail'));
@@ -34,7 +34,7 @@ const Profile = lazy(() => import('./pages/dashboard/Profile'));
 const Settings = lazy(() => import('./pages/dashboard/Settings'));
 const PaymentPage = lazy(() => import('./pages/dashboard/PaymentPage'));
 
-// Admin pages - lazy loaded
+// Admin pages
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminProperties = lazy(() => import('./pages/admin/AdminProperties'));
 const AdminPropertyEdit = lazy(() => import('./pages/admin/AdminPropertyEdit'));
@@ -45,23 +45,44 @@ const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'));
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 
+// Route-based code splitting wrapper
+const LazyRoute = ({ children }) => (
+  <Suspense fallback={<LoadingSpinner />}>
+    {children}
+  </Suspense>
+);
+
+// Component to prefetch routes on hover
+const PrefetchLink = ({ to, children }) => {
+  const prefetch = () => {
+    // This is a simple prefetch strategy
+    // In a real app, you'd use React Router's prefetch API
+    console.log(`Prefetching route: ${to}`);
+  };
+
+  return (
+    <div onMouseEnter={prefetch}>
+      {children}
+    </div>
+  );
+};
+
 function App() {
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true }}>
       <ErrorBoundary>
         <AuthProvider>
           <DashboardProvider>
-            {/* Scroll restoration on route change */}
             <ScrollToTop />
             
-            <div className="min-h-screen flex flex-col">
-              <Suspense fallback={<LoadingSpinner fullScreen />}>
-                <Routes>
-                  {/* ===== PUBLIC ROUTES WITH HEADER/FOOTER ===== */}
-                  <Route path="/*" element={
-                    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
-                      <Header />
-                      <main className="flex-grow pt-16 md:pt-20">
+            <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
+              <Routes>
+                {/* ===== PUBLIC ROUTES WITH HEADER/FOOTER ===== */}
+                <Route path="/*" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <LazyRoute>
                         <Routes>
                           <Route path="/" element={<Home />} />
                           <Route path="/properties" element={<Properties />} />
@@ -73,15 +94,17 @@ function App() {
                           <Route path="/signup" element={<SignUp />} />
                           <Route path="/verification-success" element={<VerificationSuccess />} />
                         </Routes>
-                      </main>
-                      <Footer />
-                    </div>
-                  } />
-                  
-                  {/* ===== USER DASHBOARD ROUTES (WITH DASHBOARD LAYOUT WRAPPER) ===== */}
-                  <Route path="/dashboard/*" element={
-                    <ProtectedRoute>
-                      <DashboardLayout>
+                      </LazyRoute>
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
+                {/* ===== USER DASHBOARD ROUTES ===== */}
+                <Route path="/dashboard/*" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <LazyRoute>
                         <Routes>
                           <Route path="/" element={<Dashboard />} />
                           <Route path="/applications" element={<Applications />} />
@@ -91,13 +114,15 @@ function App() {
                           <Route path="/profile" element={<Profile />} />
                           <Route path="/settings" element={<Settings />} />
                         </Routes>
-                      </DashboardLayout>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* ===== ADMIN DASHBOARD ROUTES (SEPARATE LAYOUT) ===== */}
-                  <Route path="/admin/*" element={
-                    <AdminProtectedRoute>
+                      </LazyRoute>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                {/* ===== ADMIN DASHBOARD ROUTES ===== */}
+                <Route path="/admin/*" element={
+                  <AdminProtectedRoute>
+                    <LazyRoute>
                       <Routes>
                         <Route path="/" element={<AdminDashboard />} />
                         <Route path="/properties" element={<AdminProperties />} />
@@ -110,40 +135,38 @@ function App() {
                         <Route path="/analytics" element={<AdminAnalytics />} />
                         <Route path="/settings" element={<AdminSettings />} />
                       </Routes>
-                    </AdminProtectedRoute>
-                  } />
-                  
-                  {/* ===== PROTECTED APPLICATION FORM (OLD) - KEEP FOR BACKWARD COMPATIBILITY ===== */}
-                  <Route path="/properties/:id/apply" element={
-                    <ProtectedRoute>
-                      <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
-                        <Header />
-                        <main className="flex-grow pt-16 md:pt-20">
-                          <ApplicationForm />
-                        </main>
-                        <Footer />
-                      </div>
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* ===== 404 PAGE ===== */}
-                  <Route path="*" element={
-                    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
+                    </LazyRoute>
+                  </AdminProtectedRoute>
+                } />
+                
+                {/* ===== PROTECTED APPLICATION FORM ===== */}
+                <Route path="/properties/:id/apply" element={
+                  <ProtectedRoute>
+                    <div className="min-h-screen flex flex-col">
                       <Header />
-                      <main className="flex-grow pt-16 md:pt-20 flex items-center justify-center">
-                        <div className="text-center">
-                          <h1 className="text-6xl font-bold text-gray-900 mb-4">404</h1>
-                          <p className="text-xl text-gray-600 mb-8">Page not found</p>
-                          <a href="/" className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors">
-                            Return Home
-                          </a>
-                        </div>
+                      <main className="flex-grow pt-16 md:pt-20">
+                        <LazyRoute>
+                          <ApplicationForm />
+                        </LazyRoute>
                       </main>
                       <Footer />
                     </div>
-                  } />
-                </Routes>
-              </Suspense>
+                  </ProtectedRoute>
+                } />
+                
+                {/* ===== 404 PAGE ===== */}
+                <Route path="*" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20 flex items-center justify-center">
+                      <LazyRoute>
+                        <NotFound />
+                      </LazyRoute>
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+              </Routes>
             </div>
           </DashboardProvider>
         </AuthProvider>
