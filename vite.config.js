@@ -4,10 +4,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [
     react({
-      jsxRuntime: 'automatic',
-      babel: {
-        plugins: [],
-      },
+      fastRefresh: true,
     }),
   ],
   build: {
@@ -27,13 +24,12 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true,
+        drop_console: false,
         drop_debugger: true,
       },
     },
     sourcemap: false,
-    chunkSizeWarningLimit: 1600,
-    reportCompressedSize: false,
+    chunkSizeWarningLimit: 1500,
   },
   server: {
     host: true,
@@ -48,10 +44,13 @@ export default defineConfig({
     host: true,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'lucide-react'],
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'lucide-react',
+      '@supabase/supabase-js',
+    ],
     force: true,
-  },
-  esbuild: {
-    drop: ['console', 'debugger'],
   },
 });
