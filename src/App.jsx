@@ -1,6 +1,6 @@
-// src/App.jsx - OPTIMIZED VERSION
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { Suspense, lazy, useEffect } from 'react';
+// src/App.jsx
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import Header from './components/Header';
@@ -12,7 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 
-// Optimize lazy loading with preload hints
+// Lazy load components
 const Home = lazy(() => import('./pages/Home'));
 const Properties = lazy(() => import('./pages/Properties'));
 const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
@@ -45,123 +45,299 @@ const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'));
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 
-// Route-based code splitting wrapper
-const LazyRoute = ({ children }) => (
-  <Suspense fallback={<LoadingSpinner />}>
-    {children}
-  </Suspense>
-);
-
-// Component to prefetch routes on hover
-const PrefetchLink = ({ to, children }) => {
-  const prefetch = () => {
-    // This is a simple prefetch strategy
-    // In a real app, you'd use React Router's prefetch API
-    console.log(`Prefetching route: ${to}`);
-  };
-
-  return (
-    <div onMouseEnter={prefetch}>
-      {children}
-    </div>
-  );
-};
-
 function App() {
   return (
-    <Router future={{ v7_startTransition: true }}>
+    <Router>
       <ErrorBoundary>
         <AuthProvider>
           <DashboardProvider>
             <ScrollToTop />
-            
-            <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-50 via-white to-gray-50/50">
+            <div className="min-h-screen flex flex-col">
               <Routes>
-                {/* ===== PUBLIC ROUTES WITH HEADER/FOOTER ===== */}
-                <Route path="/*" element={
+                {/* Public Routes with Header/Footer */}
+                <Route path="/" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
                     <main className="flex-grow pt-16 md:pt-20">
-                      <LazyRoute>
-                        <Routes>
-                          <Route path="/" element={<Home />} />
-                          <Route path="/properties" element={<Properties />} />
-                          <Route path="/properties/:id" element={<PropertyDetails />} />
-                          <Route path="/properties/:id/initial-apply" element={<InitialApplyForm />} />
-                          <Route path="/contact" element={<Contact />} />
-                          <Route path="/about" element={<About />} />
-                          <Route path="/signin" element={<SignIn />} />
-                          <Route path="/signup" element={<SignUp />} />
-                          <Route path="/verification-success" element={<VerificationSuccess />} />
-                        </Routes>
-                      </LazyRoute>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <Home />
+                      </Suspense>
                     </main>
                     <Footer />
                   </div>
                 } />
                 
-                {/* ===== USER DASHBOARD ROUTES ===== */}
-                <Route path="/dashboard/*" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <LazyRoute>
-                        <Routes>
-                          <Route path="/" element={<Dashboard />} />
-                          <Route path="/applications" element={<Applications />} />
-                          <Route path="/applications/:id" element={<ApplicationDetail />} />
-                          <Route path="/applications/:id/payment" element={<PaymentPage />} />
-                          <Route path="/saved" element={<SavedProperties />} />
-                          <Route path="/profile" element={<Profile />} />
-                          <Route path="/settings" element={<Settings />} />
-                        </Routes>
-                      </LazyRoute>
-                    </DashboardLayout>
-                  </ProtectedRoute>
+                <Route path="/properties" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <Properties />
+                      </Suspense>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
                 
-                {/* ===== ADMIN DASHBOARD ROUTES ===== */}
-                <Route path="/admin/*" element={
-                  <AdminProtectedRoute>
-                    <LazyRoute>
-                      <Routes>
-                        <Route path="/" element={<AdminDashboard />} />
-                        <Route path="/properties" element={<AdminProperties />} />
-                        <Route path="/properties/new" element={<AdminPropertyEdit />} />
-                        <Route path="/properties/:id/edit" element={<AdminPropertyEdit />} />
-                        <Route path="/applications" element={<AdminApplications />} />
-                        <Route path="/applications/:id" element={<AdminApplicationDetail />} />
-                        <Route path="/users" element={<AdminUsers />} />
-                        <Route path="/payments" element={<AdminPayments />} />
-                        <Route path="/analytics" element={<AdminAnalytics />} />
-                        <Route path="/settings" element={<AdminSettings />} />
-                      </Routes>
-                    </LazyRoute>
-                  </AdminProtectedRoute>
+                <Route path="/properties/:id" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <PropertyDetails />
+                      </Suspense>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
                 
-                {/* ===== PROTECTED APPLICATION FORM ===== */}
+                <Route path="/properties/:id/initial-apply" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <InitialApplyForm />
+                      </Suspense>
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
+                <Route path="/contact" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <Contact />
+                      </Suspense>
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
+                <Route path="/about" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <About />
+                      </Suspense>
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
+                <Route path="/signin" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <SignIn />
+                      </Suspense>
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
+                <Route path="/signup" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <SignUp />
+                      </Suspense>
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
+                <Route path="/verification-success" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <VerificationSuccess />
+                      </Suspense>
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
+                {/* Protected Application Form */}
                 <Route path="/properties/:id/apply" element={
                   <ProtectedRoute>
                     <div className="min-h-screen flex flex-col">
                       <Header />
                       <main className="flex-grow pt-16 md:pt-20">
-                        <LazyRoute>
+                        <Suspense fallback={<LoadingSpinner />}>
                           <ApplicationForm />
-                        </LazyRoute>
+                        </Suspense>
                       </main>
                       <Footer />
                     </div>
                   </ProtectedRoute>
                 } />
                 
-                {/* ===== 404 PAGE ===== */}
+                {/* Dashboard Routes */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <Dashboard />
+                      </Suspense>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/applications" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <Applications />
+                      </Suspense>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/applications/:id" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <ApplicationDetail />
+                      </Suspense>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/applications/:id/payment" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <PaymentPage />
+                      </Suspense>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/saved" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <SavedProperties />
+                      </Suspense>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/profile" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <Profile />
+                      </Suspense>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/settings" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <Settings />
+                      </Suspense>
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                {/* Admin Routes */}
+                <Route path="/admin" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminDashboard />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/properties" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminProperties />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/properties/new" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminPropertyEdit />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/properties/:id/edit" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminPropertyEdit />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/applications" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminApplications />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/applications/:id" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminApplicationDetail />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/users" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminUsers />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/payments" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminPayments />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/analytics" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminAnalytics />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/settings" element={
+                  <AdminProtectedRoute>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AdminSettings />
+                    </Suspense>
+                  </AdminProtectedRoute>
+                } />
+                
+                {/* 404 Page */}
                 <Route path="*" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
                     <main className="flex-grow pt-16 md:pt-20 flex items-center justify-center">
-                      <LazyRoute>
+                      <Suspense fallback={<LoadingSpinner />}>
                         <NotFound />
-                      </LazyRoute>
+                      </Suspense>
                     </main>
                     <Footer />
                   </div>
