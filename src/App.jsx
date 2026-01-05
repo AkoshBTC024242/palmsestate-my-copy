@@ -1,6 +1,6 @@
-// src/App.jsx
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
+// src/App.jsx - OPTIMIZED LAZY LOADING
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import Header from './components/Header';
@@ -12,7 +12,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 
-// Lazy load components
+// Optimize lazy loading with priority loading
 const Home = lazy(() => import('./pages/Home'));
 const Properties = lazy(() => import('./pages/Properties'));
 const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
@@ -25,7 +25,7 @@ const ApplicationForm = lazy(() => import('./pages/ApplicationForm'));
 const InitialApplyForm = lazy(() => import('./pages/InitialApplyForm'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-// Dashboard pages
+// Dashboard pages - grouped
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Applications = lazy(() => import('./pages/dashboard/Applications'));
 const ApplicationDetail = lazy(() => import('./pages/dashboard/ApplicationDetail'));
@@ -34,7 +34,7 @@ const Profile = lazy(() => import('./pages/dashboard/Profile'));
 const Settings = lazy(() => import('./pages/dashboard/Settings'));
 const PaymentPage = lazy(() => import('./pages/dashboard/PaymentPage'));
 
-// Admin pages
+// Admin pages - grouped
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminProperties = lazy(() => import('./pages/admin/AdminProperties'));
 const AdminPropertyEdit = lazy(() => import('./pages/admin/AdminPropertyEdit'));
@@ -45,6 +45,96 @@ const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'));
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 
+// Optimized Suspense wrapper with different fallbacks
+const RouteSuspense = ({ children, routeType = 'public' }) => {
+  const [showSpinner, setShowSpinner] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSpinner(false);
+    }, 3000); // Show spinner for max 3 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <Suspense 
+      fallback={
+        showSpinner ? (
+          <LoadingSpinner fullScreen={routeType === 'dashboard'} />
+        ) : (
+          <div className={`${routeType === 'dashboard' ? 'min-h-[400px]' : 'min-h-[200px]'} flex items-center justify-center`}>
+            <p className="text-gray-500">Still loading... Please wait.</p>
+          </div>
+        )
+      }
+    >
+      {children}
+    </Suspense>
+  );
+};
+
+// Route preloading component
+function RoutePreloader() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Preload based on current route
+    const preloadRoutes = () => {
+      const path = location.pathname;
+
+      // Preload likely next routes
+      if (path === '/') {
+        // If on home page, preload properties and sign in
+        Promise.all([
+          import('./pages/Properties'),
+          import('./pages/SignIn')
+        ]).catch(() => {}); // Silent fail
+      } else if (path.startsWith('/properties')) {
+        // If on properties, preload dashboard
+        import('./pages/Dashboard').catch(() => {});
+      } else if (path.startsWith('/dashboard')) {
+        // If on dashboard, preload admin routes for admin users
+        import('./pages/AdminDashboard').catch(() => {});
+      }
+    };
+
+    // Use requestIdleCallback for non-critical preloading
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(preloadRoutes);
+    } else {
+      setTimeout(preloadRoutes, 1000);
+    }
+  }, [location.pathname]);
+
+  return null;
+}
+
+// Optimized layout components
+const PublicLayout = ({ children }) => (
+  <div className="min-h-screen flex flex-col">
+    <Header />
+    <main className="flex-grow pt-16 md:pt-20">
+      {children}
+    </main>
+    <Footer />
+  </div>
+);
+
+const DashboardRouteLayout = ({ children }) => (
+  <ProtectedRoute>
+    <DashboardLayout>
+      {children}
+    </DashboardLayout>
+  </ProtectedRoute>
+);
+
+const AdminRouteLayout = ({ children }) => (
+  <AdminProtectedRoute>
+    {children}
+  </AdminProtectedRoute>
+);
+
 function App() {
   return (
     <Router>
@@ -52,295 +142,241 @@ function App() {
         <AuthProvider>
           <DashboardProvider>
             <ScrollToTop />
+            <RoutePreloader />
+            
             <div className="min-h-screen flex flex-col">
               <Routes>
-                {/* Public Routes with Header/Footer */}
+                {/* ===== PUBLIC ROUTES ===== */}
                 <Route path="/" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <Home />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                  <PublicLayout>
+                    <RouteSuspense>
+                      <Home />
+                    </RouteSuspense>
+                  </PublicLayout>
                 } />
                 
                 <Route path="/properties" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <Properties />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                  <PublicLayout>
+                    <RouteSuspense>
+                      <Properties />
+                    </RouteSuspense>
+                  </PublicLayout>
                 } />
                 
                 <Route path="/properties/:id" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <PropertyDetails />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                  <PublicLayout>
+                    <RouteSuspense>
+                      <PropertyDetails />
+                    </RouteSuspense>
+                  </PublicLayout>
                 } />
                 
                 <Route path="/properties/:id/initial-apply" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <InitialApplyForm />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                  <PublicLayout>
+                    <RouteSuspense>
+                      <InitialApplyForm />
+                    </RouteSuspense>
+                  </PublicLayout>
                 } />
                 
                 <Route path="/contact" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <Contact />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                  <PublicLayout>
+                    <RouteSuspense>
+                      <Contact />
+                    </RouteSuspense>
+                  </PublicLayout>
                 } />
                 
                 <Route path="/about" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <About />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                  <PublicLayout>
+                    <RouteSuspense>
+                      <About />
+                    </RouteSuspense>
+                  </PublicLayout>
                 } />
                 
                 <Route path="/signin" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <SignIn />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                  <PublicLayout>
+                    <RouteSuspense>
+                      <SignIn />
+                    </RouteSuspense>
+                  </PublicLayout>
                 } />
                 
                 <Route path="/signup" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <SignUp />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                  <PublicLayout>
+                    <RouteSuspense>
+                      <SignUp />
+                    </RouteSuspense>
+                  </PublicLayout>
                 } />
                 
                 <Route path="/verification-success" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <VerificationSuccess />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                  <PublicLayout>
+                    <RouteSuspense>
+                      <VerificationSuccess />
+                    </RouteSuspense>
+                  </PublicLayout>
                 } />
                 
-                {/* Protected Application Form */}
+                {/* ===== PROTECTED APPLICATION FORM ===== */}
                 <Route path="/properties/:id/apply" element={
                   <ProtectedRoute>
-                    <div className="min-h-screen flex flex-col">
-                      <Header />
-                      <main className="flex-grow pt-16 md:pt-20">
-                        <Suspense fallback={<LoadingSpinner />}>
-                          <ApplicationForm />
-                        </Suspense>
-                      </main>
-                      <Footer />
-                    </div>
+                    <PublicLayout>
+                      <RouteSuspense>
+                        <ApplicationForm />
+                      </RouteSuspense>
+                    </PublicLayout>
                   </ProtectedRoute>
                 } />
                 
-                {/* Dashboard Routes */}
+                {/* ===== DASHBOARD ROUTES ===== */}
                 <Route path="/dashboard" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <Dashboard />
-                      </Suspense>
-                    </DashboardLayout>
-                  </ProtectedRoute>
+                  <DashboardRouteLayout>
+                    <RouteSuspense routeType="dashboard">
+                      <Dashboard />
+                    </RouteSuspense>
+                  </DashboardRouteLayout>
                 } />
                 
                 <Route path="/dashboard/applications" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <Applications />
-                      </Suspense>
-                    </DashboardLayout>
-                  </ProtectedRoute>
+                  <DashboardRouteLayout>
+                    <RouteSuspense routeType="dashboard">
+                      <Applications />
+                    </RouteSuspense>
+                  </DashboardRouteLayout>
                 } />
                 
                 <Route path="/dashboard/applications/:id" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <ApplicationDetail />
-                      </Suspense>
-                    </DashboardLayout>
-                  </ProtectedRoute>
+                  <DashboardRouteLayout>
+                    <RouteSuspense routeType="dashboard">
+                      <ApplicationDetail />
+                    </RouteSuspense>
+                  </DashboardRouteLayout>
                 } />
                 
                 <Route path="/dashboard/applications/:id/payment" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <PaymentPage />
-                      </Suspense>
-                    </DashboardLayout>
-                  </ProtectedRoute>
+                  <DashboardRouteLayout>
+                    <RouteSuspense routeType="dashboard">
+                      <PaymentPage />
+                    </RouteSuspense>
+                  </DashboardRouteLayout>
                 } />
                 
                 <Route path="/dashboard/saved" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <SavedProperties />
-                      </Suspense>
-                    </DashboardLayout>
-                  </ProtectedRoute>
+                  <DashboardRouteLayout>
+                    <RouteSuspense routeType="dashboard">
+                      <SavedProperties />
+                    </RouteSuspense>
+                  </DashboardRouteLayout>
                 } />
                 
                 <Route path="/dashboard/profile" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <Profile />
-                      </Suspense>
-                    </DashboardLayout>
-                  </ProtectedRoute>
+                  <DashboardRouteLayout>
+                    <RouteSuspense routeType="dashboard">
+                      <Profile />
+                    </RouteSuspense>
+                  </DashboardRouteLayout>
                 } />
                 
                 <Route path="/dashboard/settings" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <Suspense fallback={<LoadingSpinner />}>
-                        <Settings />
-                      </Suspense>
-                    </DashboardLayout>
-                  </ProtectedRoute>
+                  <DashboardRouteLayout>
+                    <RouteSuspense routeType="dashboard">
+                      <Settings />
+                    </RouteSuspense>
+                  </DashboardRouteLayout>
                 } />
                 
-                {/* Admin Routes */}
+                {/* ===== ADMIN ROUTES ===== */}
                 <Route path="/admin" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminDashboard />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
                 <Route path="/admin/properties" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminProperties />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
                 <Route path="/admin/properties/new" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminPropertyEdit />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
                 <Route path="/admin/properties/:id/edit" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminPropertyEdit />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
                 <Route path="/admin/applications" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminApplications />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
                 <Route path="/admin/applications/:id" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminApplicationDetail />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
                 <Route path="/admin/users" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminUsers />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
                 <Route path="/admin/payments" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminPayments />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
                 <Route path="/admin/analytics" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminAnalytics />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
                 <Route path="/admin/settings" element={
-                  <AdminProtectedRoute>
-                    <Suspense fallback={<LoadingSpinner />}>
+                  <AdminRouteLayout>
+                    <RouteSuspense routeType="dashboard">
                       <AdminSettings />
-                    </Suspense>
-                  </AdminProtectedRoute>
+                    </RouteSuspense>
+                  </AdminRouteLayout>
                 } />
                 
-                {/* 404 Page */}
+                {/* ===== 404 PAGE ===== */}
                 <Route path="*" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20 flex items-center justify-center">
-                      <Suspense fallback={<LoadingSpinner />}>
+                  <PublicLayout>
+                    <div className="flex items-center justify-center min-h-[60vh]">
+                      <RouteSuspense>
                         <NotFound />
-                      </Suspense>
-                    </main>
-                    <Footer />
-                  </div>
+                      </RouteSuspense>
+                    </div>
+                  </PublicLayout>
                 } />
               </Routes>
             </div>
