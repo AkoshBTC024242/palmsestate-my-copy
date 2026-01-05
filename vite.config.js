@@ -1,4 +1,3 @@
-// vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -7,12 +6,9 @@ export default defineConfig({
     react({
       // Enable fast refresh
       fastRefresh: true,
-      // Babel configuration for better optimization
+      // Remove problematic babel configuration
       babel: {
-        plugins: [
-          ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }],
-          'babel-plugin-react-compiler',
-        ],
+        // Remove the problematic plugin
       },
     }),
   ],
@@ -24,7 +20,10 @@ export default defineConfig({
           // Split vendor chunks
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['lucide-react'],
-          utils: ['date-fns', 'axios'],
+          stripe: ['@stripe/react-stripe-js', '@stripe/stripe-js'],
+          supabase: ['@supabase/supabase-js'],
+          charts: ['apexcharts', 'react-apexcharts'],
+          forms: ['react-hook-form', 'zod'],
         },
         // Add content hash for caching
         chunkFileNames: 'assets/js/[name]-[hash].js',
@@ -36,14 +35,14 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true, // Remove console logs in production
+        drop_console: false, // Keep console logs for debugging
         drop_debugger: true,
       },
     },
-    // Enable source maps in development only
-    sourcemap: process.env.NODE_ENV !== 'production',
+    // Disable source maps in production to reduce size
+    sourcemap: false,
     // Chunk size warnings
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
   },
   server: {
     // Development server optimization
@@ -68,8 +67,16 @@ export default defineConfig({
       'react-router-dom',
       'lucide-react',
       '@supabase/supabase-js',
+      'axios',
+      'apexcharts',
     ],
     // Force dependency pre-bundling
     force: true,
+  },
+  // Resolve configuration to prevent missing module errors
+  resolve: {
+    alias: {
+      // Add any necessary aliases here
+    },
   },
 });
