@@ -1,4 +1,4 @@
-// src/pages/Properties.jsx - UPDATED WITH WORKING FAVORITE BUTTON (MINIMAL CHANGES)
+// src/pages/Properties.jsx - FIXED FAVORITE BUTTON
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -90,13 +90,7 @@ function Properties() {
 
       if (error) {
         console.error('Error loading saved properties:', error);
-        // Check if table exists
-        if (error.code === '42P01') {
-          console.log('Saved properties table does not exist. Creating...');
-          await createSavedPropertiesTable();
-          return;
-        }
-        throw error;
+        return;
       }
 
       if (data) {
@@ -108,39 +102,15 @@ function Properties() {
     }
   };
 
-  const createSavedPropertiesTable = async () => {
-    try {
-      // This SQL should be run in Supabase SQL editor, not here
-      console.log('Please run this SQL in your Supabase SQL editor:');
-      console.log(`
-        CREATE TABLE IF NOT EXISTS saved_properties (
-          id BIGSERIAL PRIMARY KEY,
-          user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-          property_id INTEGER NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
-          saved_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          UNIQUE(user_id, property_id)
-        );
-        
-        -- Create index for faster queries
-        CREATE INDEX IF NOT EXISTS idx_saved_properties_user_id ON saved_properties(user_id);
-        CREATE INDEX IF NOT EXISTS idx_saved_properties_property_id ON saved_properties(property_id);
-      `);
-      
-      // For now, we'll just log the error
-      setNotification({ 
-        type: 'error', 
-        message: 'Favorites feature requires database setup. Please contact admin.' 
-      });
-    } catch (error) {
-      console.error('Error creating saved properties table:', error);
-    }
-  };
-
   const handleSaveProperty = async (propertyId, e) => {
     e.preventDefault();
     e.stopPropagation();
     
     if (!user) {
+      setNotification({ 
+        type: 'error', 
+        message: 'Please sign in to save properties' 
+      });
       navigate('/signin');
       return;
     }
@@ -165,14 +135,12 @@ function Properties() {
           .eq('property_id', propertyIdNum);
         
         if (error) {
-          if (error.code === '42P01') {
-            setNotification({ 
-              type: 'error', 
-              message: 'Favorites feature not set up. Please contact admin.' 
-            });
-            return;
-          }
-          throw error;
+          console.error('Error unsaving property:', error);
+          setNotification({ 
+            type: 'error', 
+            message: 'Failed to remove from favorites' 
+          });
+          return;
         }
         
         setSavedProperties(prev => {
@@ -193,14 +161,12 @@ function Properties() {
           });
         
         if (error) {
-          if (error.code === '42P01') {
-            setNotification({ 
-              type: 'error', 
-              message: 'Favorites feature not set up. Please contact admin.' 
-            });
-            return;
-          }
-          throw error;
+          console.error('Error saving property:', error);
+          setNotification({ 
+            type: 'error', 
+            message: 'Failed to save property' 
+          });
+          return;
         }
         
         setSavedProperties(prev => {
@@ -213,7 +179,7 @@ function Properties() {
       }
     } catch (error) {
       console.error('Error saving property:', error);
-      setNotification({ type: 'error', message: 'Failed to save property' });
+      setNotification({ type: 'error', message: 'An error occurred' });
     } finally {
       setSavingStates(prev => ({ ...prev, [propertyId]: false }));
     }
@@ -260,18 +226,22 @@ function Properties() {
   };
 
   const getPropertyImage = (property) => {
+    // Use first image from images array if available
     if (property.images && Array.isArray(property.images) && property.images.length > 0) {
       return property.images[0];
     }
+    // Fallback to image_url
     if (property.image_url) {
       return property.image_url;
     }
+    // Default gradient background
     return null;
   };
 
   const formatPrice = (property) => {
     const price = parseFloat(property.price) || 0;
     
+    // Dynamic pricing label based on property type
     const typeConfig = {
       villa: { label: '/week', field: 'price_per_week' },
       penthouse: { label: '/week', field: 'price_per_week' },
@@ -280,7 +250,7 @@ function Properties() {
       apartment: { label: '/month', field: 'rent_amount' },
       mansion: { label: '/month', field: 'rent_amount' },
       townhouse: { label: '/month', field: 'rent_amount' },
-      condo: { label: '', field: 'price' }
+      condo: { label: '', field: 'price' } // Purchase price
     };
 
     const config = typeConfig[property.property_type] || { label: '/week', field: 'price' };
@@ -296,6 +266,7 @@ function Properties() {
     if (!property.amenities) return [];
     
     try {
+      // Split comma-separated amenities
       return property.amenities
         .split(',')
         .map(amenity => amenity.trim())
@@ -364,7 +335,7 @@ function Properties() {
     <>
       {/* Simple Notification */}
       {notification && (
-        <div className="fixed top-24 right-4 z-50 animate-fade-in">
+        <div className="fixed top-24 right-4 z-50">
           <div className={`px-4 py-3 rounded-lg shadow-lg ${
             notification.type === 'success' 
               ? 'bg-green-500 text-white' 
@@ -595,7 +566,7 @@ function Properties() {
                           </div>
                         </div>
 
-                        {/* Save Button */}
+                        {/* Save Button - FIXED: Now properly connected to handleSaveProperty */}
                         <button
                           onClick={(e) => handleSaveProperty(property.id, e)}
                           disabled={isSaving}
