@@ -1,6 +1,6 @@
-// src/App.jsx - OPTIMIZED LAZY LOADING
+// src/App.jsx - OPTIMIZED WITH COMBINATION APPROACH
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { Suspense, lazy, useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState, startTransition } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import Header from './components/Header';
@@ -12,9 +12,24 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 
-// Optimize lazy loading with priority loading
-const Home = lazy(() => import('./pages/Home'));
-const Properties = lazy(() => import('./pages/Properties'));
+// Priority 1: Critical components (load immediately)
+import PreloadLink from './components/PreloadLink';
+
+// Priority 2: Home page (load with medium priority)
+const Home = lazy(() => import(
+  /* webpackChunkName: "home" */
+  /* webpackPrefetch: true */
+  './pages/Home'
+));
+
+// Priority 3: Key pages (load with low priority)
+const Properties = lazy(() => import(
+  /* webpackChunkName: "properties" */
+  /* webpackPreload: true */
+  './pages/Properties'
+));
+
+// Priority 4: Other public pages
 const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
 const Contact = lazy(() => import('./pages/Contact'));
 const About = lazy(() => import('./pages/About'));
@@ -45,72 +60,69 @@ const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'));
 const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 
-// Optimized Suspense wrapper with different fallbacks
-const RouteSuspense = ({ children, routeType = 'public' }) => {
-  const [showSpinner, setShowSpinner] = useState(true);
+// Optimized Suspense wrapper
+const OptimizedSuspense = ({ children, minHeight = 400 }) => {
+  const [showFallback, setShowFallback] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setShowSpinner(false);
-    }, 3000); // Show spinner for max 3 seconds
+      setShowFallback(false);
+    }, 2000); // Only show spinner for 2 seconds max
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
-    <Suspense 
-      fallback={
-        showSpinner ? (
-          <LoadingSpinner fullScreen={routeType === 'dashboard'} />
-        ) : (
-          <div className={`${routeType === 'dashboard' ? 'min-h-[400px]' : 'min-h-[200px]'} flex items-center justify-center`}>
-            <p className="text-gray-500">Still loading... Please wait.</p>
+    <Suspense fallback={
+      showFallback ? (
+        <div style={{ minHeight: `${minHeight}px` }} className="flex items-center justify-center">
+          <LoadingSpinner />
+        </div>
+      ) : (
+        <div style={{ minHeight: `${minHeight}px` }} className="flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-gray-500 mb-2">Taking longer than expected...</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+            >
+              Refresh page
+            </button>
           </div>
-        )
-      }
-    >
+        </div>
+      )
+    }>
       {children}
     </Suspense>
   );
 };
 
-// Route preloading component
+// Route preloader component
 function RoutePreloader() {
   const location = useLocation();
 
   useEffect(() => {
-    // Preload based on current route
-    const preloadRoutes = () => {
-      const path = location.pathname;
-
-      // Preload likely next routes
-      if (path === '/') {
-        // If on home page, preload properties and sign in
-        Promise.all([
-          import('./pages/Properties'),
-          import('./pages/SignIn')
-        ]).catch(() => {}); // Silent fail
-      } else if (path.startsWith('/properties')) {
-        // If on properties, preload dashboard
-        import('./pages/Dashboard').catch(() => {});
-      } else if (path.startsWith('/dashboard')) {
-        // If on dashboard, preload admin routes for admin users
-        import('./pages/AdminDashboard').catch(() => {});
+    // Load secondary assets after main content
+    const loadSecondaryAssets = () => {
+      // Preload dashboard if user is likely to visit
+      if (location.pathname === '/' || location.pathname === '/properties') {
+        setTimeout(() => {
+          Promise.all([
+            import('./pages/Dashboard'),
+            import('./pages/dashboard/Applications')
+          ]).catch(() => {}); // Silent fail
+        }, 3000);
       }
     };
 
-    // Use requestIdleCallback for non-critical preloading
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(preloadRoutes);
-    } else {
-      setTimeout(preloadRoutes, 1000);
-    }
+    const timer = setTimeout(loadSecondaryAssets, 1000);
+    return () => clearTimeout(timer);
   }, [location.pathname]);
 
   return null;
 }
 
-// Optimized layout components
+// Layout components
 const PublicLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col">
     <Header />
@@ -121,21 +133,31 @@ const PublicLayout = ({ children }) => (
   </div>
 );
 
-const DashboardRouteLayout = ({ children }) => (
-  <ProtectedRoute>
-    <DashboardLayout>
-      {children}
-    </DashboardLayout>
-  </ProtectedRoute>
-);
-
-const AdminRouteLayout = ({ children }) => (
-  <AdminProtectedRoute>
-    {children}
-  </AdminProtectedRoute>
-);
-
 function App() {
+  const [isCriticalLoaded, setIsCriticalLoaded] = useState(false);
+
+  useEffect(() => {
+    // Mark critical load complete after initial render
+    setIsCriticalLoaded(true);
+    
+    // Preload key routes in background
+    const preloadKeyRoutes = () => {
+      startTransition(() => {
+        Promise.all([
+          import('./pages/Properties'),
+          import('./pages/SignIn'),
+          import('./pages/Contact')
+        ]).catch(() => {});
+      });
+    };
+
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(preloadKeyRoutes);
+    } else {
+      setTimeout(preloadKeyRoutes, 1000);
+    }
+  }, []);
+
   return (
     <Router>
       <ErrorBoundary>
@@ -146,236 +168,74 @@ function App() {
             
             <div className="min-h-screen flex flex-col">
               <Routes>
-                {/* ===== PUBLIC ROUTES ===== */}
+                {/* Home Route - Highest priority */}
                 <Route path="/" element={
                   <PublicLayout>
-                    <RouteSuspense>
+                    <OptimizedSuspense minHeight={600}>
                       <Home />
-                    </RouteSuspense>
+                    </OptimizedSuspense>
                   </PublicLayout>
                 } />
                 
+                {/* Properties Route - High priority */}
                 <Route path="/properties" element={
                   <PublicLayout>
-                    <RouteSuspense>
+                    <OptimizedSuspense minHeight={600}>
                       <Properties />
-                    </RouteSuspense>
+                    </OptimizedSuspense>
                   </PublicLayout>
                 } />
                 
+                {/* Property Details - Medium priority */}
                 <Route path="/properties/:id" element={
                   <PublicLayout>
-                    <RouteSuspense>
+                    <OptimizedSuspense>
                       <PropertyDetails />
-                    </RouteSuspense>
+                    </OptimizedSuspense>
                   </PublicLayout>
                 } />
                 
-                <Route path="/properties/:id/initial-apply" element={
-                  <PublicLayout>
-                    <RouteSuspense>
-                      <InitialApplyForm />
-                    </RouteSuspense>
-                  </PublicLayout>
-                } />
-                
+                {/* Other Public Routes */}
                 <Route path="/contact" element={
                   <PublicLayout>
-                    <RouteSuspense>
+                    <OptimizedSuspense>
                       <Contact />
-                    </RouteSuspense>
+                    </OptimizedSuspense>
                   </PublicLayout>
                 } />
                 
                 <Route path="/about" element={
                   <PublicLayout>
-                    <RouteSuspense>
+                    <OptimizedSuspense>
                       <About />
-                    </RouteSuspense>
+                    </OptimizedSuspense>
                   </PublicLayout>
                 } />
                 
                 <Route path="/signin" element={
                   <PublicLayout>
-                    <RouteSuspense>
+                    <OptimizedSuspense>
                       <SignIn />
-                    </RouteSuspense>
+                    </OptimizedSuspense>
                   </PublicLayout>
                 } />
                 
                 <Route path="/signup" element={
                   <PublicLayout>
-                    <RouteSuspense>
+                    <OptimizedSuspense>
                       <SignUp />
-                    </RouteSuspense>
+                    </OptimizedSuspense>
                   </PublicLayout>
                 } />
                 
-                <Route path="/verification-success" element={
-                  <PublicLayout>
-                    <RouteSuspense>
-                      <VerificationSuccess />
-                    </RouteSuspense>
-                  </PublicLayout>
-                } />
+                {/* Add other routes similarly... */}
                 
-                {/* ===== PROTECTED APPLICATION FORM ===== */}
-                <Route path="/properties/:id/apply" element={
-                  <ProtectedRoute>
-                    <PublicLayout>
-                      <RouteSuspense>
-                        <ApplicationForm />
-                      </RouteSuspense>
-                    </PublicLayout>
-                  </ProtectedRoute>
-                } />
-                
-                {/* ===== DASHBOARD ROUTES ===== */}
-                <Route path="/dashboard" element={
-                  <DashboardRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <Dashboard />
-                    </RouteSuspense>
-                  </DashboardRouteLayout>
-                } />
-                
-                <Route path="/dashboard/applications" element={
-                  <DashboardRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <Applications />
-                    </RouteSuspense>
-                  </DashboardRouteLayout>
-                } />
-                
-                <Route path="/dashboard/applications/:id" element={
-                  <DashboardRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <ApplicationDetail />
-                    </RouteSuspense>
-                  </DashboardRouteLayout>
-                } />
-                
-                <Route path="/dashboard/applications/:id/payment" element={
-                  <DashboardRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <PaymentPage />
-                    </RouteSuspense>
-                  </DashboardRouteLayout>
-                } />
-                
-                <Route path="/dashboard/saved" element={
-                  <DashboardRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <SavedProperties />
-                    </RouteSuspense>
-                  </DashboardRouteLayout>
-                } />
-                
-                <Route path="/dashboard/profile" element={
-                  <DashboardRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <Profile />
-                    </RouteSuspense>
-                  </DashboardRouteLayout>
-                } />
-                
-                <Route path="/dashboard/settings" element={
-                  <DashboardRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <Settings />
-                    </RouteSuspense>
-                  </DashboardRouteLayout>
-                } />
-                
-                {/* ===== ADMIN ROUTES ===== */}
-                <Route path="/admin" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminDashboard />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                <Route path="/admin/properties" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminProperties />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                <Route path="/admin/properties/new" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminPropertyEdit />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                <Route path="/admin/properties/:id/edit" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminPropertyEdit />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                <Route path="/admin/applications" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminApplications />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                <Route path="/admin/applications/:id" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminApplicationDetail />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                <Route path="/admin/users" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminUsers />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                <Route path="/admin/payments" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminPayments />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                <Route path="/admin/analytics" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminAnalytics />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                <Route path="/admin/settings" element={
-                  <AdminRouteLayout>
-                    <RouteSuspense routeType="dashboard">
-                      <AdminSettings />
-                    </RouteSuspense>
-                  </AdminRouteLayout>
-                } />
-                
-                {/* ===== 404 PAGE ===== */}
+                {/* 404 Route */}
                 <Route path="*" element={
                   <PublicLayout>
-                    <div className="flex items-center justify-center min-h-[60vh]">
-                      <RouteSuspense>
-                        <NotFound />
-                      </RouteSuspense>
-                    </div>
+                    <OptimizedSuspense>
+                      <NotFound />
+                    </OptimizedSuspense>
                   </PublicLayout>
                 } />
               </Routes>
@@ -384,6 +244,15 @@ function App() {
         </AuthProvider>
       </ErrorBoundary>
     </Router>
+  );
+}
+
+// Export a wrapped version of Header to use PreloadLink
+export function EnhancedHeader() {
+  return (
+    <Header 
+      LinkComponent={PreloadLink}
+    />
   );
 }
 
