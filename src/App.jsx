@@ -1,242 +1,289 @@
-// src/App.jsx - OPTIMIZED WITH COMBINATION APPROACH
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { Suspense, lazy, useEffect, useState, startTransition } from 'react';
+// src/App.jsx - REGULAR IMPORTS (NO LAZY LOADING)
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
-import LoadingSpinner from './components/LoadingSpinner';
 import ErrorBoundary from './components/ErrorBoundary';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 
-// Priority 1: Critical components (load immediately)
-import PreloadLink from './components/PreloadLink';
+// Import all pages directly (NO lazy loading)
+import Home from './pages/Home';
+import Properties from './pages/Properties';
+import PropertyDetails from './pages/PropertyDetails';
+import Contact from './pages/Contact';
+import About from './pages/About';
+import SignIn from './pages/SignIn';
+import SignUp from './pages/SignUp';
+import VerificationSuccess from './pages/VerificationSuccess';
+import ApplicationForm from './pages/ApplicationForm';
+import InitialApplyForm from './pages/InitialApplyForm';
+import NotFound from './pages/NotFound';
 
-// Priority 2: Home page (load with medium priority)
-const Home = lazy(() => import(
-  /* webpackChunkName: "home" */
-  /* webpackPrefetch: true */
-  './pages/Home'
-));
+// Dashboard pages
+import Dashboard from './pages/Dashboard';
+import Applications from './pages/dashboard/Applications';
+import ApplicationDetail from './pages/dashboard/ApplicationDetail';
+import SavedProperties from './pages/dashboard/SavedProperties';
+import Profile from './pages/dashboard/Profile';
+import Settings from './pages/dashboard/Settings';
+import PaymentPage from './pages/dashboard/PaymentPage';
 
-// Priority 3: Key pages (load with low priority)
-const Properties = lazy(() => import(
-  /* webpackChunkName: "properties" */
-  /* webpackPreload: true */
-  './pages/Properties'
-));
-
-// Priority 4: Other public pages
-const PropertyDetails = lazy(() => import('./pages/PropertyDetails'));
-const Contact = lazy(() => import('./pages/Contact'));
-const About = lazy(() => import('./pages/About'));
-const SignIn = lazy(() => import('./pages/SignIn'));
-const SignUp = lazy(() => import('./pages/SignUp'));
-const VerificationSuccess = lazy(() => import('./pages/VerificationSuccess'));
-const ApplicationForm = lazy(() => import('./pages/ApplicationForm'));
-const InitialApplyForm = lazy(() => import('./pages/InitialApplyForm'));
-const NotFound = lazy(() => import('./pages/NotFound'));
-
-// Dashboard pages - grouped
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Applications = lazy(() => import('./pages/dashboard/Applications'));
-const ApplicationDetail = lazy(() => import('./pages/dashboard/ApplicationDetail'));
-const SavedProperties = lazy(() => import('./pages/dashboard/SavedProperties'));
-const Profile = lazy(() => import('./pages/dashboard/Profile'));
-const Settings = lazy(() => import('./pages/dashboard/Settings'));
-const PaymentPage = lazy(() => import('./pages/dashboard/PaymentPage'));
-
-// Admin pages - grouped
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const AdminProperties = lazy(() => import('./pages/admin/AdminProperties'));
-const AdminPropertyEdit = lazy(() => import('./pages/admin/AdminPropertyEdit'));
-const AdminApplications = lazy(() => import('./pages/admin/AdminApplications'));
-const AdminApplicationDetail = lazy(() => import('./pages/admin/AdminApplicationDetail'));
-const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
-const AdminPayments = lazy(() => import('./pages/admin/AdminPayments'));
-const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
-const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
-
-// Optimized Suspense wrapper
-const OptimizedSuspense = ({ children, minHeight = 400 }) => {
-  const [showFallback, setShowFallback] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowFallback(false);
-    }, 2000); // Only show spinner for 2 seconds max
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <Suspense fallback={
-      showFallback ? (
-        <div style={{ minHeight: `${minHeight}px` }} className="flex items-center justify-center">
-          <LoadingSpinner />
-        </div>
-      ) : (
-        <div style={{ minHeight: `${minHeight}px` }} className="flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-gray-500 mb-2">Taking longer than expected...</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="text-sm text-amber-600 hover:text-amber-700 font-medium"
-            >
-              Refresh page
-            </button>
-          </div>
-        </div>
-      )
-    }>
-      {children}
-    </Suspense>
-  );
-};
-
-// Route preloader component
-function RoutePreloader() {
-  const location = useLocation();
-
-  useEffect(() => {
-    // Load secondary assets after main content
-    const loadSecondaryAssets = () => {
-      // Preload dashboard if user is likely to visit
-      if (location.pathname === '/' || location.pathname === '/properties') {
-        setTimeout(() => {
-          Promise.all([
-            import('./pages/Dashboard'),
-            import('./pages/dashboard/Applications')
-          ]).catch(() => {}); // Silent fail
-        }, 3000);
-      }
-    };
-
-    const timer = setTimeout(loadSecondaryAssets, 1000);
-    return () => clearTimeout(timer);
-  }, [location.pathname]);
-
-  return null;
-}
-
-// Layout components
-const PublicLayout = ({ children }) => (
-  <div className="min-h-screen flex flex-col">
-    <Header />
-    <main className="flex-grow pt-16 md:pt-20">
-      {children}
-    </main>
-    <Footer />
-  </div>
-);
+// Admin pages
+import AdminDashboard from './pages/AdminDashboard';
+import AdminProperties from './pages/admin/AdminProperties';
+import AdminPropertyEdit from './pages/admin/AdminPropertyEdit';
+import AdminApplications from './pages/admin/AdminApplications';
+import AdminApplicationDetail from './pages/admin/AdminApplicationDetail';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminPayments from './pages/admin/AdminPayments';
+import AdminAnalytics from './pages/admin/AdminAnalytics';
+import AdminSettings from './pages/admin/AdminSettings';
 
 function App() {
-  const [isCriticalLoaded, setIsCriticalLoaded] = useState(false);
-
-  useEffect(() => {
-    // Mark critical load complete after initial render
-    setIsCriticalLoaded(true);
-    
-    // Preload key routes in background
-    const preloadKeyRoutes = () => {
-      startTransition(() => {
-        Promise.all([
-          import('./pages/Properties'),
-          import('./pages/SignIn'),
-          import('./pages/Contact')
-        ]).catch(() => {});
-      });
-    };
-
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(preloadKeyRoutes);
-    } else {
-      setTimeout(preloadKeyRoutes, 1000);
-    }
-  }, []);
-
   return (
     <Router>
       <ErrorBoundary>
         <AuthProvider>
           <DashboardProvider>
             <ScrollToTop />
-            <RoutePreloader />
             
             <div className="min-h-screen flex flex-col">
               <Routes>
-                {/* Home Route - Highest priority */}
+                {/* ===== PUBLIC ROUTES WITH HEADER/FOOTER ===== */}
                 <Route path="/" element={
-                  <PublicLayout>
-                    <OptimizedSuspense minHeight={600}>
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
                       <Home />
-                    </OptimizedSuspense>
-                  </PublicLayout>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
                 
-                {/* Properties Route - High priority */}
                 <Route path="/properties" element={
-                  <PublicLayout>
-                    <OptimizedSuspense minHeight={600}>
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
                       <Properties />
-                    </OptimizedSuspense>
-                  </PublicLayout>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
                 
-                {/* Property Details - Medium priority */}
                 <Route path="/properties/:id" element={
-                  <PublicLayout>
-                    <OptimizedSuspense>
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
                       <PropertyDetails />
-                    </OptimizedSuspense>
-                  </PublicLayout>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
                 
-                {/* Other Public Routes */}
+                <Route path="/properties/:id/initial-apply" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <InitialApplyForm />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
                 <Route path="/contact" element={
-                  <PublicLayout>
-                    <OptimizedSuspense>
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
                       <Contact />
-                    </OptimizedSuspense>
-                  </PublicLayout>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
                 
                 <Route path="/about" element={
-                  <PublicLayout>
-                    <OptimizedSuspense>
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
                       <About />
-                    </OptimizedSuspense>
-                  </PublicLayout>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
                 
                 <Route path="/signin" element={
-                  <PublicLayout>
-                    <OptimizedSuspense>
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
                       <SignIn />
-                    </OptimizedSuspense>
-                  </PublicLayout>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
                 
                 <Route path="/signup" element={
-                  <PublicLayout>
-                    <OptimizedSuspense>
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
                       <SignUp />
-                    </OptimizedSuspense>
-                  </PublicLayout>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
                 
-                {/* Add other routes similarly... */}
+                <Route path="/verification-success" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <VerificationSuccess />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
                 
-                {/* 404 Route */}
+                {/* ===== USER DASHBOARD ROUTES ===== */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Dashboard />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/applications" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Applications />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/applications/:id" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <ApplicationDetail />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/applications/:id/payment" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <PaymentPage />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/saved" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <SavedProperties />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/profile" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Profile />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/dashboard/settings" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Settings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                {/* ===== ADMIN DASHBOARD ROUTES ===== */}
+                <Route path="/admin" element={
+                  <AdminProtectedRoute>
+                    <AdminDashboard />
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/properties" element={
+                  <AdminProtectedRoute>
+                    <AdminProperties />
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/properties/new" element={
+                  <AdminProtectedRoute>
+                    <AdminPropertyEdit />
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/properties/:id/edit" element={
+                  <AdminProtectedRoute>
+                    <AdminPropertyEdit />
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/applications" element={
+                  <AdminProtectedRoute>
+                    <AdminApplications />
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/applications/:id" element={
+                  <AdminProtectedRoute>
+                    <AdminApplicationDetail />
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/users" element={
+                  <AdminProtectedRoute>
+                    <AdminUsers />
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/payments" element={
+                  <AdminProtectedRoute>
+                    <AdminPayments />
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/analytics" element={
+                  <AdminProtectedRoute>
+                    <AdminAnalytics />
+                  </AdminProtectedRoute>
+                } />
+                
+                <Route path="/admin/settings" element={
+                  <AdminProtectedRoute>
+                    <AdminSettings />
+                  </AdminProtectedRoute>
+                } />
+                
+                {/* ===== PROTECTED APPLICATION FORM ===== */}
+                <Route path="/properties/:id/apply" element={
+                  <ProtectedRoute>
+                    <div className="min-h-screen flex flex-col">
+                      <Header />
+                      <main className="flex-grow pt-16 md:pt-20">
+                        <ApplicationForm />
+                      </main>
+                      <Footer />
+                    </div>
+                  </ProtectedRoute>
+                } />
+                
+                {/* ===== 404 PAGE ===== */}
                 <Route path="*" element={
-                  <PublicLayout>
-                    <OptimizedSuspense>
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20 flex items-center justify-center">
                       <NotFound />
-                    </OptimizedSuspense>
-                  </PublicLayout>
+                    </main>
+                    <Footer />
+                  </div>
                 } />
               </Routes>
             </div>
@@ -244,15 +291,6 @@ function App() {
         </AuthProvider>
       </ErrorBoundary>
     </Router>
-  );
-}
-
-// Export a wrapped version of Header to use PreloadLink
-export function EnhancedHeader() {
-  return (
-    <Header 
-      LinkComponent={PreloadLink}
-    />
   );
 }
 
