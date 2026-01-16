@@ -1,4 +1,4 @@
-// src/App.jsx - REGULAR IMPORTS (NO LAZY LOADING)
+// src/App.jsx - UPDATED WITH POST-APPROVAL ROUTE
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
@@ -21,6 +21,7 @@ import SignUp from './pages/SignUp';
 import VerificationSuccess from './pages/VerificationSuccess';
 import ApplicationForm from './pages/ApplicationForm';
 import InitialApplyForm from './pages/InitialApplyForm';
+import PostApprovalForm from './pages/dashboard/PostApprovalForm'; // NEW IMPORT
 import NotFound from './pages/NotFound';
 
 // Dashboard pages
@@ -165,6 +166,15 @@ function App() {
                   <ProtectedRoute>
                     <DashboardLayout>
                       <ApplicationDetail />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+                
+                {/* NEW ROUTE: Post-Approval Form */}
+                <Route path="/dashboard/applications/:id/post-approval" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <PostApprovalForm />
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
