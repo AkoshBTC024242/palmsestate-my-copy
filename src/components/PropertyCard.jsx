@@ -1,9 +1,10 @@
+// src/components/PropertyCard.jsx - UPDATE WITH FIXED FAVORITE BUTTON
 import { Link } from 'react-router-dom';
-import { MapPin, Bed, Bath, Square, Maximize2, Heart, Eye, Sparkles } from 'lucide-react';
+import { MapPin, Bed, Bath, Square, Maximize2, Eye, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import PropertyFavoriteButton from './PropertyFavoriteButton'; // Import the fixed button
 
 function PropertyCard({ property }) {
-  const [isSaved, setIsSaved] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
   const formatPrice = (price) => {
@@ -28,7 +29,7 @@ function PropertyCard({ property }) {
           loading="lazy"
         />
 
-        {/* Property Type Badge with Glass Effect */}
+        {/* Property Type Badge */}
         <div className="absolute top-4 left-4">
           <span className={`px-4 py-2 rounded-full text-xs font-sans font-bold uppercase tracking-wider backdrop-blur-md border ${
             property.type === 'Exclusive' 
@@ -43,16 +44,15 @@ function PropertyCard({ property }) {
           </span>
         </div>
 
-        {/* Save Button */}
-        <button
-          onClick={() => setIsSaved(!isSaved)}
-          className="absolute top-4 right-4 w-10 h-10 backdrop-blur-md bg-black/40 border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors"
-          aria-label={isSaved ? "Remove from saved" : "Save property"}
-        >
-          <Heart size={20} className={isSaved ? "fill-red-500" : ""} />
-        </button>
+        {/* FIXED: Use PropertyFavoriteButton instead of local state */}
+        <div className="absolute top-4 right-4">
+          <PropertyFavoriteButton 
+            propertyId={property.id}
+            size="md"
+          />
+        </div>
 
-        {/* Price Badge with Glass Effect */}
+        {/* Price Badge */}
         <div className="absolute bottom-4 left-4 right-4 backdrop-blur-md bg-black/50 border border-white/20 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -120,7 +120,7 @@ function PropertyCard({ property }) {
           </div>
         </div>
 
-        {/* Property Stats with Glass Effect */}
+        {/* Property Stats */}
         <div className="backdrop-blur-sm bg-gray-50/50 border border-gray-200/50 rounded-2xl p-4 mb-6">
           <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
