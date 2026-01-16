@@ -1,11 +1,12 @@
-// src/pages/admin/AdminApplications.jsx - UPDATED
+// REPLACE THE ENTIRE AdminApplications.jsx WITH THIS:
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { 
   FileText, Clock, CheckCircle, XCircle, Search, Filter, 
   Eye, Download, Mail, Phone, DollarSign, Calendar, AlertCircle,
-  UserCheck, FileCheck, ArrowRight, ChevronRight
+  UserCheck, FileCheck, ArrowRight, ChevronRight, Building
 } from 'lucide-react';
 
 function AdminApplications() {
@@ -15,6 +16,7 @@ function AdminApplications() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [updatingStatus, setUpdatingStatus] = useState({});
+  const [properties, setProperties] = useState({});
 
   useEffect(() => {
     loadApplications();
@@ -24,19 +26,40 @@ function AdminApplications() {
     try {
       setLoading(true);
       
-      // Load applications with user and property data
+      // Simple query - no joins needed
       const { data, error } = await supabase
         .from('applications')
-        .select(`
-          *,
-          profiles:user_id (full_name, email, phone),
-          properties:property_id (title, location, price_per_week)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       setApplications(data || []);
+
+      // Load properties separately for better performance
+      if (data && data.length > 0) {
+        const propertyIds = data
+          .map(app => app.property_id)
+          .filter(id => id && id !== null && id !== undefined);
+        
+        if (propertyIds.length > 0) {
+          const uniqueIds = [...new Set(propertyIds)];
+          
+          const { data: propertiesData } = await supabase
+            .from('properties')
+            .select('*')
+            .in('id', uniqueIds);
+          
+          if (propertiesData) {
+            const propertiesMap = {};
+            propertiesData.forEach(prop => {
+              propertiesMap[prop.id] = prop;
+            });
+            setProperties(propertiesMap);
+          }
+        }
+      }
+
     } catch (error) {
       console.error('Error loading applications:', error);
     } finally {
@@ -176,12 +199,24 @@ function AdminApplications() {
     }).format(amount || 0);
   };
 
+  const getPropertyInfo = (propertyId) => {
+    if (!propertyId) return { title: 'Unknown Property', location: '', price_per_week: 0 };
+    const prop = properties[propertyId];
+    return {
+      title: prop?.title || `Property #${propertyId}`,
+      location: prop?.location || '',
+      price_per_week: prop?.price_per_week || 0,
+      main_image_url: prop?.main_image_url
+    };
+  };
+
   const filteredApplications = applications.filter(app => {
+    const propertyInfo = getPropertyInfo(app.property_id);
     const matchesSearch = 
       app.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.properties?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.reference_number?.toLowerCase().includes(searchTerm.toLowerCase());
+      propertyInfo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (app.reference_number && app.reference_number.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = filterStatus === 'all' || app.status === filterStatus;
     
@@ -262,31 +297,6 @@ function AdminApplications() {
           </div>
         </div>
 
-        {/* Stats Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-          {[
-            { status: 'all', label: 'Total', count: applications.length },
-            { status: 'submitted', label: 'Submitted', count: applications.filter(a => a.status === 'submitted').length },
-            { status: 'under_review', label: 'Review', count: applications.filter(a => a.status === 'under_review').length },
-            { status: 'approved_pending_info', label: 'Pending Info', count: applications.filter(a => a.status === 'approved_pending_info').length },
-            { status: 'additional_info_submitted', label: 'Info Submitted', count: applications.filter(a => a.status === 'additional_info_submitted').length },
-            { status: 'approved', label: 'Approved', count: applications.filter(a => a.status === 'approved').length },
-          ].map((stat) => (
-            <div 
-              key={stat.status}
-              className={`p-4 rounded-xl border ${
-                filterStatus === stat.status 
-                  ? 'border-blue-300 bg-blue-50' 
-                  : 'border-gray-200 bg-white'
-              }`}
-              onClick={() => setFilterStatus(stat.status)}
-            >
-              <div className="text-2xl font-bold text-gray-900 mb-1">{stat.count}</div>
-              <div className="text-sm font-medium text-gray-600">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-
         {/* Applications Table */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 overflow-hidden">
           {loading ? (
@@ -320,6 +330,7 @@ function AdminApplications() {
                   {filteredApplications.map((application) => {
                     const statusConfig = getStatusConfig(application.status);
                     const nextStatusOptions = getNextStatusOptions(application.status);
+                    const propertyInfo = getPropertyInfo(application.property_id);
                     
                     return (
                       <tr key={application.id} className={`hover:bg-gray-50 ${statusConfig.bgColor}`}>
@@ -344,11 +355,11 @@ function AdminApplications() {
                         
                         <td className="px-6 py-4">
                           <div>
-                            <p className="font-medium text-gray-900">{application.properties?.title || 'N/A'}</p>
-                            <p className="text-sm text-gray-500">{application.properties?.location || 'N/A'}</p>
-                            {application.properties?.price_per_week && (
+                            <p className="font-medium text-gray-900">{propertyInfo.title}</p>
+                            <p className="text-sm text-gray-500">{propertyInfo.location}</p>
+                            {propertyInfo.price_per_week > 0 && (
                               <p className="text-sm text-gray-500">
-                                {formatCurrency(application.properties.price_per_week)}/week
+                                {formatCurrency(propertyInfo.price_per_week)}/week
                               </p>
                             )}
                           </div>
@@ -473,44 +484,6 @@ function AdminApplications() {
               )}
             </div>
           )}
-        </div>
-
-        {/* Status Flow Guide */}
-        <div className="mt-8 bg-white rounded-2xl border border-gray-200 p-6">
-          <h3 className="font-bold text-gray-800 mb-4">Application Status Flow</h3>
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 overflow-x-auto">
-            {[
-              { status: 'submitted', label: 'Submitted', icon: Clock },
-              { status: 'under_review', label: 'Review', icon: AlertCircle },
-              { status: 'approved_pending_info', label: 'Approved (Pending Info)', icon: FileCheck },
-              { status: 'additional_info_submitted', label: 'Info Submitted', icon: FileText },
-              { status: 'approved', label: 'Approved', icon: CheckCircle },
-            ].map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.status} className="flex items-center">
-                  <div className="text-center">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-2">
-                      <Icon className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div className="text-xs font-medium text-gray-700">{step.label}</div>
-                    <div className="text-xs text-gray-500">
-                      {applications.filter(a => a.status === step.status).length} apps
-                    </div>
-                  </div>
-                  {index < 4 && (
-                    <div className="hidden md:block mx-4">
-                      <ArrowRight className="w-5 h-5 text-gray-300" />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 text-sm text-gray-600">
-            <p>• <span className="text-cyan-600 font-medium">"Approve & Request Info"</span>: Approves initial application and sends user to detailed form</p>
-            <p>• Users will see a "Continue Application" button after initial approval</p>
-          </div>
         </div>
       </div>
     </div>
