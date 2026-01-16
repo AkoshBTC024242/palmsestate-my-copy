@@ -1,75 +1,64 @@
-// src/components/PropertyFavoriteButton.jsx - FIXED
+// src/components/PropertyFavoriteButton.jsx - SIMPLIFIED RELIABLE VERSION
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Heart, AlertCircle } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-function PropertyFavoriteButton({ propertyId, size = 'md', showLabel = false, className = '' }) {
+function PropertyFavoriteButton({ propertyId, size = 'md', className = '' }) {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [isSaved, setIsSaved] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [hasChecked, setHasChecked] = useState(false);
 
-  // Check if property is already saved
+  // Check initial saved state
   useEffect(() => {
-    if (propertyId) {
-      checkIfSaved();
+    if (user && propertyId) {
+      checkSavedState();
     }
   }, [user, propertyId]);
 
-  const checkIfSaved = async () => {
-    if (!propertyId) return;
-    
-    setHasChecked(false);
-    
-    try {
-      // First check localStorage (fast)
-      const saved = JSON.parse(localStorage.getItem('palmsestate_saved_properties') || '{}');
-      const userSaved = user ? saved[user.id] || [] : [];
-      const isSavedLocal = userSaved.includes(propertyId);
-      
-      if (isSavedLocal) {
-        setIsSaved(true);
-        setHasChecked(true);
-        return;
-      }
-      
-      // If user is logged in, check database
-      if (user) {
-        const { data, error: fetchError } = await supabase
-          .from('saved_properties')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('property_id', propertyId)
-          .maybeSingle();
+  const checkSavedState = () => {
+    if (!user || !propertyId) {
+      setIsSaved(false);
+      return;
+    }
 
-        if (fetchError && fetchError.code !== '42P01' && fetchError.code !== 'PGRST116') {
-          console.warn('Error checking saved status:', fetchError);
-        }
-
-        setIsSaved(!!data);
-        
-        // Sync with localStorage
-        if (data && !userSaved.includes(propertyId)) {
+    // Check localStorage first (fast)
+    const saved = JSON.parse(localStorage.getItem('palmsestate_saved_properties') || '{}');
+    const userSaved = saved[user.id] || [];
+    const isSavedLocal = userSaved.includes(propertyId);
+    
+    setIsSaved(isSavedLocal);
+    
+    // Optionally check database in background
+    if (isSavedLocal) {
+      // Already found in localStorage, we're good
+      return;
+    }
+    
+    // Check database for additional saved items
+    supabase
+      .from('saved_properties')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('property_id', propertyId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data && !isSavedLocal) {
+          // Found in database but not localStorage, update localStorage
           userSaved.push(propertyId);
           saved[user.id] = userSaved;
           localStorage.setItem('palmsestate_saved_properties', JSON.stringify(saved));
+          setIsSaved(true);
         }
-      } else {
-        setIsSaved(false);
-      }
-    } catch (error) {
-      console.error('Error checking saved status:', error);
-      setIsSaved(false);
-    } finally {
-      setHasChecked(true);
-    }
+      })
+      .catch(() => {
+        // Database error, ignore - we have localStorage
+      });
   };
 
-  const toggleSave = async (e) => {
+  const handleToggleSave = async (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -80,164 +69,100 @@ function PropertyFavoriteButton({ propertyId, size = 'md', showLabel = false, cl
       return;
     }
 
-    if (!user || !propertyId) {
-      setError('Please sign in to save properties');
-      return;
-    }
+    if (!user || !propertyId) return;
 
     setLoading(true);
-    setError(null);
     const newSavedState = !isSaved;
 
     try {
-      // Update UI immediately
+      // 1. Update UI immediately
       setIsSaved(newSavedState);
       
-      // Update localStorage immediately
+      // 2. Update localStorage
       const saved = JSON.parse(localStorage.getItem('palmsestate_saved_properties') || '{}');
-      const userSaved = saved[user.id] || [];
+      let userSaved = saved[user.id] || [];
       
       if (newSavedState) {
         // Add to saved
         if (!userSaved.includes(propertyId)) {
           userSaved.push(propertyId);
-          saved[user.id] = userSaved;
-          localStorage.setItem('palmsestate_saved_properties', JSON.stringify(saved));
         }
       } else {
         // Remove from saved
-        const filtered = userSaved.filter(id => id !== propertyId);
-        saved[user.id] = filtered;
-        localStorage.setItem('palmsestate_saved_properties', JSON.stringify(saved));
+        userSaved = userSaved.filter(id => id !== propertyId);
       }
       
-      // Try to save to database (background)
-      try {
-        if (newSavedState) {
-          // Save to database
-          const { error: saveError } = await supabase
-            .from('saved_properties')
-            .insert({
-              user_id: user.id,
-              property_id: propertyId,
-              created_at: new Date().toISOString()
-            });
-
-          if (saveError) {
-            if (saveError.code === '23505') {
-              // Already saved in database, that's fine
-            } else if (saveError.code === '42P01') {
-              console.log('Database table not found, using localStorage only');
-            } else {
-              console.error('Database save error:', saveError);
-            }
-          }
-        } else {
-          // Remove from database
-          const { error: deleteError } = await supabase
-            .from('saved_properties')
-            .delete()
-            .eq('user_id', user.id)
-            .eq('property_id', propertyId);
-
-          if (deleteError && deleteError.code !== '42P01') {
-            console.error('Database delete error:', deleteError);
-          }
-        }
-      } catch (dbError) {
-        console.error('Database operation failed:', dbError);
-        // Continue anyway since localStorage worked
-      }
+      saved[user.id] = userSaved;
+      localStorage.setItem('palmsestate_saved_properties', JSON.stringify(saved));
       
-      // Notify dashboard to refresh
-      window.dispatchEvent(new CustomEvent('savedPropertiesUpdated', { 
-        detail: { propertyId, saved: newSavedState } 
+      // 3. Try database in background (don't wait for it)
+      const dbPromise = newSavedState ? 
+        // Save to database
+        supabase.from('saved_properties').insert({
+          user_id: user.id,
+          property_id: propertyId,
+          created_at: new Date().toISOString()
+        }) :
+        // Remove from database
+        supabase.from('saved_properties')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('property_id', propertyId);
+      
+      dbPromise
+        .then(() => {
+          console.log(`✅ ${newSavedState ? 'Saved' : 'Unsaved'} property in database`);
+        })
+        .catch(error => {
+          if (error.code === '23505') {
+            // Already exists, that's fine
+          } else if (error.code === '42P01') {
+            console.log('⚠️ Database table not available, using localStorage');
+          } else {
+            console.error('Database operation error:', error);
+          }
+        });
+      
+      // 4. Notify other components
+      window.dispatchEvent(new CustomEvent('savedPropertiesChanged', {
+        detail: { propertyId, saved: newSavedState }
       }));
       
     } catch (error) {
-      console.error('Error toggling save:', error);
-      
-      // Revert UI on error
+      console.error('Toggle save error:', error);
+      // Revert UI if something went wrong
       setIsSaved(!newSavedState);
-      
-      setError('Failed to save. Please try again.');
-      
     } finally {
       setLoading(false);
     }
   };
 
   const sizes = {
-    sm: {
-      button: 'p-1.5',
-      icon: 'w-4 h-4',
-      text: 'text-xs'
-    },
-    md: {
-      button: 'p-2.5',
-      icon: 'w-5 h-5',
-      text: 'text-sm'
-    },
-    lg: {
-      button: 'p-3',
-      icon: 'w-6 h-6',
-      text: 'text-base'
-    }
+    sm: 'w-6 h-6',
+    md: 'w-8 h-8',
+    lg: 'w-10 h-10'
   };
 
-  const currentSize = sizes[size];
-
-  // Show loading state during initial check
-  if (!hasChecked && user && propertyId) {
-    return (
-      <div className={`${className} flex flex-col items-center`}>
-        <button
-          disabled
-          className={`${currentSize.button} bg-gray-100 rounded-full animate-pulse`}
-          title="Loading..."
-        >
-          <div className={`${currentSize.icon} bg-gray-300 rounded-full`} />
-        </button>
-      </div>
-    );
-  }
+  const buttonSize = sizes[size];
 
   return (
-    <div className={`flex flex-col items-center ${className}`}>
-      <button
-        onClick={toggleSave}
-        disabled={loading}
-        className={`${currentSize.button} flex items-center justify-center rounded-full border transition-all duration-300 ${
-          isSaved 
-            ? 'bg-rose-500 border-rose-600 text-white hover:bg-rose-600 shadow-lg' 
-            : 'bg-white/90 border-gray-300 text-gray-700 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-300 hover:shadow-md'
-        } ${loading ? 'opacity-70 cursor-wait' : 'hover:scale-105'} disabled:cursor-not-allowed`}
-        title={isSaved ? 'Remove from saved' : 'Save property'}
-        aria-label={isSaved ? 'Remove from saved properties' : 'Save property to favorites'}
-        aria-busy={loading}
-      >
-        {loading ? (
-          <div className={`${currentSize.icon} border-2 border-current border-t-transparent rounded-full animate-spin`} />
-        ) : (
-          <Heart className={`${currentSize.icon} ${isSaved ? 'fill-current' : ''}`} />
-        )}
-      </button>
-      
-      {showLabel && (
-        <span className={`${currentSize.text} mt-1 font-medium ${
-          isSaved ? 'text-rose-600' : 'text-gray-600'
-        }`}>
-          {isSaved ? 'Saved' : 'Save'}
-        </span>
+    <button
+      onClick={handleToggleSave}
+      disabled={loading}
+      className={`${buttonSize} flex items-center justify-center rounded-full border transition-all duration-200 ${
+        isSaved 
+          ? 'bg-rose-500 border-rose-600 text-white hover:bg-rose-600' 
+          : 'bg-white/90 border-gray-300 text-gray-700 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-300'
+      } ${loading ? 'opacity-70 cursor-wait' : 'cursor-pointer hover:scale-105'} ${className}`}
+      title={isSaved ? 'Remove from saved' : 'Save property'}
+      aria-label={isSaved ? 'Remove from saved properties' : 'Save property to favorites'}
+    >
+      {loading ? (
+        <div className="w-1/2 h-1/2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+      ) : (
+        <Heart className={`w-2/3 h-2/3 ${isSaved ? 'fill-current' : ''}`} />
       )}
-      
-      {error && (
-        <div className="flex items-center gap-1 mt-1 max-w-[150px]">
-          <AlertCircle className="w-3 h-3 text-rose-500 flex-shrink-0" />
-          <span className="text-xs text-rose-500 truncate">{error}</span>
-        </div>
-      )}
-    </div>
+    </button>
   );
 }
 
