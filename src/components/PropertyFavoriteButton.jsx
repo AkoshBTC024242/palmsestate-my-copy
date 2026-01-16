@@ -1,4 +1,4 @@
-// src/components/PropertyFavoriteButton.jsx - UPDATED
+// src/components/PropertyFavoriteButton.jsx - FIXED
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -9,53 +9,63 @@ function PropertyFavoriteButton({ propertyId, size = 'md', showLabel = false, cl
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [isSaved, setIsSaved] = useState(false);
-  const [loading, setLoading] = useState(true); // Start with loading true
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [initialCheckDone, setInitialCheckDone] = useState(false);
+  const [hasChecked, setHasChecked] = useState(false);
 
   // Check if property is already saved
   useEffect(() => {
     if (propertyId) {
-      if (user) {
-        checkIfSaved();
-      } else {
-        // If no user, mark as not saved and stop loading
-        setIsSaved(false);
-        setLoading(false);
-        setInitialCheckDone(true);
-      }
+      checkIfSaved();
     }
   }, [user, propertyId]);
 
   const checkIfSaved = async () => {
-    if (!user || !propertyId) {
-      setIsSaved(false);
-      setLoading(false);
-      setInitialCheckDone(true);
-      return;
-    }
+    if (!propertyId) return;
+    
+    setHasChecked(false);
     
     try {
-      setError(null);
-      const { data, error: fetchError } = await supabase
-        .from('saved_properties')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('property_id', propertyId)
-        .maybeSingle(); // Use maybeSingle instead of single
-
-      if (fetchError) {
-        console.warn('Error checking saved status:', fetchError);
-        // Don't show error to user for this check
+      // First check localStorage (fast)
+      const saved = JSON.parse(localStorage.getItem('palmsestate_saved_properties') || '{}');
+      const userSaved = user ? saved[user.id] || [] : [];
+      const isSavedLocal = userSaved.includes(propertyId);
+      
+      if (isSavedLocal) {
+        setIsSaved(true);
+        setHasChecked(true);
+        return;
       }
+      
+      // If user is logged in, check database
+      if (user) {
+        const { data, error: fetchError } = await supabase
+          .from('saved_properties')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('property_id', propertyId)
+          .maybeSingle();
 
-      setIsSaved(!!data);
+        if (fetchError && fetchError.code !== '42P01' && fetchError.code !== 'PGRST116') {
+          console.warn('Error checking saved status:', fetchError);
+        }
+
+        setIsSaved(!!data);
+        
+        // Sync with localStorage
+        if (data && !userSaved.includes(propertyId)) {
+          userSaved.push(propertyId);
+          saved[user.id] = userSaved;
+          localStorage.setItem('palmsestate_saved_properties', JSON.stringify(saved));
+        }
+      } else {
+        setIsSaved(false);
+      }
     } catch (error) {
-      console.error('Error in checkIfSaved:', error);
-      // Don't show error to user for this check
+      console.error('Error checking saved status:', error);
+      setIsSaved(false);
     } finally {
-      setLoading(false);
-      setInitialCheckDone(true);
+      setHasChecked(true);
     }
   };
 
@@ -66,7 +76,6 @@ function PropertyFavoriteButton({ propertyId, size = 'md', showLabel = false, cl
     }
 
     if (!isAuthenticated) {
-      // Navigate to sign in
       navigate('/signin', { state: { from: window.location.pathname } });
       return;
     }
@@ -78,75 +87,81 @@ function PropertyFavoriteButton({ propertyId, size = 'md', showLabel = false, cl
 
     setLoading(true);
     setError(null);
+    const newSavedState = !isSaved;
 
     try {
-      if (isSaved) {
-        // Remove from saved
-        const { error: deleteError } = await supabase
-          .from('saved_properties')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('property_id', propertyId);
-
-        if (deleteError) {
-          // Check for common errors
-          if (deleteError.code === '42P01') {
-            setError('Favorite feature is currently unavailable. Please try again later.');
-            console.error('Table does not exist:', deleteError);
-          } else {
-            throw deleteError;
-          }
-          return;
-        }
-        
-        setIsSaved(false);
-        console.log('✅ Property removed from saved');
-      } else {
+      // Update UI immediately
+      setIsSaved(newSavedState);
+      
+      // Update localStorage immediately
+      const saved = JSON.parse(localStorage.getItem('palmsestate_saved_properties') || '{}');
+      const userSaved = saved[user.id] || [];
+      
+      if (newSavedState) {
         // Add to saved
-        const { error: insertError } = await supabase
-          .from('saved_properties')
-          .insert({
-            user_id: user.id,
-            property_id: propertyId,
-            created_at: new Date().toISOString()
-          })
-          .select()
-          .single();
-
-        if (insertError) {
-          // Handle unique constraint violation
-          if (insertError.code === '23505') {
-            // Already saved, update state
-            setIsSaved(true);
-            console.log('✅ Property already saved');
-          } else if (insertError.code === '42P01') {
-            setError('Favorite feature is currently unavailable. Please try again later.');
-            console.error('Table does not exist:', insertError);
-          } else {
-            throw insertError;
-          }
-          return;
+        if (!userSaved.includes(propertyId)) {
+          userSaved.push(propertyId);
+          saved[user.id] = userSaved;
+          localStorage.setItem('palmsestate_saved_properties', JSON.stringify(saved));
         }
-        
-        setIsSaved(true);
-        console.log('✅ Property added to saved');
-      }
-    } catch (error) {
-      console.error('❌ Error toggling save:', error);
-      
-      // User-friendly error messages
-      if (error.code === '42501') {
-        setError('Permission denied. Please contact support.');
-      } else if (error.code === '42P01') {
-        setError('Favorite feature is currently unavailable.');
-      } else if (error.message.includes('network')) {
-        setError('Network error. Please check your connection.');
       } else {
-        setError('Failed to save. Please try again.');
+        // Remove from saved
+        const filtered = userSaved.filter(id => id !== propertyId);
+        saved[user.id] = filtered;
+        localStorage.setItem('palmsestate_saved_properties', JSON.stringify(saved));
       }
       
-      // Re-check status after error
-      setTimeout(() => checkIfSaved(), 1000);
+      // Try to save to database (background)
+      try {
+        if (newSavedState) {
+          // Save to database
+          const { error: saveError } = await supabase
+            .from('saved_properties')
+            .insert({
+              user_id: user.id,
+              property_id: propertyId,
+              created_at: new Date().toISOString()
+            });
+
+          if (saveError) {
+            if (saveError.code === '23505') {
+              // Already saved in database, that's fine
+            } else if (saveError.code === '42P01') {
+              console.log('Database table not found, using localStorage only');
+            } else {
+              console.error('Database save error:', saveError);
+            }
+          }
+        } else {
+          // Remove from database
+          const { error: deleteError } = await supabase
+            .from('saved_properties')
+            .delete()
+            .eq('user_id', user.id)
+            .eq('property_id', propertyId);
+
+          if (deleteError && deleteError.code !== '42P01') {
+            console.error('Database delete error:', deleteError);
+          }
+        }
+      } catch (dbError) {
+        console.error('Database operation failed:', dbError);
+        // Continue anyway since localStorage worked
+      }
+      
+      // Notify dashboard to refresh
+      window.dispatchEvent(new CustomEvent('savedPropertiesUpdated', { 
+        detail: { propertyId, saved: newSavedState } 
+      }));
+      
+    } catch (error) {
+      console.error('Error toggling save:', error);
+      
+      // Revert UI on error
+      setIsSaved(!newSavedState);
+      
+      setError('Failed to save. Please try again.');
+      
     } finally {
       setLoading(false);
     }
@@ -172,16 +187,18 @@ function PropertyFavoriteButton({ propertyId, size = 'md', showLabel = false, cl
 
   const currentSize = sizes[size];
 
-  // Show loading state
-  if (loading && !initialCheckDone) {
+  // Show loading state during initial check
+  if (!hasChecked && user && propertyId) {
     return (
-      <button
-        disabled
-        className={`${currentSize.button} bg-gray-100 rounded-full animate-pulse ${className}`}
-        title="Loading..."
-      >
-        <div className={`${currentSize.icon} bg-gray-300 rounded-full`} />
-      </button>
+      <div className={`${className} flex flex-col items-center`}>
+        <button
+          disabled
+          className={`${currentSize.button} bg-gray-100 rounded-full animate-pulse`}
+          title="Loading..."
+        >
+          <div className={`${currentSize.icon} bg-gray-300 rounded-full`} />
+        </button>
+      </div>
     );
   }
 
