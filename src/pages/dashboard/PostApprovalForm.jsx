@@ -93,44 +93,54 @@ function PostApprovalForm() {
     loadApplicationDetails();
   }, [id, user]);
 
-  const loadApplicationDetails = async () => {
-    try {
-      setLoading(true);
-      
-      // Load application with property info
-      const { data: appData, error: appError } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          properties:property_id (*)
-        `)
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .maybeSingle();
+  // REPLACE THE loadApplicationDetails FUNCTION IN PostApprovalForm.jsx:
 
-      if (appError) throw appError;
-      if (!appData) throw new Error('Application not found');
+const loadApplicationDetails = async () => {
+  try {
+    setLoading(true);
+    
+    // Load application without join
+    const { data: appData, error: appError } = await supabase
+      .from('applications')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .maybeSingle();
 
-      setApplication(appData);
-      setProperty(appData.properties);
+    if (appError) throw appError;
+    if (!appData) throw new Error('Application not found');
 
-      // Check if application is in the right status
-      if (appData.status !== 'approved_pending_info') {
-        if (appData.status === 'additional_info_submitted') {
-          navigate(`/dashboard/applications/${id}`);
-          return;
-        }
-        setError('This application is not ready for additional information. Please check your application status.');
+    setApplication(appData);
+
+    // Check if application is in the right status
+    if (appData.status !== 'approved_pending_info') {
+      if (appData.status === 'additional_info_submitted') {
+        navigate(`/dashboard/applications/${id}`);
         return;
       }
-
-    } catch (error) {
-      console.error('Error loading application:', error);
-      setError(error.message || 'Failed to load application details');
-    } finally {
-      setLoading(false);
+      setError('This application is not ready for additional information. Please check your application status.');
+      return;
     }
-  };
+
+    // Load property details separately
+    if (appData.property_id) {
+      const { data: propertyData, error: propertyError } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', appData.property_id)
+        .maybeSingle();
+
+      if (propertyError) throw propertyError;
+      setProperty(propertyData);
+    }
+
+  } catch (error) {
+    console.error('Error loading application:', error);
+    setError(error.message || 'Failed to load application details');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
