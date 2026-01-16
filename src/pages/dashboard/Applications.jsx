@@ -5,7 +5,7 @@ import { supabase } from '../../lib/supabase';
 import {
   FileText, Clock, CheckCircle, AlertCircle, CreditCard,
   CalendarDays, ArrowRight, Building2, Search, Filter, Eye,
-  DollarSign, MapPin, XCircle, ExternalLink
+  DollarSign, MapPin, XCircle, ExternalLink, FileCheck, ArrowRightCircle
 } from 'lucide-react';
 
 function Applications() {
@@ -112,37 +112,64 @@ function Applications() {
         color: 'bg-blue-100 text-blue-800 border-blue-200', 
         icon: <Clock className="w-4 h-4" />, 
         label: 'Submitted',
-        description: 'Application submitted and awaiting review'
+        description: 'Application submitted and awaiting review',
+        action: null
+      },
+      under_review: { 
+        color: 'bg-indigo-100 text-indigo-800 border-indigo-200', 
+        icon: <AlertCircle className="w-4 h-4" />, 
+        label: 'Under Review',
+        description: 'Application being reviewed by admin',
+        action: null
       },
       pre_approved: { 
         color: 'bg-amber-100 text-amber-800 border-amber-200', 
         icon: <AlertCircle className="w-4 h-4" />, 
         label: 'Pre-Approved',
-        description: 'Initial approval pending fee payment'
+        description: 'Initial approval pending fee payment',
+        action: 'payment'
+      },
+      approved_pending_info: { 
+        color: 'bg-cyan-100 text-cyan-800 border-cyan-200', 
+        icon: <FileCheck className="w-4 h-4" />, 
+        label: 'Continue Application',
+        description: 'Initial approval received. Complete detailed application',
+        action: 'continue'
+      },
+      additional_info_submitted: { 
+        color: 'bg-purple-100 text-purple-800 border-purple-200', 
+        icon: <FileText className="w-4 h-4" />, 
+        label: 'Under Final Review',
+        description: 'Detailed application submitted for final review',
+        action: null
       },
       paid_under_review: { 
         color: 'bg-purple-100 text-purple-800 border-purple-200', 
         icon: <CreditCard className="w-4 h-4" />, 
         label: 'Paid - Review',
-        description: 'Fee paid, under final review'
+        description: 'Fee paid, under final review',
+        action: null
       },
       approved: { 
         color: 'bg-green-100 text-green-800 border-green-200', 
         icon: <CheckCircle className="w-4 h-4" />, 
         label: 'Approved',
-        description: 'Application approved'
+        description: 'Application fully approved',
+        action: null
       },
       rejected: { 
         color: 'bg-red-100 text-red-800 border-red-200', 
         icon: <XCircle className="w-4 h-4" />, 
         label: 'Rejected',
-        description: 'Application not approved'
+        description: 'Application not approved',
+        action: null
       },
       payment_pending: {
         color: 'bg-orange-100 text-orange-800 border-orange-200',
         icon: <CreditCard className="w-4 h-4" />,
         label: 'Payment Pending',
-        description: 'Waiting for payment'
+        description: 'Waiting for payment',
+        action: 'payment'
       }
     };
     return configs[status] || configs.submitted;
@@ -171,7 +198,8 @@ function Applications() {
     return {
       title: prop?.title || `Property #${propertyId}`,
       location: prop?.location || '',
-      image: prop?.main_image_url
+      image: prop?.main_image_url,
+      price: prop?.price_per_week
     };
   };
 
@@ -195,6 +223,38 @@ function Applications() {
     return applications.filter(app => app.status === status).length;
   };
 
+  // Get action button based on status
+  const getActionButton = (application, statusConfig) => {
+    if (!statusConfig.action) return null;
+
+    switch (statusConfig.action) {
+      case 'payment':
+        return (
+          <button
+            onClick={() => navigate(`/dashboard/applications/${application.id}/payment`)}
+            className="bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-700 hover:to-orange-600 text-white font-medium px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow"
+          >
+            <CreditCard className="w-4 h-4" />
+            Pay Fee
+          </button>
+        );
+      
+      case 'continue':
+        return (
+          <button
+            onClick={() => navigate(`/dashboard/applications/${application.id}/post-approval`)}
+            className="bg-gradient-to-r from-cyan-600 to-blue-500 hover:from-cyan-700 hover:to-blue-600 text-white font-medium px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-all duration-200 shadow-sm hover:shadow"
+          >
+            <ArrowRightCircle className="w-4 h-4" />
+            Continue Application
+          </button>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -206,25 +266,26 @@ function Applications() {
       </div>
 
       {/* Status Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
         {[
-          { status: 'all', label: 'All', count: totalCount, color: 'bg-gray-100 text-gray-800' },
-          { status: 'submitted', label: 'Submitted', count: getStatusCount('submitted'), color: 'bg-blue-100 text-blue-800' },
-          { status: 'pre_approved', label: 'Pre-Approved', count: getStatusCount('pre_approved'), color: 'bg-amber-100 text-amber-800' },
-          { status: 'paid_under_review', label: 'Under Review', count: getStatusCount('paid_under_review'), color: 'bg-purple-100 text-purple-800' },
-          { status: 'approved', label: 'Approved', count: getStatusCount('approved'), color: 'bg-green-100 text-green-800' },
+          { status: 'all', label: 'All', count: totalCount, color: 'bg-gray-100 text-gray-800', borderColor: 'border-gray-300' },
+          { status: 'submitted', label: 'Submitted', count: getStatusCount('submitted'), color: 'bg-blue-100 text-blue-800', borderColor: 'border-blue-300' },
+          { status: 'under_review', label: 'Review', count: getStatusCount('under_review'), color: 'bg-indigo-100 text-indigo-800', borderColor: 'border-indigo-300' },
+          { status: 'pre_approved', label: 'Pre-Approved', count: getStatusCount('pre_approved'), color: 'bg-amber-100 text-amber-800', borderColor: 'border-amber-300' },
+          { status: 'approved_pending_info', label: 'Continue', count: getStatusCount('approved_pending_info'), color: 'bg-cyan-100 text-cyan-800', borderColor: 'border-cyan-300' },
+          { status: 'approved', label: 'Approved', count: getStatusCount('approved'), color: 'bg-green-100 text-green-800', borderColor: 'border-green-300' },
         ].map((stat) => (
           <button
             key={stat.status}
             onClick={() => setStatusFilter(stat.status)}
-            className={`p-4 rounded-xl border transition-all duration-200 ${
+            className={`p-3 rounded-xl border transition-all duration-200 ${
               statusFilter === stat.status 
-                ? 'border-orange-300 shadow-sm scale-[1.02]' 
+                ? `${stat.borderColor} shadow-sm scale-[1.02] ring-1 ring-offset-1` 
                 : 'border-gray-200 hover:border-gray-300'
             } ${stat.color}`}
           >
-            <div className="text-2xl font-bold mb-1">{stat.count}</div>
-            <div className="text-sm font-medium">{stat.label}</div>
+            <div className="text-xl font-bold mb-1">{stat.count}</div>
+            <div className="text-xs font-medium">{stat.label}</div>
           </button>
         ))}
       </div>
@@ -255,7 +316,10 @@ function Applications() {
               >
                 <option value="all">All Status</option>
                 <option value="submitted">Submitted</option>
+                <option value="under_review">Under Review</option>
                 <option value="pre_approved">Pre-Approved</option>
+                <option value="approved_pending_info">Continue Application</option>
+                <option value="additional_info_submitted">Additional Info Submitted</option>
                 <option value="paid_under_review">Paid - Review</option>
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
@@ -265,7 +329,7 @@ function Applications() {
             
             <button
               onClick={() => navigate('/properties')}
-              className="bg-gradient-to-r from-orange-600 to-orange-500 text-white font-medium px-6 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-2"
+              className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white font-medium px-6 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300 flex items-center gap-2"
             >
               <Building2 className="h-5 w-5" />
               New Application
@@ -306,6 +370,7 @@ function Applications() {
               const status = getStatusConfig(application.status);
               const property = getPropertyInfo(application.property_id);
               const applicantName = getApplicantName(application);
+              const actionButton = getActionButton(application, status);
 
               return (
                 <div key={application.id} className="p-6 hover:bg-gray-50 transition-colors duration-200">
@@ -319,6 +384,10 @@ function Applications() {
                               src={property.image}
                               alt={property.title}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center"><Building2 class="w-8 h-8 text-gray-400" /></div>';
+                              }}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -328,11 +397,11 @@ function Applications() {
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h4 className="font-bold text-gray-900 truncate">
                               {property.title}
                             </h4>
-                            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${status.color}`}>
+                            <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border ${status.color}`}>
                               {status.icon}
                               <span>{status.label}</span>
                             </div>
@@ -340,7 +409,7 @@ function Applications() {
                           
                           <p className="text-sm text-gray-600 mb-2">{status.description}</p>
                           
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
                             <span className="flex items-center gap-1">
                               <CalendarDays className="w-4 h-4" />
                               Applied {formatDate(application.created_at)}
@@ -353,15 +422,15 @@ function Applications() {
                               </span>
                             )}
                             
-                            {application.application_fee && (
+                            {property.price && (
                               <span className="flex items-center gap-1 font-medium">
                                 <DollarSign className="w-4 h-4" />
-                                {formatCurrency(application.application_fee)}
+                                ${property.price}/week
                               </span>
                             )}
                           </div>
                           
-                          <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
+                          <div className="flex flex-wrap items-center gap-4 text-sm">
                             <span className="text-gray-500">
                               Applicant: {applicantName}
                             </span>
@@ -386,24 +455,16 @@ function Applications() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                       <button
                         onClick={() => navigate(`/dashboard/applications/${application.id}`)}
-                        className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+                        className="text-sm text-gray-600 hover:text-orange-600 font-medium flex items-center gap-1 px-3 py-2 hover:bg-orange-50 rounded-lg transition-colors"
                       >
-                        View Details
                         <Eye className="w-4 h-4" />
+                        View Details
                       </button>
                       
-                      {application.status === 'pre_approved' && (
-                        <button
-                          onClick={() => navigate(`/dashboard/applications/${application.id}/payment`)}
-                          className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors duration-200"
-                        >
-                          <CreditCard className="w-4 h-4" />
-                          Pay Fee
-                        </button>
-                      )}
+                      {actionButton}
                     </div>
                   </div>
                 </div>
@@ -411,6 +472,40 @@ function Applications() {
             })}
           </div>
         )}
+      </div>
+
+      {/* Application Status Guide */}
+      <div className="mt-8 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-6">
+        <h3 className="text-lg font-bold text-gray-800 mb-4">Application Status Guide</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="p-3 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <span className="text-sm font-medium text-gray-800">Initial Submission</span>
+            </div>
+            <p className="text-xs text-gray-600">
+              Submitted → Under Review → Pre-Approved/Rejected
+            </p>
+          </div>
+          <div className="p-3 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+              <span className="text-sm font-medium text-gray-800">Detailed Application</span>
+            </div>
+            <p className="text-xs text-gray-600">
+              Approved (Pending Info) → Additional Info Submitted → Final Review
+            </p>
+          </div>
+          <div className="p-3 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="text-sm font-medium text-gray-800">Final Status</span>
+            </div>
+            <p className="text-xs text-gray-600">
+              Approved → Lease Signing or Rejected → Application Closed
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
