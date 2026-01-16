@@ -233,51 +233,53 @@ const loadApplicationDetails = async () => {
     setError('');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // IN PostApprovalForm.jsx, update the handleSubmit function:
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!validateStep(4)) return;
+  
+  setSubmitting(true);
+  setError('');
+
+  try {
+    // Upload files to Supabase Storage (you'll need to set up storage)
+    // For now, we'll just store file names
+    const fileData = {
+      employmentProof: uploadedFiles.employmentProof?.name || '',
+      idProof: uploadedFiles.idProof?.name || '',
+      incomeProof: uploadedFiles.incomeProof?.name || '',
+    };
+
+    // Update application with additional information
+    const { error: updateError } = await supabase
+      .from('applications')
+      .update({
+        additional_info: formData,
+        uploaded_files: fileData,
+        status: 'additional_info_submitted',
+        updated_at: new Date().toISOString(),
+        additional_info_submitted_at: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (updateError) throw updateError;
+
+    setSuccess(true);
     
-    if (!validateStep(4)) return;
-    
-    setSubmitting(true);
-    setError('');
+    // Redirect to payment page after 2 seconds
+    setTimeout(() => {
+      navigate(`/dashboard/applications/${id}/payment`);
+    }, 2000);
 
-    try {
-      // Upload files to Supabase Storage (you'll need to set up storage)
-      // For now, we'll just store file names
-      const fileData = {
-        employmentProof: uploadedFiles.employmentProof?.name || '',
-        idProof: uploadedFiles.idProof?.name || '',
-        incomeProof: uploadedFiles.incomeProof?.name || '',
-      };
-
-      // Update application with additional information
-      const { error: updateError } = await supabase
-        .from('applications')
-        .update({
-          additional_info: formData,
-          uploaded_files: fileData,
-          status: 'additional_info_submitted',
-          updated_at: new Date().toISOString(),
-          additional_info_submitted_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      if (updateError) throw updateError;
-
-      setSuccess(true);
-      
-      // Redirect to application detail page after 3 seconds
-      setTimeout(() => {
-        navigate(`/dashboard/applications/${id}`);
-      }, 3000);
-
-    } catch (error) {
-      console.error('Error submitting information:', error);
-      setError(error.message || 'Failed to submit information. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch (error) {
+    console.error('Error submitting information:', error);
+    setError(error.message || 'Failed to submit information. Please try again.');
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   if (loading) {
     return (
