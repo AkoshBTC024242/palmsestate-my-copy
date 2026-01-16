@@ -1,4 +1,4 @@
-// src/pages/admin/AdminApplicationDetail.jsx - UPDATED
+// src/pages/admin/AdminApplicationDetail.jsx - FIXED VERSION
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -19,7 +19,6 @@ function AdminApplicationDetail() {
   
   const [application, setApplication] = useState(null);
   const [property, setProperty] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -36,14 +35,10 @@ function AdminApplicationDetail() {
     try {
       setLoading(true);
       
-      // Load application with related data
+      // Load application without joins
       const { data: appData, error: appError } = await supabase
         .from('applications')
-        .select(`
-          *,
-          profiles:user_id (*),
-          properties:property_id (*)
-        `)
+        .select('*')
         .eq('id', id)
         .maybeSingle();
 
@@ -54,15 +49,26 @@ function AdminApplicationDetail() {
       }
 
       setApplication(appData);
-      setProperty(appData.properties);
-      setUserProfile(appData.profiles);
+
+      // Load property separately if property_id exists
+      if (appData.property_id) {
+        const { data: propertyData, error: propertyError } = await supabase
+          .from('properties')
+          .select('*')
+          .eq('id', appData.property_id)
+          .maybeSingle();
+
+        if (!propertyError && propertyData) {
+          setProperty(propertyData);
+        }
+      }
 
       // Load admin notes
       await loadAdminNotes();
 
     } catch (error) {
       console.error('Error loading application:', error);
-      alert('Failed to load application details');
+      alert('Failed to load application details: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -81,6 +87,7 @@ function AdminApplicationDetail() {
       }
     } catch (error) {
       console.error('Error loading notes:', error);
+      // If table doesn't exist, just continue
     }
   };
 
@@ -138,14 +145,18 @@ function AdminApplicationDetail() {
       if (error) throw error;
 
       // Add a note about status change
-      await supabase
-        .from('application_notes')
-        .insert({
-          application_id: id,
-          content: `Status changed to: ${getStatusLabel(newStatus)}${reason ? ` - Reason: ${reason}` : ''}`,
-          created_by: 'system',
-          created_at: new Date().toISOString()
-        });
+      try {
+        await supabase
+          .from('application_notes')
+          .insert({
+            application_id: id,
+            content: `Status changed to: ${getStatusLabel(newStatus)}${reason ? ` - Reason: ${reason}` : ''}`,
+            created_by: 'system',
+            created_at: new Date().toISOString()
+          });
+      } catch (noteError) {
+        console.warn('Could not add note:', noteError);
+      }
 
       // Reload application details
       await loadApplicationDetails();
@@ -625,6 +636,12 @@ function AdminApplicationDetail() {
                         <p className="text-sm text-gray-600">Applied On</p>
                         <p className="font-medium">{formatDate(application.created_at)}</p>
                       </div>
+                      {application.message && (
+                        <div className="md:col-span-2">
+                          <p className="text-sm text-gray-600">Message/Notes</p>
+                          <p className="font-medium">{application.message}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -659,46 +676,6 @@ function AdminApplicationDetail() {
                             </div>
                           </div>
                         )}
-
-                        {/* Emergency Contact */}
-                        {application.additional_info.emergencyContactName && (
-                          <div className="p-4 bg-blue-50 rounded-lg">
-                            <h5 className="font-semibold text-gray-800 mb-2">Emergency Contact</h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div>
-                                <p className="text-xs text-gray-600">Name</p>
-                                <p className="text-sm font-medium">{application.additional_info.emergencyContactName}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-600">Phone</p>
-                                <p className="text-sm font-medium">{application.additional_info.emergencyContactPhone}</p>
-                              </div>
-                              <div>
-                                <p className="text-xs text-gray-600">Relationship</p>
-                                <p className="text-sm font-medium">{application.additional_info.emergencyContactRelation}</p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Household Info */}
-                        <div className="p-4 bg-green-50 rounded-lg">
-                          <h5 className="font-semibold text-gray-800 mb-2">Household Information</h5>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {application.additional_info.numberOfOccupants && (
-                              <div>
-                                <p className="text-xs text-gray-600">Occupants</p>
-                                <p className="text-sm font-medium">{application.additional_info.numberOfOccupants}</p>
-                              </div>
-                            )}
-                            {application.additional_info.hasPets && (
-                              <div>
-                                <p className="text-xs text-gray-600">Has Pets</p>
-                                <p className="text-sm font-medium">Yes</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
                       </div>
                     </div>
                   ) : (
@@ -790,16 +767,6 @@ function AdminApplicationDetail() {
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-gray-200">
-                    <Link
-                      to={`/admin/properties/${property.id}/edit`}
-                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit Property Details
-                    </Link>
                   </div>
                 </div>
               </div>
@@ -959,23 +926,6 @@ function AdminApplicationDetail() {
                   </div>
                 )}
               </div>
-
-              {/* Quick Stats */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h4 className="font-medium text-gray-800 mb-3">Quick Stats</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-600">Days Active</p>
-                    <p className="text-lg font-bold text-gray-900">
-                      {Math.floor((new Date() - new Date(application.created_at)) / (1000 * 60 * 60 * 24))}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-600">Status Changes</p>
-                    <p className="text-lg font-bold text-gray-900">{timelineEvents.length - 1}</p>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Property Quick View */}
@@ -1026,34 +976,6 @@ function AdminApplicationDetail() {
                 </div>
               </div>
             )}
-
-            {/* System Information */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">System Information</h3>
-              
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-600">Application ID</p>
-                  <p className="font-mono text-sm text-gray-900">{application.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">User ID</p>
-                  <p className="font-mono text-sm text-gray-900">{application.user_id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Property ID</p>
-                  <p className="font-mono text-sm text-gray-900">{application.property_id}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Created</p>
-                  <p className="text-sm text-gray-900">{formatDate(application.created_at)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Last Updated</p>
-                  <p className="text-sm text-gray-900">{formatDate(application.updated_at)}</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
