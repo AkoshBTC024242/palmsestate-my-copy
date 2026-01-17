@@ -25,6 +25,11 @@ const DashboardLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+   useEffect(() => {
+    return () => {
+      setSidebarOpen(false);
+      setUserMenuOpen(false);
+
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Applications', href: '/dashboard/applications', icon: FileText },
