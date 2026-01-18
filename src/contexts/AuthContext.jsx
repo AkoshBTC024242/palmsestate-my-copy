@@ -319,5 +319,4 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Make sure this line is at the very end:
-export { useAuth, AuthProvider };
+
