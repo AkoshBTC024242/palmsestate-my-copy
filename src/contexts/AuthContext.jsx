@@ -1,5 +1,5 @@
 // src/contexts/AuthContext.jsx - COMPLETE FIXED VERSION
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { saveUserProfile, resendVerificationEmail } from '../lib/supabase';
 
@@ -16,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Load user profile from database
-  const loadUserProfile = async (userId) => {
+  const loadUserProfile = useCallback(async (userId) => {
     try {
       console.log('📥 Loading profile for user:', userId);
       
@@ -42,10 +42,10 @@ export const AuthProvider = ({ children }) => {
       console.error('Error loading user profile:', error);
       return null;
     }
-  };
+  }, []);
 
   // Check if user is admin
-  const checkAdminStatus = (currentUser, profile = null) => {
+  const checkAdminStatus = useCallback((currentUser, profile = null) => {
     if (!currentUser) return false;
     
     // Check multiple possible admin indicators
@@ -67,11 +67,12 @@ export const AuthProvider = ({ children }) => {
     });
     
     return adminStatus;
-  };
+  }, []);
 
   // Initialize auth state
   useEffect(() => {
     let isMounted = true;
+    let authSubscription = null;
     
     const initializeAuth = async () => {
       try {
@@ -151,9 +152,7 @@ export const AuthProvider = ({ children }) => {
           }
         });
 
-        return () => {
-          subscription.unsubscribe();
-        };
+        authSubscription = subscription;
       } catch (error) {
         console.error('Auth initialization error:', error);
         if (isMounted) {
@@ -171,11 +170,14 @@ export const AuthProvider = ({ children }) => {
     
     return () => {
       isMounted = false;
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
     };
-  }, []);
+  }, [loadUserProfile, checkAdminStatus]);
 
   // Sign in function
-  const signIn = async (email, password) => {
+  const signIn = useCallback(async (email, password) => {
     try {
       console.log('🔐 Attempting sign in for:', email);
       
@@ -191,10 +193,6 @@ export const AuthProvider = ({ children }) => {
 
       console.log('✅ Sign in successful:', data.user.email);
       
-      // The auth state change listener will automatically update the user state
-      // Wait a bit for the state to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
       return { 
         success: true, 
         user: data.user, 
@@ -207,10 +205,10 @@ export const AuthProvider = ({ children }) => {
         error: error.message 
       };
     }
-  };
+  }, []);
 
-  // Sign up function (simplified - don't try to create profile immediately)
-  const signUp = async (email, password, userData = {}) => {
+  // Enhanced sign up function with profile creation
+  const signUp = useCallback(async (email, password, userData = {}, redirectTo = null) => {
     try {
       console.log('📝 Starting sign up for:', email);
       
@@ -223,7 +221,7 @@ export const AuthProvider = ({ children }) => {
             phone: userData.phone || '',
             role: 'user'
           },
-          emailRedirectTo: `${window.location.origin}/dashboard`
+          emailRedirectTo: redirectTo || `${window.location.origin}/dashboard`
         }
       });
 
@@ -238,14 +236,33 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No user data returned from sign up');
       }
 
-      // IMPORTANT: Don't try to save profile here - let the database trigger do it
-      // or handle it in a separate process
-      // The profiles table might have a database trigger to auto-create profiles
-      
-      // Return success - the profile will be created by a trigger or on first login
+      // Try to create profile immediately for immediate access
+      try {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: data.user.email,
+            full_name: userData.full_name || data.user.email.split('@')[0],
+            phone: userData.phone || '',
+            role: 'user',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (profileError && profileError.code !== '23505') { // Ignore duplicate key errors
+          console.warn('Profile creation warning:', profileError);
+        } else {
+          console.log('✅ Profile created successfully');
+        }
+      } catch (profileError) {
+        console.warn('Profile creation failed (will be handled by trigger):', profileError);
+      }
+
       return {
         success: true,
         user: data.user,
+        session: data.session,
         requiresEmailConfirmation: !data.session,
         confirmationSentAt: new Date().toISOString()
       };
@@ -257,10 +274,10 @@ export const AuthProvider = ({ children }) => {
         error: error.message 
       };
     }
-  };
+  }, []);
 
   // Resend verification
-  const resendVerification = async (email) => {
+  const resendVerification = useCallback(async (email) => {
     try {
       const result = await resendVerificationEmail(email);
       return result;
@@ -271,10 +288,10 @@ export const AuthProvider = ({ children }) => {
         error: error.message 
       };
     }
-  };
+  }, []);
 
   // Sign out
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
       setUser(null);
@@ -285,7 +302,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Sign out error:', error);
     }
-  };
+  }, []);
 
   const value = {
     user,
@@ -297,7 +314,8 @@ export const AuthProvider = ({ children }) => {
     signOut,
     resendVerification,
     isAdmin: isAdminUser,
-    isAuthenticated: !!user && isInitialized,
+    isAuthenticated: !!user,  // FIXED: Removed && isInitialized
+    isInitialized,  // Added this if you need it elsewhere
     refreshSession: async () => {
       const { data: { session: newSession } } = await supabase.auth.refreshSession();
       setSession(newSession);
