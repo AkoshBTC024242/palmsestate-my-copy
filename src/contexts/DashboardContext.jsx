@@ -1,6 +1,6 @@
 // src/contexts/DashboardContext.jsx - FIXED VERSION
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
 const DashboardContext = createContext();
