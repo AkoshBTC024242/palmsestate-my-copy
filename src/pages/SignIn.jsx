@@ -1,8 +1,8 @@
-// src/pages/SignIn.jsx - UPDATED TO MATCH SIGNUP STYLE
+// src/pages/SignIn.jsx - FIXED VERSION
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Mail, Lock, ChevronLeft, Home, Eye, EyeOff, LogIn } from 'lucide-react';
+import { Mail, Lock, ChevronLeft, Eye, EyeOff, LogIn } from 'lucide-react';
 
 function SignIn() {
   const [email, setEmail] = useState('');
@@ -11,18 +11,18 @@ function SignIn() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { signIn, user, isAdmin, isAuthenticated } = useAuth();
+  const { signIn, user, isAdmin, loading: authLoading } = useAuth(); // Added authLoading
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirect if already authenticated
+  // SIMPLIFIED REDIRECT: Only check user, not isAuthenticated
   useEffect(() => {
-    if (isAuthenticated && user) {
-      console.log('User is already authenticated, redirecting...');
+    if (user && !authLoading) {
+      console.log('✅ User authenticated, redirecting...');
       const redirectPath = isAdmin ? '/admin' : '/dashboard';
       navigate(redirectPath, { replace: true });
     }
-  }, [isAuthenticated, user, isAdmin, navigate]);
+  }, [user, authLoading, isAdmin, navigate]);
 
   const from = location.state?.from?.pathname || '/dashboard';
 
@@ -36,16 +36,11 @@ function SignIn() {
       const result = await signIn(email, password);
 
       if (result.success) {
-        console.log('✅ Sign in successful, waiting for auth state update...');
+        console.log('✅ Sign in successful!');
         setError('✅ Login successful! Redirecting...');
         
-        // Wait for auth state to update, then redirect
-        setTimeout(() => {
-          console.log('🔄 Checking auth state after sign in...');
-          const redirectPath = isAdmin ? '/admin' : '/dashboard';
-          console.log('Redirecting to:', redirectPath);
-          navigate(redirectPath, { replace: true });
-        }, 1000);
+        // Let the useEffect handle the redirect based on user state
+        // The auth listener in AuthContext will update the user state
       } else {
         console.error('❌ Sign in failed:', result.error);
         setError(result.error || 'Invalid email or password. Please try again.');
@@ -57,6 +52,23 @@ function SignIn() {
       setIsLoading(false);
     }
   };
+
+  // Show loading while auth state is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user exists but we're still here, redirect immediately
+  if (user) {
+    return null; // useEffect will handle redirect
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-amber-50 py-12 px-4">
@@ -106,11 +118,6 @@ function SignIn() {
                   )}
                   <p className={`text-sm ${error.includes('✅') ? 'text-green-800' : 'text-red-800'}`}>
                     {error}
-                    {error.includes('✅') && (
-                      <span className="block text-xs text-green-600 mt-1">
-                        Please wait while we redirect you...
-                      </span>
-                    )}
                   </p>
                 </div>
               </div>
