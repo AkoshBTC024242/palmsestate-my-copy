@@ -214,13 +214,15 @@ function PropertyDetails() {
     }
   };
 
-  const handleApplyForRental = () => {
-    if (!user) {
-      navigate('/signin');
-      return;
-    }
-    navigate(`/properties/${id}/initial-apply`);
-  };
+ const handleApplyForRental = () => {
+  if (!user) {
+    // User is not logged in - redirect to signin with property context
+    navigate(`/signin?redirect=/properties/${id}/apply&propertyId=${id}`);
+  } else {
+    // User is logged in - go directly to application
+    navigate(`/properties/${id}/apply`);
+  }
+};
 
   const handleContactAgent = () => {
     navigate('/contact', {
@@ -744,12 +746,12 @@ function PropertyDetails() {
                 </div>
               )}
               
-              <button
-                onClick={handleApplyForRental}
-                className="w-full bg-white text-orange-600 font-bold py-4 px-6 rounded-xl hover:bg-orange-50 hover:scale-105 transition-all duration-300 shadow-lg mb-3"
-              >
-                {user ? 'Apply for Rental' : 'Sign In to Apply'}
-              </button>
+             <button
+               onClick={handleApplyForRental}
+               className="w-full bg-white text-orange-600 font-bold py-4 px-6 rounded-xl hover:bg-orange-50 hover:scale-105 transition-all duration-300 shadow-lg mb-3"
+               >
+               {user ? 'Apply Now' : 'Sign In to Apply'}
+             </button>
 
               <button
                 onClick={handleContactAgent}
