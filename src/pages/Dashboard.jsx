@@ -35,74 +35,81 @@ function Dashboard() {
     }
   }, [user]);
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+const loadDashboardData = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+    
+    console.log('Loading dashboard data for user:', user?.id);
+
+    // Fetch user applications using the helper function
+    const applications = await fetchUserApplications(user.id);
+    
+    // FILTER OUT TEST APPLICATIONS
+    const filteredApplications = applications?.filter(app => 
+      app.application_type !== 'test' && 
+      !app.description?.includes('TestRLS')
+    ) || [];
+    
+    console.log('Applications loaded (after filter):', filteredApplications.length);
+
+    // Calculate stats using FILTERED applications
+    const totalApplications = filteredApplications.length || 0;
+    const pendingApplications = filteredApplications.filter(app => 
+      ['submitted', 'payment_pending', 'pre_approved'].includes(app.status)
+    ).length || 0;
+    const approvedApplications = filteredApplications.filter(app => 
+      app.status === 'approved'
+    ).length || 0;
+
+    // Fetch saved properties count using the helper function
+    const savedCountResult = await getSavedPropertiesCount(user.id);
+    const savedCount = savedCountResult.success ? savedCountResult.count : 0;
+
+    // Get recent applications (last 5) - using FILTERED
+    const recentApps = filteredApplications.slice(0, 5) || [];
+
+    setStats({
+      totalApplications,
+      pendingApplications,
+      approvedApplications,
+      savedProperties: savedCount || 0,
+      upcomingPayments: 0
+    });
+
+    setRecentApplications(recentApps);
+
+    // Load property details for recent applications
+    if (recentApps.length > 0) {
+      const propertyIds = recentApps
+        .map(app => app.property_id)
+        .filter(id => id !== null && id !== undefined);
       
-      console.log('Loading dashboard data for user:', user?.id);
-
-      // Fetch user applications using the helper function
-      const applications = await fetchUserApplications(user.id);
-      console.log('Applications loaded:', applications?.length || 0);
-
-      // Calculate stats
-      const totalApplications = applications?.length || 0;
-      const pendingApplications = applications?.filter(app => 
-        ['submitted', 'payment_pending', 'pre_approved'].includes(app.status)
-      ).length || 0;
-      const approvedApplications = applications?.filter(app => 
-        app.status === 'approved'
-      ).length || 0;
-
-      // Fetch saved properties count using the helper function
-      const savedCountResult = await getSavedPropertiesCount(user.id);
-      const savedCount = savedCountResult.success ? savedCountResult.count : 0;
-
-      // Get recent applications (last 5)
-      const recentApps = applications?.slice(0, 5) || [];
-
-      setStats({
-        totalApplications,
-        pendingApplications,
-        approvedApplications,
-        savedProperties: savedCount || 0,
-        upcomingPayments: 0
-      });
-
-      setRecentApplications(recentApps);
-
-      // Load property details for recent applications
-      if (recentApps.length > 0) {
-        const propertyIds = recentApps
-          .map(app => app.property_id)
-          .filter(id => id !== null && id !== undefined);
+      if (propertyIds.length > 0) {
+        const uniqueIds = [...new Set(propertyIds)];
+        const { data: propertiesData } = await supabase
+          .from('properties')
+          .select('*')
+          .in('id', uniqueIds);
         
-        if (propertyIds.length > 0) {
-          const uniqueIds = [...new Set(propertyIds)];
-          const { data: propertiesData } = await supabase
-            .from('properties')
-            .select('*')
-            .in('id', uniqueIds);
-          
-          if (propertiesData) {
-            // Add property details to recent applications
-            const appsWithProperties = recentApps.map(app => ({
-              ...app,
-              property: propertiesData.find(p => p.id === app.property_id) || null
-            }));
-            setRecentApplications(appsWithProperties);
-          }
+        if (propertiesData) {
+          // Add property details to recent applications
+          const appsWithProperties = recentApps.map(app => ({
+            ...app,
+            property: propertiesData.find(p => p.id === app.property_id) || null
+          }));
+          setRecentApplications(appsWithProperties);
         }
       }
-
-    } catch (error) {
-      console.error('Error loading dashboard data:', error);
-      setError('Failed to load dashboard data. Please try again.');
-    } finally {
-      setLoading(false);
     }
-  };
+
+  } catch (error) {
+    console.error('Error loading dashboard data:', error);
+    setError('Failed to load dashboard data. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   const loadUserProfile = async () => {
     try {
