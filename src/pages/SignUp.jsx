@@ -1,8 +1,8 @@
-// src/pages/SignUp.jsx - UPDATED VERSION
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+// src/pages/SignUp.jsx - UPDATED WITH PROPERTY REDIRECT
+import { useState, useEffect } from 'react'; // Added useEffect
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'; // Added useSearchParams
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Mail, Lock, User, Phone, Eye, EyeOff, ChevronLeft, CheckCircle } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Phone, Eye, EyeOff, ChevronLeft, Home, Building2 } from 'lucide-react';
 
 function SignUp() {
   const [formData, setFormData] = useState({
@@ -19,7 +19,26 @@ function SignUp() {
   const [error, setError] = useState('');
   
   const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signUp, user, loading: authLoading } = useAuth(); // Added user and authLoading
+  const [searchParams] = useSearchParams(); // Added for URL params
+  
+  // Get property ID from URL if coming from property page
+  const propertyId = searchParams.get('propertyId');
+  const fromProperty = !!propertyId;
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user && !authLoading) {
+      console.log('User already logged in, redirecting...');
+      
+      // Determine where to redirect
+      if (propertyId) {
+        navigate(`/properties/${propertyId}/apply`);
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [user, authLoading, navigate, propertyId]);
 
   const handleChange = (e) => {
     setFormData({
@@ -53,6 +72,8 @@ function SignUp() {
       };
       
       console.log('Creating account for:', formData.email);
+      console.log('From property:', fromProperty ? `Yes (ID: ${propertyId})` : 'No');
+      
       const result = await signUp(formData.email, formData.password, userData);
       
       if (result.success) {
@@ -61,14 +82,21 @@ function SignUp() {
           navigate('/verification-success', { 
             state: { 
               email: formData.email,
-              name: userData.full_name
+              name: userData.full_name,
+              propertyId: fromProperty ? propertyId : null
             },
             replace: true 
           });
         } else {
           // User is automatically signed in (email confirmation disabled)
           console.log('User signed up and signed in automatically');
-          navigate('/dashboard', { replace: true });
+          
+          // Redirect based on property context
+          if (fromProperty && propertyId) {
+            navigate(`/properties/${propertyId}/apply`, { replace: true });
+          } else {
+            navigate('/dashboard', { replace: true });
+          }
         }
       } else {
         setError(result.error || 'Failed to create account. Please try again.');
@@ -81,17 +109,52 @@ function SignUp() {
     }
   };
 
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user already logged in, let useEffect handle redirect
+  if (user && !authLoading) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-amber-50 py-12 px-4">
       <div className="max-w-md w-full">
         {/* Back to Home */}
-        <Link 
-          to="/" 
-          className="inline-flex items-center text-amber-600 hover:text-amber-700 font-medium mb-8 group"
-        >
-          <ChevronLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
-          Back to Home
-        </Link>
+        <div className="mb-8">
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-amber-600 hover:text-amber-700 font-medium mb-4 group"
+          >
+            <ChevronLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
+            Back to Home
+          </Link>
+          
+          {fromProperty && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center">
+                <Building2 className="w-5 h-5 text-blue-600 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-blue-800">
+                    Create Account to Apply
+                  </p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    Create an account to complete your property application
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Sign Up Card */}
         <div className="relative">
@@ -107,10 +170,13 @@ function SignUp() {
                 <UserPlus className="w-8 h-8 text-white" />
               </div>
               <h1 className="text-3xl font-bold text-center text-gray-800 mb-2">
-                Join Palms Estate
+                {fromProperty ? 'Apply for Property' : 'Join Palms Estate'}
               </h1>
               <p className="text-center text-gray-600">
-                Create your account for exclusive access
+                {fromProperty 
+                  ? 'Create an account to complete your application'
+                  : 'Create your account for exclusive access'
+                }
               </p>
             </div>
 
@@ -142,7 +208,7 @@ function SignUp() {
                         name="firstName"
                         value={formData.firstName}
                         onChange={handleChange}
-                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none"
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none disabled:bg-gray-100"
                         placeholder="John"
                         required
                         disabled={isLoading}
@@ -160,7 +226,7 @@ function SignUp() {
                         name="lastName"
                         value={formData.lastName}
                         onChange={handleChange}
-                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none"
+                        className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none disabled:bg-gray-100"
                         placeholder="Doe"
                         required
                         disabled={isLoading}
@@ -181,7 +247,7 @@ function SignUp() {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none"
+                      className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none disabled:bg-gray-100"
                       placeholder="you@example.com"
                       required
                       disabled={isLoading}
@@ -201,7 +267,7 @@ function SignUp() {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none"
+                      className="w-full pl-12 pr-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none disabled:bg-gray-100"
                       placeholder="+1 (555) 123-4567"
                       disabled={isLoading}
                     />
@@ -220,7 +286,7 @@ function SignUp() {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className="w-full pl-12 pr-12 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none"
+                      className="w-full pl-12 pr-12 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none disabled:bg-gray-100"
                       placeholder="••••••••"
                       required
                       disabled={isLoading}
@@ -228,7 +294,7 @@ function SignUp() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:text-gray-300"
                       disabled={isLoading}
                     >
                       {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -251,7 +317,7 @@ function SignUp() {
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="w-full pl-12 pr-12 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none"
+                      className="w-full pl-12 pr-12 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 outline-none disabled:bg-gray-100"
                       placeholder="••••••••"
                       required
                       disabled={isLoading}
@@ -259,7 +325,7 @@ function SignUp() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 disabled:text-gray-300"
                       disabled={isLoading}
                     >
                       {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -273,7 +339,7 @@ function SignUp() {
                     type="checkbox"
                     id="terms"
                     required
-                    className="mt-1 mr-3 w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 focus:ring-2"
+                    className="mt-1 mr-3 w-4 h-4 text-amber-600 bg-gray-100 border-gray-300 rounded focus:ring-amber-500 focus:ring-2 disabled:bg-gray-200"
                     disabled={isLoading}
                   />
                   <label htmlFor="terms" className="text-sm text-gray-600">
@@ -303,7 +369,7 @@ function SignUp() {
                       Creating Account...
                     </span>
                   ) : (
-                    'Create Account'
+                    fromProperty ? 'Create Account & Apply' : 'Create Account'
                   )}
                 </button>
               </div>
@@ -318,15 +384,24 @@ function SignUp() {
               {/* Sign In Link */}
               <div className="text-center">
                 <Link
-                  to="/signin"
-                  className="inline-block w-full border-2 border-gray-300/70 hover:border-amber-500 text-gray-700 hover:text-amber-700 font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:shadow-md"
+                  to={fromProperty ? `/signin?propertyId=${propertyId}` : '/signin'}
+                  className="inline-block w-full border-2 border-gray-300/70 hover:border-amber-500 text-gray-700 hover:text-amber-700 font-medium py-3 px-6 rounded-xl transition-all duration-300 hover:shadow-md disabled:opacity-70 disabled:cursor-not-allowed"
+                  disabled={isLoading}
                 >
-                  Sign In Instead
+                  {fromProperty ? 'Sign In & Apply' : 'Sign In Instead'}
                 </Link>
               </div>
             </form>
           </div>
         </div>
+
+        {/* Debug info (optional - remove in production) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs">
+            <p className="font-mono">Property ID: {propertyId || 'None'}</p>
+            <p className="font-mono">From Property: {fromProperty ? 'Yes' : 'No'}</p>
+          </div>
+        )}
       </div>
     </div>
   );
