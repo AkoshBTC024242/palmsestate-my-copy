@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.jsx - ULTRA SIMPLIFIED
+// src/contexts/AuthContext.jsx - MINIMAL WORKING VERSION
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
@@ -19,44 +19,38 @@ export const AuthProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
+    let mounted = true;
     
-    const initializeAuth = async () => {
+    const init = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        if (isMounted) {
-          setSession(currentSession);
-          
-          if (currentSession?.user) {
-            const email = currentSession.user.email || '';
-            const adminStatus = email.toLowerCase().includes('admin') || 
-                              email === 'koshbtc@gmail.com';
-            
-            setIsAdmin(adminStatus);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          setSession(session);
+          if (session?.user) {
+            const email = session.user.email || '';
+            const admin = email.toLowerCase().includes('admin') || 
+                         email === 'koshbtc@gmail.com';
+            setIsAdmin(admin);
             setUser({
-              ...currentSession.user,
-              isAdmin: adminStatus,
-              role: adminStatus ? 'admin' : 'user'
+              ...session.user,
+              isAdmin: admin,
+              role: admin ? 'admin' : 'user'
             });
-          } else {
-            setUser(null);
-            setIsAdmin(false);
           }
         }
       } catch (error) {
         console.error('Auth init error:', error);
       } finally {
-        if (isMounted) {
+        if (mounted) {
           setLoading(false);
         }
       }
     };
 
-    initializeAuth();
+    init();
 
     return () => {
-      isMounted = false;
+      mounted = false;
     };
   }, []);
 
@@ -69,27 +63,61 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      const adminStatus = email.toLowerCase().includes('admin') || 
-                         email === 'koshbtc@gmail.com';
+      const admin = email.toLowerCase().includes('admin') || 
+                   email === 'koshbtc@gmail.com';
       
-      setIsAdmin(adminStatus);
+      setIsAdmin(admin);
       setUser({
         ...data.user,
-        isAdmin: adminStatus,
-        role: adminStatus ? 'admin' : 'user'
+        isAdmin: admin,
+        role: admin ? 'admin' : 'user'
       });
       setSession(data.session);
 
-      return { 
-        success: true, 
-        user: data.user, 
-        session: data.session 
+      return { success: true, user: data.user, session: data.session };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const signUp = async (email, password, userData = {}) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: userData.full_name || '',
+            phone: userData.phone || '',
+            role: 'user'
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      // If user is immediately signed in (no email confirmation)
+      if (data.session) {
+        const admin = email.toLowerCase().includes('admin') || 
+                     email === 'koshbtc@gmail.com';
+        
+        setIsAdmin(admin);
+        setUser({
+          ...data.user,
+          isAdmin: admin,
+          role: admin ? 'admin' : 'user'
+        });
+        setSession(data.session);
+      }
+
+      return {
+        success: true,
+        user: data.user,
+        session: data.session,
+        requiresEmailConfirmation: !data.session
       };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.message 
-      };
+      return { success: false, error: error.message };
     }
   };
 
@@ -110,6 +138,7 @@ export const AuthProvider = ({ children }) => {
     session,
     loading,
     signIn,
+    signUp, // INCLUDED
     signOut,
     isAdmin,
     isAuthenticated: !!user,
