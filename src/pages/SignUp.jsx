@@ -1,8 +1,8 @@
-// src/pages/SignUp.jsx - UPDATED WITH PROPERTY REDIRECT
-import { useState, useEffect } from 'react'; // Added useEffect
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'; // Added useSearchParams
+// src/pages/SignUp.jsx - COMPLETE UPDATED VERSION
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, Mail, Lock, User, Phone, Eye, EyeOff, ChevronLeft, Home, Building2 } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Phone, Eye, EyeOff, ChevronLeft, Building2, Loader2 } from 'lucide-react';
 
 function SignUp() {
   const [formData, setFormData] = useState({
@@ -19,8 +19,8 @@ function SignUp() {
   const [error, setError] = useState('');
   
   const navigate = useNavigate();
-  const { signUp, user, loading: authLoading } = useAuth(); // Added user and authLoading
-  const [searchParams] = useSearchParams(); // Added for URL params
+  const { signUp, user, loading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
   
   // Get property ID from URL if coming from property page
   const propertyId = searchParams.get('propertyId');
@@ -30,8 +30,6 @@ function SignUp() {
   useEffect(() => {
     if (user && !authLoading) {
       console.log('User already logged in, redirecting...');
-      
-      // Determine where to redirect
       if (propertyId) {
         navigate(`/properties/${propertyId}/apply`);
       } else {
@@ -74,30 +72,19 @@ function SignUp() {
       console.log('Creating account for:', formData.email);
       console.log('From property:', fromProperty ? `Yes (ID: ${propertyId})` : 'No');
       
-      const result = await signUp(formData.email, formData.password, userData);
+      // Pass propertyId to signUp function for email redirect
+      const result = await signUp(formData.email, formData.password, userData, propertyId);
       
       if (result.success) {
-        if (result.requiresEmailConfirmation) {
-          // Navigate to verification success page
-          navigate('/verification-success', { 
-            state: { 
-              email: formData.email,
-              name: userData.full_name,
-              propertyId: fromProperty ? propertyId : null
-            },
-            replace: true 
-          });
-        } else {
-          // User is automatically signed in (email confirmation disabled)
-          console.log('User signed up and signed in automatically');
-          
-          // Redirect based on property context
-          if (fromProperty && propertyId) {
-            navigate(`/properties/${propertyId}/apply`, { replace: true });
-          } else {
-            navigate('/dashboard', { replace: true });
-          }
-        }
+        // ALWAYS redirect to verification-sent page (email confirmation required)
+        navigate('/verification-sent', { 
+          state: { 
+            email: formData.email,
+            name: userData.full_name,
+            propertyId: propertyId || null
+          },
+          replace: true 
+        });
       } else {
         setError(result.error || 'Failed to create account. Please try again.');
         setIsLoading(false);
@@ -114,7 +101,7 @@ function SignUp() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <Loader2 className="w-12 h-12 animate-spin text-orange-600 mx-auto mb-4" />
           <p className="text-gray-600">Checking authentication...</p>
         </div>
       </div>
@@ -362,10 +349,7 @@ function SignUp() {
                 >
                   {isLoading ? (
                     <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
+                      <Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
                       Creating Account...
                     </span>
                   ) : (
@@ -394,14 +378,6 @@ function SignUp() {
             </form>
           </div>
         </div>
-
-        {/* Debug info (optional - remove in production) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs">
-            <p className="font-mono">Property ID: {propertyId || 'None'}</p>
-            <p className="font-mono">From Property: {fromProperty ? 'Yes' : 'No'}</p>
-          </div>
-        )}
       </div>
     </div>
   );
