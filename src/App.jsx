@@ -1,4 +1,4 @@
-// src/App.jsx - UPDATED WITH POST-APPROVAL ROUTE
+// src/App.jsx - UPDATED WITH EMAIL CONFIRMATION ROUTES
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
@@ -10,7 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 
-// Import all pages directly (NO lazy loading)
+// Import all pages
 import Home from './pages/Home';
 import Properties from './pages/Properties';
 import PropertyDetails from './pages/PropertyDetails';
@@ -18,10 +18,12 @@ import Contact from './pages/Contact';
 import About from './pages/About';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
+import VerificationSent from './pages/VerificationSent'; // NEW
+import EmailConfirmed from './pages/EmailConfirmed'; // NEW
 import VerificationSuccess from './pages/VerificationSuccess';
 import ApplicationForm from './pages/ApplicationForm';
 import InitialApplyForm from './pages/InitialApplyForm';
-import PostApprovalForm from './pages/dashboard/PostApprovalForm'; // NEW IMPORT
+import PostApprovalForm from './pages/dashboard/PostApprovalForm';
 import NotFound from './pages/NotFound';
 
 // Dashboard pages
@@ -135,6 +137,27 @@ function App() {
                   </div>
                 } />
                 
+                {/* EMAIL VERIFICATION FLOW ROUTES */}
+                <Route path="/verification-sent" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <VerificationSent />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
+                <Route path="/email-confirmed" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <EmailConfirmed />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+                
                 <Route path="/verification-success" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -170,7 +193,6 @@ function App() {
                   </ProtectedRoute>
                 } />
                 
-                {/* NEW ROUTE: Post-Approval Form */}
                 <Route path="/dashboard/applications/:id/post-approval" element={
                   <ProtectedRoute>
                     <DashboardLayout>
