@@ -1,5 +1,5 @@
-// src/contexts/AuthContext.jsx - MINIMAL WORKING VERSION
-import { createContext, useContext, useState, useEffect } from 'react';
+// src/contexts/AuthContext.jsx - COMPLETE UPDATED VERSION
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext({});
@@ -21,21 +21,27 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
     
-    const init = async () => {
+    const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
         if (mounted) {
-          setSession(session);
-          if (session?.user) {
-            const email = session.user.email || '';
-            const admin = email.toLowerCase().includes('admin') || 
-                         email === 'koshbtc@gmail.com';
-            setIsAdmin(admin);
+          setSession(currentSession);
+          
+          if (currentSession?.user) {
+            const email = currentSession.user.email || '';
+            const adminStatus = email.toLowerCase().includes('admin') || 
+                               email === 'koshbtc@gmail.com';
+            
+            setIsAdmin(adminStatus);
             setUser({
-              ...session.user,
-              isAdmin: admin,
-              role: admin ? 'admin' : 'user'
+              ...currentSession.user,
+              isAdmin: adminStatus,
+              role: adminStatus ? 'admin' : 'user'
             });
+          } else {
+            setUser(null);
+            setIsAdmin(false);
           }
         }
       } catch (error) {
@@ -47,15 +53,17 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    init();
+    initializeAuth();
 
     return () => {
       mounted = false;
     };
   }, []);
 
-  const signIn = async (email, password) => {
+  const signIn = useCallback(async (email, password) => {
     try {
+      console.log('🔐 Signing in user:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -63,25 +71,53 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      const admin = email.toLowerCase().includes('admin') || 
-                   email === 'koshbtc@gmail.com';
+      console.log('✅ Sign in API success:', data.user.email);
       
-      setIsAdmin(admin);
+      // Force immediate session persistence
+      if (data.session) {
+        await supabase.auth.setSession(data.session);
+      }
+
+      const adminStatus = email.toLowerCase().includes('admin') || 
+                         email === 'koshbtc@gmail.com';
+      
+      setIsAdmin(adminStatus);
       setUser({
         ...data.user,
-        isAdmin: admin,
-        role: admin ? 'admin' : 'user'
+        isAdmin: adminStatus,
+        role: adminStatus ? 'admin' : 'user'
       });
       setSession(data.session);
 
-      return { success: true, user: data.user, session: data.session };
+      return { 
+        success: true, 
+        user: data.user, 
+        session: data.session 
+      };
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error('❌ Sign in error:', error);
+      return { 
+        success: false, 
+        error: error.message 
+      };
     }
-  };
+  }, []);
 
-  const signUp = async (email, password, userData = {}) => {
+  const signUp = useCallback(async (email, password, userData = {}, propertyId = null) => {
     try {
+      console.log('📝 Creating account for:', email);
+      console.log('Property ID for redirect:', propertyId);
+      
+      // Build redirect URL with property ID if provided
+      const siteUrl = window.location.origin;
+      let redirectUrl = `${siteUrl}/email-confirmed`;
+      
+      if (propertyId) {
+        redirectUrl += `?propertyId=${propertyId}`;
+      }
+      
+      console.log('Email redirect URL:', redirectUrl);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -90,38 +126,34 @@ export const AuthProvider = ({ children }) => {
             full_name: userData.full_name || '',
             phone: userData.phone || '',
             role: 'user'
-          }
+          },
+          emailRedirectTo: redirectUrl
         }
       });
 
       if (error) throw error;
 
-      // If user is immediately signed in (no email confirmation)
-      if (data.session) {
-        const admin = email.toLowerCase().includes('admin') || 
-                     email === 'koshbtc@gmail.com';
-        
-        setIsAdmin(admin);
-        setUser({
-          ...data.user,
-          isAdmin: admin,
-          role: admin ? 'admin' : 'user'
-        });
-        setSession(data.session);
-      }
+      console.log('✅ Sign up response:', data);
 
       return {
         success: true,
         user: data.user,
         session: data.session,
-        requiresEmailConfirmation: !data.session
+        requiresEmailConfirmation: true, // ALWAYS require email confirmation
+        message: 'Verification email sent! Please check your inbox.'
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error('❌ Sign up error:', error);
+      return {
+        success: false,
+        error: error.message.includes('User already registered') 
+          ? 'An account with this email already exists. Please sign in instead.'
+          : error.message
+      };
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut();
       setUser(null);
@@ -131,17 +163,43 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Sign out error:', error);
     }
-  };
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const { data: { session: newSession } } = await supabase.auth.refreshSession();
+      setSession(newSession);
+      
+      if (newSession?.user) {
+        const email = newSession.user.email || '';
+        const adminStatus = email.toLowerCase().includes('admin') || 
+                           email === 'koshbtc@gmail.com';
+        
+        setIsAdmin(adminStatus);
+        setUser({
+          ...newSession.user,
+          isAdmin: adminStatus,
+          role: adminStatus ? 'admin' : 'user'
+        });
+      }
+      
+      return newSession;
+    } catch (error) {
+      console.error('Refresh session error:', error);
+      return null;
+    }
+  }, []);
 
   const value = {
     user,
     session,
     loading,
     signIn,
-    signUp, // INCLUDED
+    signUp,
     signOut,
     isAdmin,
     isAuthenticated: !!user,
+    refreshSession
   };
 
   return (
@@ -150,4 +208,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
