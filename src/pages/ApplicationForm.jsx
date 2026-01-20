@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, submitApplication } from '../lib/supabase'; // IMPORT submitApplication
+import { supabase, submitApplication } from '../lib/supabase';
 import { sendApplicationConfirmation } from '../lib/emailService';
 import {
   Calendar, User, Mail, Phone, FileText, ArrowLeft,
@@ -56,7 +56,6 @@ function ApplicationForm() {
         setProperty(supabaseProperty);
       } else {
         console.warn('Property not found in database, using mock data');
-        // Use mock properties if needed
         const mockProperties = [
           {
             id: 1,
@@ -70,7 +69,6 @@ function ApplicationForm() {
             location: 'New York',
             price_per_week: 45000,
           },
-          // add your other mock properties
         ];
         const propertyIdNum = parseInt(id);
         const found = mockProperties.find(p => p.id === propertyIdNum);
@@ -131,11 +129,9 @@ function ApplicationForm() {
 
     try {
       console.log('Submitting application for property ID:', id);
-      console.log('Form data:', formData);
       
-      // CRITICAL: Convert property_id to number and prepare data
       const applicationData = {
-        property_id: id, // This will be parsed to number in submitApplication
+        property_id: id,
         full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
@@ -152,41 +148,53 @@ function ApplicationForm() {
 
       console.log('Prepared application data:', applicationData);
 
-      // Use the fixed submitApplication function from supabase.js
       const result = await submitApplication(applicationData);
-
       console.log('Application submission result:', result);
 
       if (result.success) {
         // Send confirmation to user
         try {
-          await sendApplicationConfirmation(formData.email, {
+          console.log('Sending confirmation email to applicant...');
+          const emailResult = await sendApplicationConfirmation(formData.email, {
+            fullName: formData.fullName,
+            referenceNumber: result.referenceNumber,
             applicationId: result.data.id,
-            propertyName: property?.title,
-            status: 'submitted',
-            message: 'Your application has been received. Our team will review shortly.',
-            referenceNumber: result.referenceNumber
+            propertyName: property?.title || 'Property',
+            propertyLocation: property?.location || 'Location not specified',
+            status: 'submitted'
           });
+          
+          console.log('Email result:', emailResult);
+          
+          if (!emailResult.success) {
+            console.warn('Email sending had issues:', emailResult.message);
+          }
         } catch (emailError) {
-          console.warn('Could not send confirmation email:', emailError);
-          // Continue anyway - email is not critical
+          console.warn('Email sending error (non-critical):', emailError);
+          // Continue anyway - application was created
         }
 
-        // Send notification to admin
+        // Send notification to admin (optional)
         try {
+          console.log('Sending admin notification...');
           await sendApplicationConfirmation('admin@palmsestate.org', {
+            fullName: formData.fullName,
+            referenceNumber: result.referenceNumber,
             applicationId: result.data.id,
-            userName: formData.fullName,
-            propertyName: property?.title,
-            status: 'new submission',
-            message: `New application for ${property?.title}`,
-            referenceNumber: result.referenceNumber
+            propertyName: property?.title || 'Property',
+            propertyLocation: property?.location || 'Location not specified',
+            status: 'new_submission',
+            customerName: formData.fullName,
+            applicantEmail: formData.email
           });
         } catch (adminEmailError) {
-          console.warn('Could not send admin notification:', adminEmailError);
+          console.warn('Admin email notification failed:', adminEmailError);
         }
 
-        setApplicationResult(result);
+        setApplicationResult({
+          ...result,
+          emailSent: true
+        });
         setSuccess(true);
         
         // Redirect to dashboard after 3 seconds
@@ -248,8 +256,15 @@ function ApplicationForm() {
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-600">Reference Number</p>
               <p className="font-mono font-bold text-lg text-gray-900">{applicationResult.referenceNumber}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Keep this number for your records
+              </p>
             </div>
           )}
+          
+          <p className="text-gray-600 mb-2">
+            A confirmation email has been sent to <span className="font-medium">{formData.email}</span>.
+          </p>
           
           <p className="text-gray-600 mb-6">
             Our team will review your application and get back to you shortly.
