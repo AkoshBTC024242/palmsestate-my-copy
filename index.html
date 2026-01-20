@@ -3,95 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     
-    <!-- CRITICAL: Prevent zooming and ensure proper mobile scaling -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
-    
-    <!-- PWA-like enhancements for iOS -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Palms Estate">
-    <meta name="format-detection" content="telephone=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#f97316">
-    <meta name="msapplication-TileColor" content="#f97316">
-    
-    <!-- SEO & Social -->
-    <meta name="description" content="Palms Estate - Premier Luxury Rentals worldwide. Discover extraordinary villas, penthouses, and private estates.">
-    <meta name="keywords" content="luxury rentals, villas, penthouses, real estate, vacation homes, exclusive properties">
-    <meta property="og:title" content="Palms Estate | Premier Luxury Rentals">
-    <meta property="og:description" content="Curated selection of the world's most exquisite luxury properties.">
-    <meta property="og:type" content="website">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1613977257363-707ba9348227?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80">
-    <meta property="og:url" content="https://palmsestate.org">
-    <meta name="twitter:card" content="summary_large_image">
-    
-    <!-- Performance & Preload -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800&display=swap">
-    
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- NEW: Simple Palm Tree Favicons -->
-<!-- SVG Favicon -->
-<link rel="icon" type="image/svg+xml" href="/palm-tree-favicon.svg">
-
-<!-- Apple Touch Icon -->
-<link rel="apple-touch-icon" sizes="180x180" href="/palm-tree-favicon.svg">
-
-<!-- Android Chrome Icons -->
-<link rel="icon" type="image/png" sizes="192x192" href="/palm-tree-favicon.svg">
-<link rel="icon" type="image/png" sizes="512x512" href="/palm-tree-favicon.svg">
-    
-    <!-- PNG Fallbacks -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    
-    <!-- Apple Touch Icon (White palm on Orange background) -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/palm-logo.svg">
-    
-    <!-- Android Chrome -->
-    <link rel="icon" type="image/png" sizes="192x192" href="/palm-logo.svg">
-    <link rel="icon" type="image/png" sizes="512x512" href="/palm-logo.svg">
-    
-    <!-- Safari Pinned Tab -->
-    <link rel="mask-icon" href="/palm-logo.svg" color="#f97316">
-    
-    <!-- Web App Manifest -->
-    <link rel="manifest" href="/site.webmanifest">
-    
-    <title>Palms Estate | Premier Luxury Rentals</title>
-    
-    <!-- Critical CSS for immediate mobile styling -->
-    <style>
-      /* Prevent bounce/overscroll on mobile */
-      html, body {
-        overscroll-behavior: none;
-        -webkit-overflow-scrolling: touch;
-        overflow-x: hidden;
-        width: 100%;
-        position: relative;
+    <!-- FORCE HTTPS -->
+    <script>
+      if (window.location.protocol === 'http:' && 
+          window.location.hostname !== 'localhost' &&
+          window.location.hostname !== '127.0.0.1') {
+        window.location.href = window.location.href.replace('http:', 'https:');
       }
-      
-      /* Ensure proper tap highlighting */
-      * {
-        -webkit-tap-highlight-color: transparent;
-      }
-      
-      /* Smooth scrolling */
-      html {
-        scroll-behavior: smooth;
-      }
-      
-      /* Prevent text size adjustment on orientation change */
-      body {
-        -webkit-text-size-adjust: 100%;
-        text-size-adjust: 100%;
-      }
-    </style>
+    </script>
+    
+    <!-- ALLOW MIXED CONTENT TEMPORARILY -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self' https: http:;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http:;
+      style-src 'self' 'unsafe-inline' https: http:;
+      img-src 'self' data: https: http:;
+      font-src 'self' https: http:;
+      connect-src 'self' https: http: ws: wss:;
+    ">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Palms Estate</title>
   </head>
   <body>
     <div id="root"></div>
