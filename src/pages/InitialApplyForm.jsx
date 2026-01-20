@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase, submitApplication } from '../lib/supabase'; // ADD submitApplication import
+import { supabase, submitApplication } from '../lib/supabase';
 import { sendApplicationConfirmation } from '../lib/emailService';
-import { User, Mail, Phone, Calendar, FileText, CheckCircle, Loader, ArrowLeft, Home, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, Calendar, FileText, CheckCircle, ArrowLeft, Home, AlertCircle } from 'lucide-react';
 
 function InitialApplyForm() {
   const { id } = useParams();
@@ -33,7 +33,6 @@ function InitialApplyForm() {
         console.log('Loading property ID:', id);
         
         if (id) {
-          // Convert id to number
           const propertyId = Number(id);
           console.log('Converted property ID:', propertyId);
           
@@ -72,7 +71,7 @@ function InitialApplyForm() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    setError(''); // Clear error when user types
+    setError('');
   };
 
   const validateForm = () => {
@@ -101,50 +100,73 @@ function InitialApplyForm() {
 
     try {
       console.log('Starting application submission...');
-      console.log('Property ID from URL:', id);
       console.log('Form data:', formData);
       
-      // Prepare data for submitApplication function
       const applicationData = {
-        property_id: id, // Will be converted to number in submitApplication
+        property_id: id,
         full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
         preferred_tour_date: formData.preferredDate || null,
         notes: formData.message,
-        employment_status: 'not_specified', // Default value
-        monthly_income: '0', // Default value
-        occupants: '1', // Default value
-        has_pets: false, // Default value
+        employment_status: 'not_specified',
+        monthly_income: '0',
+        occupants: '1',
+        has_pets: false,
         application_type: 'rental'
       };
 
       console.log('Prepared application data:', applicationData);
 
-      // Use the submitApplication function from supabase.js
       const result = await submitApplication(applicationData);
-
       console.log('Application result:', result);
 
       if (result.success) {
         // Send confirmation email
         try {
-          await sendApplicationConfirmation(formData.email, {
-            propertyTitle: property?.title || 'Property',
+          console.log('Sending confirmation email to applicant...');
+          const emailResult = await sendApplicationConfirmation(formData.email, {
+            fullName: formData.fullName,
+            referenceNumber: result.referenceNumber,
             applicationId: result.data.id,
-            message: 'Your application has been submitted. We will review and contact you soon.',
-            referenceNumber: result.referenceNumber
+            propertyName: property?.title || 'Property',
+            propertyLocation: property?.location || 'Location not specified',
+            status: 'submitted'
           });
-          console.log('Confirmation email sent');
+          
+          console.log('Email result:', emailResult);
+          
+          if (!emailResult.success) {
+            console.warn('Email sending had issues:', emailResult.message);
+          }
         } catch (emailError) {
-          console.warn('Email sending failed:', emailError);
-          // Don't throw - application was still created
+          console.warn('Email sending error (non-critical):', emailError);
+          // Continue anyway - application was created
         }
 
-        setApplicationResult(result);
+        // Send notification to admin (optional)
+        try {
+          console.log('Sending admin notification...');
+          await sendApplicationConfirmation('admin@palmsestate.org', {
+            fullName: formData.fullName,
+            referenceNumber: result.referenceNumber,
+            applicationId: result.data.id,
+            propertyName: property?.title || 'Property',
+            propertyLocation: property?.location || 'Location not specified',
+            status: 'new_submission',
+            customerName: formData.fullName,
+            applicantEmail: formData.email
+          });
+        } catch (adminEmailError) {
+          console.warn('Admin email notification failed:', adminEmailError);
+        }
+
+        setApplicationResult({
+          ...result,
+          emailSent: true
+        });
         setSuccess(true);
         
-        // Redirect to applications page after 3 seconds
         setTimeout(() => {
           navigate('/dashboard/applications');
         }, 3000);
@@ -202,15 +224,20 @@ function InitialApplyForm() {
             <div className="bg-gray-50 rounded-lg p-4 mb-4">
               <p className="text-sm text-gray-600">Reference Number</p>
               <p className="font-mono font-bold text-lg text-gray-900">{applicationResult.referenceNumber}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Keep this number for your records
+              </p>
             </div>
           )}
           
-          <p className="text-gray-600 mb-6">
-            Your application has been submitted successfully.
-            {applicationResult?.referenceNumber && ` Reference: ${applicationResult.referenceNumber}`}
-            <br />
-            You will be redirected to your applications page shortly.
+          <p className="text-gray-600 mb-2">
+            A confirmation email has been sent to <span className="font-medium">{formData.email}</span>.
           </p>
+          
+          <p className="text-gray-600 mb-6">
+            Our team will review your application and contact you soon.
+          </p>
+          
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link 
               to="/properties" 
@@ -393,7 +420,7 @@ function InitialApplyForm() {
             </button>
             
             <p className="text-center text-gray-500 text-sm">
-              By submitting, you agree to our terms and privacy policy.
+              By submitting, you'll receive a confirmation email with your application details.
             </p>
           </form>
         </div>
