@@ -1,43 +1,61 @@
-// vite.config.js - FIXED VERSION
+// vite.config.js - WORKING VERSION WITH HTML IMPORTS
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
   
-  // Set the correct root directory
-  root: '.',
+  // Allow HTML imports as raw strings
+  assetsInclude: ['**/*.html'],
   
-  // Explicitly set public directory for static assets
-  publicDir: 'public',
+  // Configure esbuild to handle HTML files
+  esbuild: {
+    loader: {
+      '.html': 'text'
+    }
+  },
   
   build: {
-    // Don't hash the main index.html
+    outDir: 'dist',
+    emptyOutDir: true,
+    sourcemap: false,
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-      },
       output: {
-        // Don't hash entry files
-        entryFileNames: 'assets/[name].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: (assetInfo) => {
-          // Keep index.html as plain filename
-          if (assetInfo.name === 'index.html') {
-            return '[name][extname]';
-          }
-          // Hash other assets
-          return 'assets/[name]-[hash][extname]';
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-router': ['react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-icons': ['lucide-react'],
         },
+        chunkFileNames: 'assets/[name].[hash].js',
+        entryFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash][extname]'
       },
+      // Handle external files
+      external: [],
     },
-    // Don't empty the output directory (preserve manually added files)
-    emptyOutDir: false,
+    // CommonJS options for external dependencies
+    commonjsOptions: {
+      include: [/node_modules/],
+    },
   },
   
   server: {
     host: true,
     port: 3000,
+    open: true
+  },
+  
+  // Resolve aliases if needed
+  resolve: {
+    alias: {
+      '@': '/src',
+    },
+  },
+  
+  // Optimize dependencies
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'],
+    exclude: ['**/*.html'], // Exclude HTML files from optimization
   },
 });
