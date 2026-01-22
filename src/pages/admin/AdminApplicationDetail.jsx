@@ -1,7 +1,8 @@
-// src/pages/admin/AdminApplicationDetail.jsx - FIXED VERSION
+// src/pages/admin/AdminApplicationDetail.jsx - UPDATED WITH EMAIL INTEGRATION
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { updateApplicationStatus, sendApplicationStatusUpdate } from '../../lib/applicationStatus';
 import {
   ArrowLeft, User, Mail, Phone, Calendar, MapPin, Home,
   DollarSign, FileText, CheckCircle, XCircle, AlertCircle,
@@ -10,7 +11,8 @@ import {
   MessageSquare, PhoneCall, ExternalLink, Eye, Star, Award,
   Briefcase, Banknote, ShieldCheck, BadgeCheck, FileSearch,
   Mail as MailIcon, Phone as PhoneIcon, Globe, Lock, Check,
-  AlertTriangle, Info, History, ArrowRight, RefreshCw
+  AlertTriangle, Info, History, ArrowRight, RefreshCw,
+  Bell, MailOpen, Send as SendIcon
 } from 'lucide-react';
 
 function AdminApplicationDetail() {
@@ -26,6 +28,8 @@ function AdminApplicationDetail() {
   const [adminNotes, setAdminNotes] = useState([]);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [statusHistory, setStatusHistory] = useState([]);
 
   useEffect(() => {
     loadApplicationDetails();
@@ -35,7 +39,7 @@ function AdminApplicationDetail() {
     try {
       setLoading(true);
       
-      // Load application without joins
+      // Load application
       const { data: appData, error: appError } = await supabase
         .from('applications')
         .select('*')
@@ -50,7 +54,7 @@ function AdminApplicationDetail() {
 
       setApplication(appData);
 
-      // Load property separately if property_id exists
+      // Load property
       if (appData.property_id) {
         const { data: propertyData, error: propertyError } = await supabase
           .from('properties')
@@ -65,6 +69,9 @@ function AdminApplicationDetail() {
 
       // Load admin notes
       await loadAdminNotes();
+      
+      // Load status history
+      await loadStatusHistory();
 
     } catch (error) {
       console.error('Error loading application:', error);
@@ -87,7 +94,22 @@ function AdminApplicationDetail() {
       }
     } catch (error) {
       console.error('Error loading notes:', error);
-      // If table doesn't exist, just continue
+    }
+  };
+
+  const loadStatusHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('application_status_logs')
+        .select('*')
+        .eq('application_id', id)
+        .order('created_at', { ascending: false });
+
+      if (!error) {
+        setStatusHistory(data || []);
+      }
+    } catch (error) {
+      console.error('Error loading status history:', error);
     }
   };
 
@@ -114,65 +136,73 @@ function AdminApplicationDetail() {
     }
   };
 
-  const updateApplicationStatus = async (newStatus, reason = '') => {
+  const handleStatusUpdate = async (newStatus, note = '') => {
     try {
       setUpdating(true);
 
-      const updateData = {
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-        last_status_change: new Date().toISOString()
-      };
-
-      if (reason) {
-        updateData.rejection_reason = reason;
+      const result = await updateApplicationStatus(id, newStatus, note);
+      
+      if (result.success) {
+        // Show success message
+        alert(`Application status updated to: ${getStatusLabel(newStatus)}`);
+        
+        // Reload application details
+        await loadApplicationDetails();
+        
+        // Close reject modal if open
+        if (newStatus === 'rejected') {
+          setShowRejectModal(false);
+          setRejectReason('');
+        }
+      } else {
+        alert('Error updating status: ' + result.message);
       }
-
-      if (newStatus === 'approved_pending_info') {
-        updateData.initial_approved_at = new Date().toISOString();
-      } else if (newStatus === 'approved') {
-        updateData.final_approved_at = new Date().toISOString();
-      } else if (newStatus === 'rejected') {
-        updateData.rejected_at = new Date().toISOString();
-        updateData.rejection_reason = reason;
-      }
-
-      const { error } = await supabase
-        .from('applications')
-        .update(updateData)
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // Add a note about status change
-      try {
-        await supabase
-          .from('application_notes')
-          .insert({
-            application_id: id,
-            content: `Status changed to: ${getStatusLabel(newStatus)}${reason ? ` - Reason: ${reason}` : ''}`,
-            created_by: 'system',
-            created_at: new Date().toISOString()
-          });
-      } catch (noteError) {
-        console.warn('Could not add note:', noteError);
-      }
-
-      // Reload application details
-      await loadApplicationDetails();
-
-      alert(`Application status updated to: ${getStatusLabel(newStatus)}`);
-
-      if (newStatus === 'rejected') {
-        setShowRejectModal(false);
-        setRejectReason('');
-      }
-
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Error updating status: ' + error.message);
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const sendStatusEmail = async () => {
+    if (!application) return;
+    
+    try {
+      setSendingEmail(true);
+      
+      const result = await sendApplicationStatusUpdate(application.email, {
+        fullName: application.full_name,
+        referenceNumber: application.reference_number,
+        applicationId: application.id,
+        propertyName: property?.title || 'Property',
+        propertyLocation: property?.location || 'Location',
+        status: application.status,
+        statusNote: 'Application status update'
+      });
+      
+      if (result.success) {
+        alert('Status update email sent successfully!');
+        
+        // Add a note about the email
+        await supabase
+          .from('application_notes')
+          .insert({
+            application_id: id,
+            content: `Status update email sent to applicant (${application.email})`,
+            created_by: 'system',
+            created_at: new Date().toISOString()
+          });
+        
+        await loadAdminNotes();
+      } else {
+        alert('Failed to send email: ' + result.message);
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('Error sending email: ' + error.message);
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -283,6 +313,7 @@ function AdminApplicationDetail() {
     
     const events = [];
     
+    // Add application submission
     events.push({
       date: application.created_at,
       title: 'Application Submitted',
@@ -291,11 +322,26 @@ function AdminApplicationDetail() {
       color: 'bg-blue-500'
     });
 
+    // Add status history events
+    statusHistory.forEach(log => {
+      events.push({
+        date: log.created_at,
+        title: 'Status Updated',
+        description: `From ${getStatusLabel(log.from_status)} to ${getStatusLabel(log.to_status)}${log.note ? ` - ${log.note}` : ''}`,
+        icon: log.to_status === 'approved' ? <CheckCircle className="w-4 h-4" /> : 
+               log.to_status === 'rejected' ? <XCircle className="w-4 h-4" /> : 
+               <AlertCircle className="w-4 h-4" />,
+        color: log.to_status === 'approved' ? 'bg-emerald-500' : 
+               log.to_status === 'rejected' ? 'bg-rose-500' : 'bg-amber-500'
+      });
+    });
+
+    // Add other important dates
     if (application.initial_approved_at) {
       events.push({
         date: application.initial_approved_at,
         title: 'Initial Approval',
-        description: 'Application initially approved, pending additional information',
+        description: 'Application initially approved',
         icon: <CheckCircle className="w-4 h-4" />,
         color: 'bg-cyan-500'
       });
@@ -394,6 +440,18 @@ function AdminApplicationDetail() {
               >
                 <RefreshCw className="w-5 h-5" />
               </button>
+              <button
+                onClick={sendStatusEmail}
+                disabled={sendingEmail}
+                className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                title="Send Status Update Email"
+              >
+                {sendingEmail ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+                ) : (
+                  <SendIcon className="w-5 h-5" />
+                )}
+              </button>
               <button className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
                 <Printer className="w-5 h-5" />
               </button>
@@ -472,7 +530,26 @@ function AdminApplicationDetail() {
               <div className="space-y-8">
                 {/* Status Card */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                  <h3 className="text-lg font-bold text-gray-800 mb-4">Application Status</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-gray-800">Application Status</h3>
+                    <button
+                      onClick={sendStatusEmail}
+                      disabled={sendingEmail}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
+                    >
+                      {sendingEmail ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <SendIcon className="w-3 h-3" />
+                          Send Update Email
+                        </>
+                      )}
+                    </button>
+                  </div>
                   
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -520,7 +597,7 @@ function AdminApplicationDetail() {
                       <div className="flex flex-wrap gap-3">
                         {application.status === 'under_review' && (
                           <button
-                            onClick={() => updateApplicationStatus('approved_pending_info')}
+                            onClick={() => handleStatusUpdate('approved_pending_info')}
                             disabled={updating}
                             className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-medium rounded-lg hover:shadow transition-all disabled:opacity-50"
                           >
@@ -530,7 +607,7 @@ function AdminApplicationDetail() {
                         
                         {application.status === 'additional_info_submitted' && (
                           <button
-                            onClick={() => updateApplicationStatus('approved')}
+                            onClick={() => handleStatusUpdate('approved')}
                             disabled={updating}
                             className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white font-medium rounded-lg hover:shadow transition-all disabled:opacity-50"
                           >
@@ -588,25 +665,56 @@ function AdminApplicationDetail() {
                   </div>
                 </div>
 
-                {/* Additional Information (if submitted) */}
-                {application.additional_info && (
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4">Additional Information</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {Object.entries(application.additional_info).map(([key, value]) => {
-                        if (typeof value === 'boolean') return null;
-                        if (!value || value === '') return null;
-                        
-                        return (
-                          <div key={key}>
-                            <p className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').toLowerCase()}</p>
-                            <p className="font-medium text-gray-900">{value}</p>
-                          </div>
-                        );
-                      })}
+                {/* Email Communication */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-lg font-bold text-gray-800 mb-4">Email Communication</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <MailOpen className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="font-medium text-blue-800">Email Notification</p>
+                          <p className="text-sm text-blue-700 mt-1">
+                            Send a status update email to the applicant with the current application status.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          onClick={sendStatusEmail}
+                          disabled={sendingEmail}
+                          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {sendingEmail ? (
+                            <>
+                              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                              Sending...
+                            </>
+                          ) : (
+                            <>
+                              <SendIcon className="w-3 h-3" />
+                              Send Status Email
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => window.open(`mailto:${application.email}?subject=Application Update - ${application.reference_number}`, '_blank')}
+                          className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                        >
+                          <MailIcon className="w-3 h-3" />
+                          Compose Custom Email
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-sm text-gray-600">
+                        <strong>Email Automation:</strong> When you change the application status, an automatic email will be sent to the applicant.
+                      </p>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
 
@@ -636,10 +744,10 @@ function AdminApplicationDetail() {
                         <p className="text-sm text-gray-600">Applied On</p>
                         <p className="font-medium">{formatDate(application.created_at)}</p>
                       </div>
-                      {application.message && (
+                      {application.notes && (
                         <div className="md:col-span-2">
                           <p className="text-sm text-gray-600">Message/Notes</p>
-                          <p className="font-medium">{application.message}</p>
+                          <p className="font-medium">{application.notes}</p>
                         </div>
                       )}
                     </div>
@@ -881,7 +989,10 @@ function AdminApplicationDetail() {
           <div className="space-y-8">
             {/* Status Actions Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Update Status</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-800">Update Status</h3>
+                <Bell className="w-5 h-5 text-gray-400" />
+              </div>
               
               <div className="space-y-3">
                 {nextStatusOptions.map((status) => (
@@ -891,7 +1002,7 @@ function AdminApplicationDetail() {
                       if (status === 'rejected') {
                         setShowRejectModal(true);
                       } else {
-                        updateApplicationStatus(status);
+                        handleStatusUpdate(status);
                       }
                     }}
                     disabled={updating}
@@ -925,6 +1036,47 @@ function AdminApplicationDetail() {
                     <p className="text-sm text-gray-500">Application has reached final status</p>
                   </div>
                 )}
+              </div>
+              
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600">
+                  <strong>Note:</strong> Changing status will automatically send an email notification to the applicant.
+                </p>
+              </div>
+            </div>
+
+            {/* Email Status Card */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Email Status</h3>
+              
+              <div className="space-y-4">
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <MailOpen className="w-4 h-4 text-green-600" />
+                    <span className="font-medium text-gray-800">Last Email Sent</span>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    {application.last_email_sent_at ? formatDate(application.last_email_sent_at) : 'No emails sent yet'}
+                  </p>
+                </div>
+                
+                <button
+                  onClick={sendStatusEmail}
+                  disabled={sendingEmail}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium rounded-lg hover:shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {sendingEmail ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Sending Email...
+                    </>
+                  ) : (
+                    <>
+                      <SendIcon className="w-4 h-4" />
+                      Send Status Update Email
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -1008,7 +1160,7 @@ function AdminApplicationDetail() {
                 Cancel
               </button>
               <button
-                onClick={() => updateApplicationStatus('rejected', rejectReason)}
+                onClick={() => handleStatusUpdate('rejected', rejectReason)}
                 disabled={!rejectReason.trim() || updating}
                 className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors disabled:opacity-50"
               >
