@@ -1,7 +1,7 @@
-// src/lib/emailService.js - UPDATED WITH YOUR DOMAIN
+// src/lib/emailService.js - COMPLETE WORKING VERSION
 import { supabase } from './supabase';
 
-// Embedded email template (no file imports)
+// Embedded email template
 const generateApplicationEmailHTML = (data) => {
   const {
     applicationId = 'APP-N/A',
@@ -133,6 +133,7 @@ Questions? Contact: applications@palmsestate.org
 export const sendApplicationConfirmation = async (userEmail, applicationData) => {
   try {
     console.log('📧 Sending application confirmation to:', userEmail);
+    console.log('📧 Application data:', applicationData);
     
     // Prepare email data
     const emailData = {
@@ -149,61 +150,42 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
     const htmlContent = generateApplicationEmailHTML(emailData);
     const textContent = generateStatusUpdateText(emailData);
     
+    // Get user ID from email
+    let userId = null;
+    try {
+      const { data: userData, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', userEmail)
+        .single();
+      
+      if (!error && userData) {
+        userId = userData.id;
+      }
+    } catch (error) {
+      console.log('Could not find user ID for email:', userEmail);
+    }
+    
     // Use your verified domain email address
     const RESEND_API_KEY = import.meta.env.VITE_RESEND_API_KEY;
     
-    if (RESEND_API_KEY) {
-      try {
-        const response = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${RESEND_API_KEY}`
-          },
-          body: JSON.stringify({
-            from: 'Palms Estate <notification@palmsestate.org>',
-            to: userEmail,
-            subject: emailData.status === 'submitted' 
-              ? `Application Received - ${emailData.propertyName}` 
-              : `Application Status Update - ${emailData.propertyName}`,
-            html: htmlContent,
-            text: textContent,
-            reply_to: 'applications@palmsestate.org'
-          })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-          console.log('✅ Email sent via Resend API');
-          
-          // Log to database
-          await logEmailToDatabase(userEmail, emailData, 'sent', data.id);
-          
-          return {
-            success: true,
-            message: 'Email sent successfully',
-            reference: emailData.referenceNumber,
-            method: 'resend',
-            emailId: data.id
-          };
-        } else {
-          console.warn('Resend API error:', data.message);
-          throw new Error(data.message || 'Failed to send email via Resend');
-        }
-      } catch (error) {
-        console.warn('Resend API failed:', error.message);
-        throw error;
-      }
-    } else {
-      // No Resend API key configured
-      console.warn('Resend API key not configured. Email would be sent to:', userEmail);
-      console.log('Subject:', emailData.status === 'submitted' 
+    if (!RESEND_API_KEY) {
+      console.warn('❌ VITE_RESEND_API_KEY is not configured! Emails will not be sent.');
+      console.log('📧 Email would be sent to:', userEmail);
+      console.log('📧 Subject:', emailData.status === 'submitted' 
         ? `Application Received - ${emailData.propertyName}` 
         : `Application Status Update - ${emailData.propertyName}`);
       
-      // Log to database
-      await logEmailToDatabase(userEmail, emailData, 'queued');
+      // Log to database with YOUR column names
+      await logEmailToDatabase(
+        userEmail,
+        userId,
+        applicationData.applicationId,
+        emailData,
+        'queued',
+        null,
+        'Resend API key not configured'
+      );
       
       return {
         success: true,
@@ -214,25 +196,167 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
       };
     }
     
+    console.log('📧 Using Resend API key:', RESEND_API_KEY.substring(0, 10) + '...');
+    
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${RESEND_API_KEY}`
+        },
+        body: JSON.stringify({
+          from: 'Palms Estate <notification@palmsestate.org>',
+          to: userEmail,
+          subject: emailData.status === 'submitted' 
+            ? `Application Received - ${emailData.propertyName}` 
+            : `Application Status Update - ${emailData.propertyName}`,
+          html: htmlContent,
+          text: textContent,
+          reply_to: 'applications@palmsestate.org'
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        console.log('✅ Email sent via Resend API:', data.id);
+        
+        // Log to database with YOUR column names
+        await logEmailToDatabase(
+          userEmail, 
+          userId, 
+          applicationData.applicationId,
+          emailData, 
+          'sent', 
+          data.id
+        );
+        
+        return {
+          success: true,
+          message: 'Email sent successfully',
+          reference: emailData.referenceNumber,
+          method: 'resend',
+          emailId: data.id
+        };
+      } else {
+        console.warn('❌ Resend API error:', data);
+        
+        // Log error to database
+        await logEmailToDatabase(
+          userEmail,
+          userId,
+          applicationData.applicationId,
+          emailData,
+          'failed',
+          null,
+          data.message || 'Unknown error'
+        );
+        
+        // Try to send to admin for debugging
+        try {
+          await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${RESEND_API_KEY}`
+            },
+            body: JSON.stringify({
+              from: 'Palms Estate <notification@palmsestate.org>',
+              to: 'admin@palmsestate.org',
+              subject: '⚠️ Email Sending Failed',
+              html: `<p>Failed to send email to ${userEmail}: ${data.message}</p>
+                    <p>Application Data: ${JSON.stringify(applicationData)}</p>`,
+              text: `Failed to send email to ${userEmail}: ${data.message}`
+            })
+          });
+        } catch (adminError) {
+          console.error('Failed to send admin alert:', adminError);
+        }
+        
+        return {
+          success: false,
+          error: data.message || 'Failed to send email',
+          message: 'Failed to send email'
+        };
+      }
+    } catch (error) {
+      console.error('❌ Resend API failed:', error);
+      
+      // Log error to database
+      await logEmailToDatabase(
+        userEmail,
+        userId,
+        applicationData.applicationId,
+        emailData,
+        'failed',
+        null,
+        error.message
+      );
+      
+      return {
+        success: false,
+        error: error.message,
+        message: 'Failed to send email'
+      };
+    }
+    
   } catch (error) {
     console.error('❌ Email service error:', error);
-    
-    // Log error to database
-    await supabase.from('email_logs').insert([{
-      recipient: userEmail,
-      subject: 'Application Error',
-      email_type: 'application_confirmation_error',
-      status: 'failed',
-      error: error.message,
-      sent_at: new Date().toISOString(),
-      is_test: false
-    }]);
     
     return {
       success: false,
       error: error.message,
       message: 'Failed to send email'
     };
+  }
+};
+
+// Log email to database with YOUR column names
+async function logEmailToDatabase(to, userId, applicationId, data, status, resendId = null, errorMessage = null) {
+  try {
+    const emailType = data.status === 'submitted' ? 'application_confirmation' : 'status_update';
+    const subject = data.status === 'submitted' 
+      ? `Application Received - ${data.propertyName}` 
+      : `Application Status Update - ${data.propertyName}`;
+    
+    await supabase.from('email_logs').insert([{
+      recipient_email: to,
+      user_id: userId,
+      application_id: applicationId,
+      subject: subject,
+      email_type: emailType,
+      status: status,
+      resend_id: resendId,
+      error_message: errorMessage,
+      details: {
+        ...data,
+        timestamp: new Date().toISOString()
+      },
+      sent_at: new Date().toISOString()
+    }]);
+    
+    console.log('📝 Email logged to database');
+  } catch (error) {
+    console.error('Failed to log email:', error);
+  }
+}
+
+// Function to send admin notification about new application
+export const sendAdminNotification = async (applicationData) => {
+  try {
+    const adminEmail = 'admin@palmsestate.org';
+    
+    const emailData = {
+      ...applicationData,
+      status: 'new_submission_admin',
+      statusNote: 'New application submitted - requires review'
+    };
+    
+    return await sendApplicationConfirmation(adminEmail, emailData);
+  } catch (error) {
+    console.error('❌ Admin notification error:', error);
+    return { success: false, error: error.message };
   }
 };
 
@@ -260,67 +384,34 @@ export const sendApplicationStatusUpdate = async (userEmail, applicationData) =>
   }
 };
 
-async function logEmailToDatabase(to, data, status, resendId = null) {
-  try {
-    await supabase.from('email_logs').insert([{
-      recipient: to,
-      subject: data.status === 'submitted' 
-        ? `Application Received - ${data.propertyName}` 
-        : `Application Status Update - ${data.propertyName}`,
-      email_type: data.status === 'submitted' ? 'application_confirmation' : 'status_update',
-      status: status,
-      details: {
-        ...data,
-        resendId,
-        timestamp: new Date().toISOString()
-      },
-      sent_at: new Date().toISOString(),
-      is_test: false
-    }]);
-  } catch (error) {
-    console.error('Failed to log email:', error);
-  }
-}
-
-// Function to send admin notification about new application
-export const sendAdminNotification = async (applicationData) => {
-  try {
-    const adminEmail = 'admin@palmsestate.org'; // You can change this later
-    
-    const emailData = {
-      ...applicationData,
-      status: 'new_submission_admin',
-      statusNote: 'New application submitted - requires review'
-    };
-    
-    return await sendApplicationConfirmation(adminEmail, emailData);
-  } catch (error) {
-    console.error('❌ Admin notification error:', error);
-    return { success: false, error: error.message };
-  }
-};
-
 // Keep other functions
 export const sendEmailViaEdgeFunction = async (emailData) => {
   // ... existing code if any
+  return { success: false, message: 'Not implemented' };
 };
 
 export const sendPasswordResetEmail = async (email, resetLink) => {
   // ... existing code if any
+  return { success: false, message: 'Not implemented' };
 };
 
 export const canSendEmails = async () => {
+  const hasKey = !!import.meta.env.VITE_RESEND_API_KEY;
   return {
-    hasEmailService: !!import.meta.env.VITE_RESEND_API_KEY,
-    message: import.meta.env.VITE_RESEND_API_KEY 
+    hasEmailService: hasKey,
+    message: hasKey 
       ? 'Resend API configured' 
       : 'Configure VITE_RESEND_API_KEY for email delivery',
-    domain: 'palmsestate.org'
+    domain: 'palmsestate.org',
+    fromEmail: 'notification@palmsestate.org'
   };
 };
 
 // Test function
 export async function testEmailService() {
+  console.log('🔧 Testing email service...');
+  console.log('🔧 VITE_RESEND_API_KEY exists:', !!import.meta.env.VITE_RESEND_API_KEY);
+  
   const result = await sendApplicationConfirmation('test@example.com', {
     propertyName: 'Test Luxury Villa',
     propertyLocation: 'Test Location, Maldives',
@@ -328,6 +419,6 @@ export async function testEmailService() {
     referenceNumber: 'TEST-' + Date.now()
   });
   
-  console.log('Test email result:', result);
+  console.log('📧 Test email result:', result);
   return result;
 }
