@@ -1,12 +1,14 @@
+// src/pages/ApplicationForm.jsx - UPDATED VERSION
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, submitApplication } from '../lib/supabase';
-import { sendApplicationConfirmation } from '../lib/emailService';
+import { sendApplicationConfirmation, sendAdminNotification } from '../lib/emailService';
 import {
   Calendar, User, Mail, Phone, FileText, ArrowLeft,
   CreditCard, CheckCircle, Home, Shield, Clock, Building, 
-  DollarSign, Users, Dog, Briefcase, AlertCircle
+  DollarSign, Users, Dog, Briefcase, AlertCircle,
+  ExternalLink, Download, Copy
 } from 'lucide-react';
 
 function ApplicationForm() {
@@ -35,6 +37,7 @@ function ApplicationForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [applicationResult, setApplicationResult] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
     fetchProperty();
@@ -152,17 +155,20 @@ function ApplicationForm() {
       console.log('Application submission result:', result);
 
       if (result.success) {
+        // Prepare data for emails
+        const emailPayload = {
+          fullName: formData.fullName,
+          referenceNumber: result.referenceNumber,
+          applicationId: result.data.id,
+          propertyName: property?.title || 'Property',
+          propertyLocation: property?.location || 'Location not specified',
+          status: 'submitted'
+        };
+
         // Send confirmation to user
         try {
           console.log('Sending confirmation email to applicant...');
-          const emailResult = await sendApplicationConfirmation(formData.email, {
-            fullName: formData.fullName,
-            referenceNumber: result.referenceNumber,
-            applicationId: result.data.id,
-            propertyName: property?.title || 'Property',
-            propertyLocation: property?.location || 'Location not specified',
-            status: 'submitted'
-          });
+          const emailResult = await sendApplicationConfirmation(formData.email, emailPayload);
           
           console.log('Email result:', emailResult);
           
@@ -174,18 +180,14 @@ function ApplicationForm() {
           // Continue anyway - application was created
         }
 
-        // Send notification to admin (optional)
+        // Send notification to admin
         try {
           console.log('Sending admin notification...');
-          await sendApplicationConfirmation('admin@palmsestate.org', {
-            fullName: formData.fullName,
-            referenceNumber: result.referenceNumber,
-            applicationId: result.data.id,
-            propertyName: property?.title || 'Property',
-            propertyLocation: property?.location || 'Location not specified',
-            status: 'new_submission',
+          await sendAdminNotification({
+            ...emailPayload,
             customerName: formData.fullName,
-            applicantEmail: formData.email
+            applicantEmail: formData.email,
+            phone: formData.phone
           });
         } catch (adminEmailError) {
           console.warn('Admin email notification failed:', adminEmailError);
@@ -193,14 +195,11 @@ function ApplicationForm() {
 
         setApplicationResult({
           ...result,
-          emailSent: true
+          emailSent: true,
+          ...emailPayload
         });
         setSuccess(true);
         
-        // Redirect to dashboard after 3 seconds
-        setTimeout(() => {
-          navigate('/dashboard/applications');
-        }, 3000);
       } else {
         setError(result.error || 'Failed to submit application');
       }
@@ -209,6 +208,18 @@ function ApplicationForm() {
       setError(error.message || 'An unexpected error occurred');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    if (applicationResult?.referenceNumber) {
+      try {
+        await navigator.clipboard.writeText(applicationResult.referenceNumber);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
     }
   };
 
@@ -253,28 +264,47 @@ function ApplicationForm() {
           </p>
           
           {applicationResult?.referenceNumber && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
               <p className="text-sm text-gray-600">Reference Number</p>
-              <p className="font-mono font-bold text-lg text-gray-900">{applicationResult.referenceNumber}</p>
-              <p className="text-xs text-gray-500 mt-1">
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <p className="font-mono font-bold text-lg text-gray-900">{applicationResult.referenceNumber}</p>
+                <button
+                  onClick={copyToClipboard}
+                  className="p-1 hover:bg-gray-200 rounded transition-colors"
+                  title="Copy to clipboard"
+                >
+                  <Copy className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+              {copySuccess && (
+                <p className="text-xs text-green-600 mt-1">Copied to clipboard!</p>
+              )}
+              <p className="text-xs text-gray-500 mt-2">
                 Keep this number for your records
               </p>
             </div>
           )}
           
-          <p className="text-gray-600 mb-2">
-            A confirmation email has been sent to <span className="font-medium">{formData.email}</span>.
-          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-gray-600 mb-2">
+              A confirmation email has been sent to:
+            </p>
+            <p className="font-medium text-gray-900">{formData.email}</p>
+            <p className="text-xs text-gray-500 mt-2">
+              Check your inbox (and spam folder) for application details
+            </p>
+          </div>
           
           <p className="text-gray-600 mb-6">
-            Our team will review your application and get back to you shortly.
+            Our team will review your application and get back to you within 1-2 business days.
           </p>
           
           <div className="space-y-3">
             <Link
               to="/dashboard/applications"
-              className="block w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 rounded-lg transition-colors"
+              className="block w-full bg-orange-600 hover:bg-orange-700 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
+              <ExternalLink className="w-4 h-4" />
               View Your Applications
             </Link>
             <Link
@@ -283,11 +313,22 @@ function ApplicationForm() {
             >
               Browse More Properties
             </Link>
+            <Link
+              to={`/properties/${id}`}
+              className="block w-full border border-gray-300 hover:border-gray-400 text-gray-700 font-medium py-3 rounded-lg transition-colors"
+            >
+              Back to Property
+            </Link>
           </div>
           
-          <p className="text-sm text-gray-500 mt-6">
-            You will be redirected to your dashboard in a few seconds...
-          </p>
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <p className="text-sm text-gray-500">
+              Need help? Contact us at{' '}
+              <a href="mailto:applications@palmsestate.org" className="text-orange-600 hover:text-orange-700">
+                applications@palmsestate.org
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -368,7 +409,12 @@ function ApplicationForm() {
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <p className="text-red-700">{error}</p>
+                    <div>
+                      <p className="text-red-700 font-medium">{error}</p>
+                      <p className="text-red-600 text-sm mt-1">
+                        Please check the highlighted fields and try again.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -584,6 +630,10 @@ function ApplicationForm() {
                     />
                     <span className="text-sm text-gray-700">
                       I agree to the terms and conditions and confirm that all information provided is accurate. *
+                      <br />
+                      <span className="text-gray-500">
+                        A confirmation email will be sent to {formData.email} upon submission.
+                      </span>
                     </span>
                   </label>
                 </div>
