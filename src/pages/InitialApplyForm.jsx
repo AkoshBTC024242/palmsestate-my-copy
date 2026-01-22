@@ -1,9 +1,14 @@
+// src/pages/InitialApplyForm.jsx - UPDATED VERSION
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase, submitApplication } from '../lib/supabase';
-import { sendApplicationConfirmation } from '../lib/emailService';
-import { User, Mail, Phone, Calendar, FileText, CheckCircle, ArrowLeft, Home, AlertCircle } from 'lucide-react';
+import { sendApplicationConfirmation, sendAdminNotification } from '../lib/emailService';
+import { 
+  User, Mail, Phone, Calendar, FileText, CheckCircle, 
+  ArrowLeft, Home, AlertCircle, ExternalLink, Copy,
+  Building, DollarSign, Clock, Shield
+} from 'lucide-react';
 
 function InitialApplyForm() {
   const { id } = useParams();
@@ -24,8 +29,8 @@ function InitialApplyForm() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [applicationResult, setApplicationResult] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
 
-  // Load property details
   useEffect(() => {
     const loadProperty = async () => {
       try {
@@ -90,6 +95,18 @@ function InitialApplyForm() {
     return true;
   };
 
+  const copyToClipboard = async () => {
+    if (applicationResult?.referenceNumber) {
+      try {
+        await navigator.clipboard.writeText(applicationResult.referenceNumber);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -122,17 +139,20 @@ function InitialApplyForm() {
       console.log('Application result:', result);
 
       if (result.success) {
-        // Send confirmation email
+        // Prepare email data
+        const emailPayload = {
+          fullName: formData.fullName,
+          referenceNumber: result.referenceNumber,
+          applicationId: result.data.id,
+          propertyName: property?.title || 'Property',
+          propertyLocation: property?.location || 'Location not specified',
+          status: 'submitted'
+        };
+
+        // Send confirmation to user
         try {
           console.log('Sending confirmation email to applicant...');
-          const emailResult = await sendApplicationConfirmation(formData.email, {
-            fullName: formData.fullName,
-            referenceNumber: result.referenceNumber,
-            applicationId: result.data.id,
-            propertyName: property?.title || 'Property',
-            propertyLocation: property?.location || 'Location not specified',
-            status: 'submitted'
-          });
+          const emailResult = await sendApplicationConfirmation(formData.email, emailPayload);
           
           console.log('Email result:', emailResult);
           
@@ -144,18 +164,14 @@ function InitialApplyForm() {
           // Continue anyway - application was created
         }
 
-        // Send notification to admin (optional)
+        // Send notification to admin
         try {
           console.log('Sending admin notification...');
-          await sendApplicationConfirmation('admin@palmsestate.org', {
-            fullName: formData.fullName,
-            referenceNumber: result.referenceNumber,
-            applicationId: result.data.id,
-            propertyName: property?.title || 'Property',
-            propertyLocation: property?.location || 'Location not specified',
-            status: 'new_submission',
+          await sendAdminNotification({
+            ...emailPayload,
             customerName: formData.fullName,
-            applicantEmail: formData.email
+            applicantEmail: formData.email,
+            phone: formData.phone
           });
         } catch (adminEmailError) {
           console.warn('Admin email notification failed:', adminEmailError);
@@ -163,13 +179,10 @@ function InitialApplyForm() {
 
         setApplicationResult({
           ...result,
-          emailSent: true
+          emailSent: true,
+          ...emailPayload
         });
         setSuccess(true);
-        
-        setTimeout(() => {
-          navigate('/dashboard/applications');
-        }, 3000);
         
       } else {
         console.error('Application failed:', result.error);
@@ -221,37 +234,71 @@ function InitialApplyForm() {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Application Submitted!</h2>
           
           {applicationResult?.referenceNumber && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-200">
               <p className="text-sm text-gray-600">Reference Number</p>
-              <p className="font-mono font-bold text-lg text-gray-900">{applicationResult.referenceNumber}</p>
+              <div className="flex items-center justify-center gap-2 mt-2">
+                <p className="font-mono font-bold text-lg text-gray-900">{applicationResult.referenceNumber}</p>
+                <button
+                  onClick={copyToClipboard}
+                  className="p-1 hover:bg-gray-200 rounded transition-colors"
+                  title="Copy to clipboard"
+                >
+                  <Copy className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+              {copySuccess && (
+                <p className="text-xs text-green-600 mt-1">Copied to clipboard!</p>
+              )}
               <p className="text-xs text-gray-500 mt-1">
                 Keep this number for your records
               </p>
             </div>
           )}
           
-          <p className="text-gray-600 mb-2">
-            A confirmation email has been sent to <span className="font-medium">{formData.email}</span>.
-          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-gray-600 mb-2">
+              A confirmation email has been sent to:
+            </p>
+            <p className="font-medium text-gray-900">{formData.email}</p>
+            <p className="text-xs text-gray-500 mt-2">
+              Check your inbox (and spam folder) for application details
+            </p>
+          </div>
           
           <p className="text-gray-600 mb-6">
             Our team will review your application and contact you soon.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="space-y-3">
+            <Link 
+              to="/dashboard/applications" 
+              className="inline-flex items-center justify-center w-full bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              View Your Applications
+            </Link>
             <Link 
               to="/properties" 
-              className="inline-flex items-center justify-center bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all"
+              className="inline-flex items-center justify-center w-full bg-gray-200 text-gray-800 px-6 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Properties
             </Link>
             <Link 
-              to="/dashboard/applications" 
-              className="inline-flex items-center justify-center bg-gradient-to-r from-amber-600 to-orange-500 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
+              to={`/properties/${id}`}
+              className="inline-flex items-center justify-center w-full border border-gray-300 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-all"
             >
-              View Applications
+              View Property Again
             </Link>
+          </div>
+          
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <p className="text-sm text-gray-500">
+              Need help? Contact us at{' '}
+              <a href="mailto:applications@palmsestate.org" className="text-orange-600 hover:text-orange-700">
+                applications@palmsestate.org
+              </a>
+            </p>
           </div>
         </div>
       </div>
@@ -295,6 +342,22 @@ function InitialApplyForm() {
                     ${property.price_per_week}/week
                   </p>
                 )}
+              </div>
+            </div>
+            
+            {/* Application fee note */}
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <Shield className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-amber-800">
+                    <strong>Note:</strong> A $50 application fee will be required if your application is pre-approved.
+                    You'll be notified via email if payment is needed.
+                  </p>
+                  <p className="text-xs text-amber-600 mt-1">
+                    The fee covers background and credit checks.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -397,11 +460,24 @@ function InitialApplyForm() {
               />
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <p className="text-amber-800 text-sm">
-                <strong>Note:</strong> A $50 application fee will be required if your application is pre-approved.
-                You'll be notified via email if payment is needed.
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+              <p className="text-gray-800 text-sm">
+                <strong>What happens next?</strong>
               </p>
+              <div className="mt-2 space-y-2">
+                <div className="flex items-start gap-2">
+                  <Clock className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-gray-600">1-2 business days for initial review</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Mail className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-gray-600">Email notification of next steps</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <FileText className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-gray-600">Detailed application form if pre-approved</p>
+                </div>
+              </div>
             </div>
 
             <button
