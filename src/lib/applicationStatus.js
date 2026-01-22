@@ -1,4 +1,4 @@
-// src/lib/applicationStatus.js
+// src/lib/applicationStatus.js - UPDATED
 import { supabase } from './supabase';
 import { sendApplicationStatusUpdate } from './emailService';
 
@@ -16,14 +16,25 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
     if (fetchError) throw fetchError;
     
     // Update status in database
+    const updateData = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+      last_email_sent_at: new Date().toISOString()
+    };
+
+    // Set specific timestamps based on status
+    if (newStatus === 'approved_pending_info') {
+      updateData.initial_approved_at = new Date().toISOString();
+    } else if (newStatus === 'approved') {
+      updateData.final_approved_at = new Date().toISOString();
+    } else if (newStatus === 'rejected') {
+      updateData.rejected_at = new Date().toISOString();
+      updateData.rejection_reason = note;
+    }
+
     const { data, error } = await supabase
       .from('applications')
-      .update({
-        status: newStatus,
-        status_note: note,
-        updated_at: new Date().toISOString(),
-        reviewed_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', applicationId)
       .select()
       .single();
@@ -50,14 +61,32 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
     }
     
     // Log the status change
-    await supabase.from('application_status_logs').insert({
-      application_id: applicationId,
-      from_status: application.status,
-      to_status: newStatus,
-      note: note,
-      changed_by: 'admin', // You might want to pass admin user ID here
-      created_at: new Date().toISOString()
-    });
+    try {
+      await supabase.from('application_status_logs').insert({
+        application_id: applicationId,
+        from_status: application.status,
+        to_status: newStatus,
+        note: note,
+        changed_by: 'admin',
+        created_at: new Date().toISOString()
+      });
+    } catch (logError) {
+      console.warn('Could not log status change:', logError);
+    }
+    
+    // Add a note about status change
+    try {
+      await supabase
+        .from('application_notes')
+        .insert({
+          application_id: applicationId,
+          content: `Status changed to: ${getStatusLabel(newStatus)}${note ? ` - Reason: ${note}` : ''}`,
+          created_by: 'system',
+          created_at: new Date().toISOString()
+        });
+    } catch (noteError) {
+      console.warn('Could not add note:', noteError);
+    }
     
     return {
       success: true,
@@ -74,6 +103,22 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
       message: 'Failed to update status'
     };
   }
+}
+
+// Helper function for status labels
+function getStatusLabel(status) {
+  const labels = {
+    submitted: 'Submitted',
+    under_review: 'Under Review',
+    pre_approved: 'Pre-Approved',
+    approved_pending_info: 'Approved - Pending Info',
+    additional_info_submitted: 'Additional Info Submitted',
+    paid_under_review: 'Paid - Under Review',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    payment_pending: 'Payment Pending'
+  };
+  return labels[status] || status;
 }
 
 export async function getApplicationWithDetails(applicationId) {
