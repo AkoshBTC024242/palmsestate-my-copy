@@ -1,7 +1,8 @@
-// src/lib/applicationStatus.js - UPDATED
+// src/lib/applicationStatus.js - CORRECTED VERSION
 import { supabase } from './supabase';
-import { sendApplicationStatusUpdate } from './emailService';
+import { sendApplicationConfirmation } from './emailService';
 
+// Update application status and send email
 export async function updateApplicationStatus(applicationId, newStatus, note = '') {
   try {
     console.log('Updating application status:', { applicationId, newStatus, note });
@@ -44,7 +45,7 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
     // Send status update email to applicant
     let emailResult = { success: false };
     try {
-      emailResult = await sendApplicationStatusUpdate(application.email, {
+      emailResult = await sendApplicationConfirmation(application.email, {
         fullName: application.full_name,
         referenceNumber: application.reference_number,
         applicationId: application.id,
@@ -101,6 +102,24 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
       success: false,
       error: error.message,
       message: 'Failed to update status'
+    };
+  }
+}
+
+// Send status update email function
+export async function sendApplicationStatusUpdate(userEmail, applicationData) {
+  try {
+    console.log('Sending status update to:', userEmail);
+    
+    // Use the main sendApplicationConfirmation function
+    return await sendApplicationConfirmation(userEmail, applicationData);
+    
+  } catch (error) {
+    console.error('❌ Status update email error:', error);
+    return {
+      success: false,
+      error: error.message,
+      message: 'Failed to send status update email'
     };
   }
 }
