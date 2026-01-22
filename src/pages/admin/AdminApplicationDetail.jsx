@@ -1,4 +1,4 @@
-// src/pages/admin/AdminApplicationDetail.jsx - UPDATED WITH EMAIL INTEGRATION
+// src/pages/admin/AdminApplicationDetail.jsx - CORRECTED IMPORT
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -14,6 +14,7 @@ import {
   AlertTriangle, Info, History, ArrowRight, RefreshCw,
   Bell, MailOpen, Send as SendIcon
 } from 'lucide-react';
+
 
 function AdminApplicationDetail() {
   const { id } = useParams();
