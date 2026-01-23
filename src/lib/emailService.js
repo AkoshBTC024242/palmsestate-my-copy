@@ -1,7 +1,7 @@
-// src/lib/emailService.js - MAKE SURE THIS IS THE ACTUAL FILE
+// src/lib/emailService.js - COMPLETE WORKING VERSION
 import { supabase } from './supabase';
 
-// Embedded email template - ACTUAL TEMPLATE
+// ACTUAL EMAIL TEMPLATE - NO PLACEHOLDERS
 const generateApplicationEmailHTML = (data) => {
   const {
     applicationId = 'APP-N/A',
@@ -18,13 +18,21 @@ const generateApplicationEmailHTML = (data) => {
   let statusSection = '';
   if (isStatusUpdate) {
     statusSection = `
-      <div class="status-update" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 20px; border-radius: 8px; margin: 20px 0; color: white; text-align: center;">
+      <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 20px; border-radius: 8px; margin: 20px 0; color: white; text-align: center;">
         <h3 style="margin: 0 0 10px; font-size: 20px;">Application Status Updated</h3>
         <p style="margin: 0; font-size: 24px; font-weight: bold;">${status.charAt(0).toUpperCase() + status.slice(1)}</p>
         ${statusNote ? `<p style="margin: 10px 0 0; font-style: italic;">${statusNote}</p>` : ''}
       </div>
     `;
   }
+
+  const today = new Date();
+  const formattedDate = today.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -33,13 +41,56 @@ const generateApplicationEmailHTML = (data) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${isStatusUpdate ? 'Application Status Update' : 'Application Confirmation'} - Palms Estate</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px; text-align: center; color: white; border-radius: 10px 10px 0 0; }
-        .content { padding: 30px; background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px; }
-        .details { background: #fffbeb; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f97316; }
-        .button { display: inline-block; background: #f97316; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; transition: background 0.3s; }
-        .button:hover { background: #ea580c; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; text-align: center; }
+        body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .header { 
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); 
+            padding: 30px; 
+            text-align: center; 
+            color: white; 
+            border-radius: 10px 10px 0 0; 
+        }
+        .content { 
+            padding: 30px; 
+            background: white; 
+            border: 1px solid #e5e7eb; 
+            border-top: none; 
+            border-radius: 0 0 10px 10px; 
+        }
+        .details { 
+            background: #fffbeb; 
+            padding: 20px; 
+            border-radius: 8px; 
+            margin: 20px 0; 
+            border-left: 4px solid #f97316; 
+        }
+        .button { 
+            display: inline-block; 
+            background: #f97316; 
+            color: white; 
+            padding: 12px 30px; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            transition: background 0.3s; 
+        }
+        .button:hover { 
+            background: #ea580c; 
+        }
+        .footer { 
+            margin-top: 30px; 
+            padding-top: 20px; 
+            border-top: 1px solid #e5e7eb; 
+            color: #6b7280; 
+            font-size: 12px; 
+            text-align: center; 
+        }
     </style>
 </head>
 <body>
@@ -60,7 +111,7 @@ const generateApplicationEmailHTML = (data) => {
             <p><strong>Property:</strong> ${propertyName}</p>
             <p><strong>Location:</strong> ${propertyLocation}</p>
             <p><strong>Applicant:</strong> ${applicantName}</p>
-            <p><strong>${isStatusUpdate ? 'Updated' : 'Submitted'}:</strong> ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p><strong>${isStatusUpdate ? 'Updated' : 'Submitted'}:</strong> ${formattedDate}</p>
         </div>
         
         <div style="text-align: center; margin: 30px 0;">
@@ -80,7 +131,7 @@ const generateApplicationEmailHTML = (data) => {
         
         <div class="footer">
             <p>Questions? Contact <a href="mailto:applications@palmsestate.org" style="color: #ea580c;">applications@palmsestate.org</a></p>
-            <p>© ${new Date().getFullYear()} Palms Estate. All rights reserved.</p>
+            <p>© ${today.getFullYear()} Palms Estate. All rights reserved.</p>
             <p style="font-size: 11px;">This is an automated message. Please do not reply to this email.</p>
         </div>
     </div>
@@ -88,102 +139,46 @@ const generateApplicationEmailHTML = (data) => {
 </html>`;
 };
 
+// Text version
 const generateStatusUpdateText = (data) => {
   const status = data.status || 'submitted';
   const isStatusUpdate = status && status !== 'submitted';
   
   let statusText = '';
   if (isStatusUpdate) {
-    statusText = `
-APPLICATION STATUS UPDATE - PALMS ESTATE
+    statusText = `APPLICATION STATUS UPDATE - PALMS ESTATE
 
 Your application status has been updated to: ${status.toUpperCase()}
 
-${data.statusNote ? `Note: ${data.statusNote}\n` : ''}
-`;
+${data.statusNote ? `Note: ${data.statusNote}\n` : ''}`;
   }
 
-  return `
-${statusText}
-Application Details:
+  return `${statusText}Application Details:
 - Reference: ${data.referenceNumber || 'N/A'}
 - Property: ${data.propertyName || 'Property'}
 - Location: ${data.propertyLocation || 'Location'}
 - Applicant: ${data.applicantName || 'Applicant'}
 - ${isStatusUpdate ? 'Updated' : 'Submitted'}: ${new Date().toLocaleDateString()}
 
-${!isStatusUpdate ? `
-Next Steps:
+${!isStatusUpdate ? `Next Steps:
 1. Initial Review (1-2 business days)
 2. Verification Check
 3. Decision Notification
 ` : ''}
-
 View your application status:
 https://palmsestate.org/dashboard/applications
 
 Questions? Contact: applications@palmsestate.org
 
-© ${new Date().getFullYear()} Palms Estate
-`.trim();
+© ${new Date().getFullYear()} Palms Estate`.trim();
 };
 
-const isValidUUID = (uuid) => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuid && uuidRegex.test(uuid);
-};
-
-async function logEmailToDatabase(to, userId, applicationId, data, status, resendId = null, errorMessage = null) {
-  try {
-    const emailType = data.status === 'submitted' ? 'application_confirmation' : 'status_update';
-    const subject = data.status === 'submitted' 
-      ? `Application Received - ${data.propertyName}` 
-      : `Application Status Update - ${data.propertyName}`;
-    
-    let validatedResendId = null;
-    if (resendId && isValidUUID(resendId)) {
-      validatedResendId = resendId;
-    }
-    
-    const logData = {
-      recipient_email: to,
-      user_id: userId,
-      application_id: applicationId,
-      subject: subject,
-      email_type: emailType,
-      status: status,
-      error_message: errorMessage,
-      details: {
-        ...data,
-        timestamp: new Date().toISOString()
-      },
-      sent_at: new Date().toISOString()
-    };
-    
-    if (validatedResendId) {
-      logData.resend_id = validatedResendId;
-    }
-    
-    const { error } = await supabase.from('email_logs').insert([logData]);
-    
-    if (error) {
-      console.error('❌ Failed to insert email log:', error);
-      return false;
-    }
-    
-    console.log('📝 Email logged to database');
-    return true;
-  } catch (error) {
-    console.error('❌ Failed to log email:', error);
-    return false;
-  }
-}
-
+// Main function
 export const sendApplicationConfirmation = async (userEmail, applicationData) => {
-  console.log('=== EMAIL SERVICE START ===');
-  console.log('📧 Sending to:', userEmail);
+  console.log('📧 Starting email send to:', userEmail);
   
   try {
+    // Prepare data
     const emailData = {
       applicationId: applicationData.applicationId || `APP-${Date.now()}`,
       propertyName: applicationData.propertyName || applicationData.propertyTitle || 'Property',
@@ -194,34 +189,28 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
       statusNote: applicationData.statusNote || ''
     };
     
+    // Generate content
     const htmlContent = generateApplicationEmailHTML(emailData);
     const textContent = generateStatusUpdateText(emailData);
     
-    console.log('📧 HTML Length:', htmlContent.length, 'chars');
+    console.log('📧 Generated HTML length:', htmlContent.length);
+    console.log('📧 Generated text length:', textContent.length);
     
-    if (htmlContent.length < 1000) {
-      console.error('❌ HTML is too short! Might be placeholder.');
+    // Check if HTML is valid
+    if (htmlContent.includes('...your HTML template...') || 
+        htmlContent.includes('your HTML template here') ||
+        htmlContent.length < 1000) {
+      console.error('❌ HTML template issue detected!');
+      console.log('HTML preview:', htmlContent.substring(0, 200));
+      throw new Error('Invalid HTML template generated');
     }
     
-    let userId = null;
-    try {
-      const { data: userData } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', userEmail)
-        .maybeSingle();
-      
-      if (userData) userId = userData.id;
-    } catch (error) {
-      console.log('No user ID found for:', userEmail);
-    }
-    
+    // Get subject
     const subject = emailData.status === 'submitted' 
       ? `Application Received - ${emailData.propertyName}` 
       : `Application Status Update - ${emailData.propertyName}`;
     
-    console.log('📤 Calling Edge Function...');
-    
+    // Send via Edge Function
     const { data: result, error } = await supabase.functions.invoke('send-email', {
       body: {
         to: userEmail,
@@ -234,68 +223,24 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
     });
     
     if (error) {
-      console.error('❌ Edge Function error:', error);
-      
-      await logEmailToDatabase(
-        userEmail,
-        userId,
-        applicationData.applicationId,
-        emailData,
-        'failed',
-        null,
-        error.message
-      );
-      
-      return {
-        success: false,
-        error: error.message,
-        message: 'Failed to send email'
-      };
+      console.error('❌ Edge Function error:', error.message);
+      throw error;
     }
     
-    console.log('✅ Edge Function result:', result);
-    
-    if (result.success) {
-      console.log('✅ Email sent successfully');
-      
-      await logEmailToDatabase(
-        userEmail,
-        userId,
-        applicationData.applicationId,
-        emailData,
-        'sent',
-        result.emailId || null
-      );
-      
+    if (result && result.success) {
+      console.log('✅ Email sent successfully:', result.emailId);
       return {
         success: true,
         message: 'Email sent successfully',
-        reference: emailData.referenceNumber,
-        method: 'edge-function',
-        emailId: result.emailId || null
+        emailId: result.emailId
       };
     } else {
-      console.error('❌ Edge Function error:', result.error);
-      
-      await logEmailToDatabase(
-        userEmail,
-        userId,
-        applicationData.applicationId,
-        emailData,
-        'failed',
-        null,
-        result.error
-      );
-      
-      return {
-        success: false,
-        error: result.error,
-        message: 'Failed to send email'
-      };
+      console.error('❌ Edge Function returned error:', result?.error);
+      throw new Error(result?.error || 'Email sending failed');
     }
     
   } catch (error) {
-    console.error('❌ Email service error:', error);
+    console.error('❌ Email sending failed:', error.message);
     return {
       success: false,
       error: error.message,
@@ -304,69 +249,28 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
   }
 };
 
+// Other functions (simplified)
 export const sendAdminNotification = async (applicationData) => {
-  console.log('📧 Sending admin notification...');
   try {
-    const adminEmail = 'admin@palmsestate.org';
-    
-    const emailData = {
+    return await sendApplicationConfirmation('admin@palmsestate.org', {
       ...applicationData,
       status: 'new_submission_admin',
       statusNote: 'New application submitted - requires review'
-    };
-    
-    const htmlContent = generateApplicationEmailHTML(emailData);
-    const textContent = generateStatusUpdateText(emailData);
-    
-    const subject = `New Application - ${emailData.propertyName}`;
-    
-    const { data: result, error } = await supabase.functions.invoke('send-email', {
-      body: {
-        to: adminEmail,
-        subject: subject,
-        html: htmlContent,
-        text: textContent,
-        type: 'admin',
-        applicationData: emailData
-      }
     });
-    
-    if (error) {
-      console.error('❌ Admin email error:', error);
-      return { success: false, error: error.message };
-    }
-    
-    return result;
-    
   } catch (error) {
-    console.error('❌ Admin notification error:', error);
+    console.error('Admin notification error:', error);
     return { success: false, error: error.message };
   }
 };
 
 export const sendApplicationStatusUpdate = async (userEmail, applicationData) => {
-  console.log('📧 Sending status update to:', userEmail);
-  try {
-    const emailData = {
-      ...applicationData,
-      status: applicationData.status || 'updated'
-    };
-    
-    return await sendApplicationConfirmation(userEmail, emailData);
-    
-  } catch (error) {
-    console.error('❌ Status update email error:', error);
-    return {
-      success: false,
-      error: error.message,
-      message: 'Failed to send status update email'
-    };
-  }
+  return await sendApplicationConfirmation(userEmail, {
+    ...applicationData,
+    status: applicationData.status || 'updated'
+  });
 };
 
 export const sendTestEmail = async (toEmail) => {
-  console.log('🧪 Sending test email to:', toEmail);
-  
   return await sendApplicationConfirmation(toEmail, {
     propertyName: 'Test Luxury Villa',
     propertyLocation: 'Maldives Beach',
@@ -376,29 +280,16 @@ export const sendTestEmail = async (toEmail) => {
   });
 };
 
+// Simple config check
 export const canSendEmails = async () => {
   return {
     hasEmailService: true,
-    message: 'Using Supabase Edge Functions for email delivery',
-    domain: 'palmsestate.org',
-    fromEmail: 'notification@palmsestate.org'
+    message: 'Email service is configured',
+    domain: 'palmsestate.org'
   };
 };
 
-export async function testEmailService() {
-  console.log('🧪 Testing email service...');
-  
-  const result = await sendApplicationConfirmation('test@example.com', {
-    propertyName: 'Test Luxury Villa',
-    propertyLocation: 'Test Location, Maldives',
-    fullName: 'Test User',
-    referenceNumber: 'TEST-' + Date.now()
-  });
-  
-  console.log('📧 Test result:', result);
-  return result;
-}
-
+// Keep for compatibility
 export const sendEmailViaEdgeFunction = async (emailData) => {
   return sendApplicationConfirmation(emailData.to, emailData);
 };
@@ -406,3 +297,7 @@ export const sendEmailViaEdgeFunction = async (emailData) => {
 export const sendPasswordResetEmail = async (email, resetLink) => {
   return { success: false, message: 'Not implemented' };
 };
+
+export async function testEmailService() {
+  return await sendTestEmail('test@example.com');
+}
