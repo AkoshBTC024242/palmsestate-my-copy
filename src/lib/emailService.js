@@ -1,4 +1,4 @@
-// src/lib/emailService.js - COMPLETE WORKING VERSION
+// src/lib/emailService.js - UPDATED & FIXED VERSION
 import { supabase } from './supabase';
 
 // Embedded email template
@@ -129,12 +129,70 @@ Questions? Contact: applications@palmsestate.org
 `.trim();
 };
 
+// Validate UUID format
+const isValidUUID = (uuid) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuid && uuidRegex.test(uuid);
+};
+
+// Log email to database with YOUR column names
+async function logEmailToDatabase(to, userId, applicationId, data, status, resendId = null, errorMessage = null) {
+  try {
+    const emailType = data.status === 'submitted' ? 'application_confirmation' : 'status_update';
+    const subject = data.status === 'submitted' 
+      ? `Application Received - ${data.propertyName}` 
+      : `Application Status Update - ${data.propertyName}`;
+    
+    // Validate resendId if provided
+    let validatedResendId = null;
+    if (resendId && isValidUUID(resendId)) {
+      validatedResendId = resendId;
+    } else if (resendId) {
+      console.warn('⚠️ Invalid Resend ID format, not logging:', resendId);
+    }
+    
+    const logData = {
+      recipient_email: to,
+      user_id: userId,
+      application_id: applicationId,
+      subject: subject,
+      email_type: emailType,
+      status: status,
+      error_message: errorMessage,
+      details: {
+        ...data,
+        timestamp: new Date().toISOString()
+      },
+      sent_at: new Date().toISOString()
+    };
+    
+    // Only add resend_id if it's a valid UUID
+    if (validatedResendId) {
+      logData.resend_id = validatedResendId;
+    }
+    
+    const { error } = await supabase.from('email_logs').insert([logData]);
+    
+    if (error) {
+      console.error('❌ Failed to insert email log:', error);
+      return false;
+    } else {
+      console.log('📝 Email logged to database successfully');
+      return true;
+    }
+  } catch (error) {
+    console.error('❌ Failed to log email:', error);
+    return false;
+  }
+}
+
 // Main function - Application Confirmation
 export const sendApplicationConfirmation = async (userEmail, applicationData) => {
+  console.log('=== EMAIL SERVICE START ===');
+  console.log('📧 Sending application confirmation to:', userEmail);
+  console.log('📧 Application data:', applicationData);
+  
   try {
-    console.log('📧 Sending application confirmation to:', userEmail);
-    console.log('📧 Application data:', applicationData);
-    
     // Prepare email data
     const emailData = {
       applicationId: applicationData.applicationId || `APP-${Date.now()}`,
@@ -157,7 +215,7 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
         .from('profiles')
         .select('id')
         .eq('email', userEmail)
-        .single();
+        .maybeSingle();
       
       if (!error && userData) {
         userId = userData.id;
@@ -168,6 +226,9 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
     
     // Use your verified domain email address
     const RESEND_API_KEY = import.meta.env.VITE_RESEND_API_KEY;
+    
+    console.log('🔑 Checking Resend configuration...');
+    console.log('   VITE_RESEND_API_KEY exists:', !!RESEND_API_KEY);
     
     if (!RESEND_API_KEY) {
       console.warn('❌ VITE_RESEND_API_KEY is not configured! Emails will not be sent.');
@@ -187,6 +248,7 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
         'Resend API key not configured'
       );
       
+      console.log('=== EMAIL SERVICE END (Queued) ===');
       return {
         success: true,
         queued: true,
@@ -196,9 +258,15 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
       };
     }
     
-    console.log('📧 Using Resend API key:', RESEND_API_KEY.substring(0, 10) + '...');
+    console.log('🔑 Resend API Key (first 10 chars):', RESEND_API_KEY.substring(0, 10) + '...');
+    console.log('🔑 API Key starts with "re_":', RESEND_API_KEY.startsWith('re_'));
+    
+    // Determine "from" address based on configuration
+    const fromAddress = 'Palms Estate <notification@palmsestate.org>';
+    console.log('📨 From address:', fromAddress);
     
     try {
+      console.log('📤 Sending to Resend API...');
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -206,7 +274,7 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
           'Authorization': `Bearer ${RESEND_API_KEY}`
         },
         body: JSON.stringify({
-          from: 'Palms Estate <notification@palmsestate.org>',
+          from: fromAddress,
           to: userEmail,
           subject: emailData.status === 'submitted' 
             ? `Application Received - ${emailData.propertyName}` 
@@ -217,10 +285,23 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
         })
       });
       
+      console.log('📡 Response status:', response.status);
       const data = await response.json();
+      console.log('📡 Response data:', data);
       
       if (response.ok) {
-        console.log('✅ Email sent via Resend API:', data.id);
+        console.log('✅ Email sent via Resend API');
+        
+        // Validate the returned email ID
+        if (data.id) {
+          if (isValidUUID(data.id)) {
+            console.log('✅ Valid Resend Email ID:', data.id);
+          } else {
+            console.warn('⚠️ Resend returned non-UUID email ID:', data.id);
+          }
+        } else {
+          console.warn('⚠️ Resend returned success but no email ID');
+        }
         
         // Log to database with YOUR column names
         await logEmailToDatabase(
@@ -229,15 +310,16 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
           applicationData.applicationId,
           emailData, 
           'sent', 
-          data.id
+          data.id || null
         );
         
+        console.log('=== EMAIL SERVICE END (Success) ===');
         return {
           success: true,
           message: 'Email sent successfully',
           reference: emailData.referenceNumber,
           method: 'resend',
-          emailId: data.id
+          emailId: data.id || null
         };
       } else {
         console.warn('❌ Resend API error:', data);
@@ -253,27 +335,7 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
           data.message || 'Unknown error'
         );
         
-        // Try to send to admin for debugging
-        try {
-          await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${RESEND_API_KEY}`
-            },
-            body: JSON.stringify({
-              from: 'Palms Estate <notification@palmsestate.org>',
-              to: 'admin@palmsestate.org',
-              subject: '⚠️ Email Sending Failed',
-              html: `<p>Failed to send email to ${userEmail}: ${data.message}</p>
-                    <p>Application Data: ${JSON.stringify(applicationData)}</p>`,
-              text: `Failed to send email to ${userEmail}: ${data.message}`
-            })
-          });
-        } catch (adminError) {
-          console.error('Failed to send admin alert:', adminError);
-        }
-        
+        console.log('=== EMAIL SERVICE END (Failed) ===');
         return {
           success: false,
           error: data.message || 'Failed to send email',
@@ -294,6 +356,7 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
         error.message
       );
       
+      console.log('=== EMAIL SERVICE END (Error) ===');
       return {
         success: false,
         error: error.message,
@@ -303,7 +366,7 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
     
   } catch (error) {
     console.error('❌ Email service error:', error);
-    
+    console.log('=== EMAIL SERVICE END (Exception) ===');
     return {
       success: false,
       error: error.message,
@@ -312,38 +375,9 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
   }
 };
 
-// Log email to database with YOUR column names
-async function logEmailToDatabase(to, userId, applicationId, data, status, resendId = null, errorMessage = null) {
-  try {
-    const emailType = data.status === 'submitted' ? 'application_confirmation' : 'status_update';
-    const subject = data.status === 'submitted' 
-      ? `Application Received - ${data.propertyName}` 
-      : `Application Status Update - ${data.propertyName}`;
-    
-    await supabase.from('email_logs').insert([{
-      recipient_email: to,
-      user_id: userId,
-      application_id: applicationId,
-      subject: subject,
-      email_type: emailType,
-      status: status,
-      resend_id: resendId,
-      error_message: errorMessage,
-      details: {
-        ...data,
-        timestamp: new Date().toISOString()
-      },
-      sent_at: new Date().toISOString()
-    }]);
-    
-    console.log('📝 Email logged to database');
-  } catch (error) {
-    console.error('Failed to log email:', error);
-  }
-}
-
 // Function to send admin notification about new application
 export const sendAdminNotification = async (applicationData) => {
+  console.log('📧 Sending admin notification...');
   try {
     const adminEmail = 'admin@palmsestate.org';
     
@@ -362,9 +396,8 @@ export const sendAdminNotification = async (applicationData) => {
 
 // New function for sending status updates
 export const sendApplicationStatusUpdate = async (userEmail, applicationData) => {
+  console.log('📧 Sending status update to:', userEmail);
   try {
-    console.log('📧 Sending status update to:', userEmail);
-    
     // Prepare email data with status info
     const emailData = {
       ...applicationData,
@@ -384,33 +417,101 @@ export const sendApplicationStatusUpdate = async (userEmail, applicationData) =>
   }
 };
 
-// Keep other functions
-export const sendEmailViaEdgeFunction = async (emailData) => {
-  // ... existing code if any
-  return { success: false, message: 'Not implemented' };
+// Simple email test function
+export const sendTestEmail = async (toEmail) => {
+  console.log('🧪 Sending test email to:', toEmail);
+  
+  return await sendApplicationConfirmation(toEmail, {
+    propertyName: 'Test Luxury Villa',
+    propertyLocation: 'Maldives Beach',
+    fullName: 'Test User',
+    referenceNumber: 'TEST-' + Date.now(),
+    status: 'submitted'
+  });
 };
 
-export const sendPasswordResetEmail = async (email, resetLink) => {
-  // ... existing code if any
-  return { success: false, message: 'Not implemented' };
-};
-
+// Check if email service is configured
 export const canSendEmails = async () => {
   const hasKey = !!import.meta.env.VITE_RESEND_API_KEY;
+  const key = import.meta.env.VITE_RESEND_API_KEY || '';
+  
   return {
     hasEmailService: hasKey,
     message: hasKey 
       ? 'Resend API configured' 
       : 'Configure VITE_RESEND_API_KEY for email delivery',
     domain: 'palmsestate.org',
-    fromEmail: 'notification@palmsestate.org'
+    fromEmail: 'notification@palmsestate.org',
+    keyFormat: key.startsWith('re_') ? 'Valid format' : 'Invalid format',
+    keyLength: key.length
   };
 };
 
+// Debug function to test Resend API directly
+export async function debugResendAPI(testEmail = 'test@example.com') {
+  console.log('🔍 DEBUGGING RESEND API');
+  console.log('=======================');
+  
+  const apiKey = import.meta.env.VITE_RESEND_API_KEY;
+  
+  if (!apiKey) {
+    console.error('❌ VITE_RESEND_API_KEY is not defined');
+    return { success: false, error: 'API key not defined' };
+  }
+  
+  console.log('🔑 API Key (first 20 chars):', apiKey.substring(0, 20) + '...');
+  console.log('🔑 Key starts with "re_":', apiKey.startsWith('re_'));
+  console.log('🔑 Key length:', apiKey.length);
+  
+  try {
+    console.log('📤 Sending test email to:', testEmail);
+    
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        from: 'Palms Estate <onboarding@resend.dev>', // Use Resend's test domain first
+        to: testEmail,
+        subject: 'Resend API Debug Test',
+        html: '<h1>Debug Test</h1><p>This is a debug test email</p>',
+        text: 'Debug test email from Palms Estate'
+      })
+    });
+    
+    const data = await response.json();
+    
+    console.log('📡 Response Status:', response.status);
+    console.log('📡 Response Data:', JSON.stringify(data, null, 2));
+    
+    if (response.ok) {
+      console.log('✅ Resend API is working!');
+      console.log('📧 Email ID:', data.id);
+      
+      if (data.id && isValidUUID(data.id)) {
+        console.log('✅ Email ID is valid UUID');
+      } else {
+        console.warn('⚠️ Email ID is not a valid UUID');
+      }
+      
+      return { success: true, data };
+    } else {
+      console.error('❌ Resend API Error:', data.message);
+      return { success: false, error: data.message };
+    }
+  } catch (error) {
+    console.error('❌ Network error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 // Test function
 export async function testEmailService() {
-  console.log('🔧 Testing email service...');
-  console.log('🔧 VITE_RESEND_API_KEY exists:', !!import.meta.env.VITE_RESEND_API_KEY);
+  console.log('🧪 Testing email service...');
+  const config = await canSendEmails();
+  console.log('Configuration:', config);
   
   const result = await sendApplicationConfirmation('test@example.com', {
     propertyName: 'Test Luxury Villa',
@@ -422,3 +523,12 @@ export async function testEmailService() {
   console.log('📧 Test email result:', result);
   return result;
 }
+
+// Keep other functions for compatibility
+export const sendEmailViaEdgeFunction = async (emailData) => {
+  return { success: false, message: 'Not implemented' };
+};
+
+export const sendPasswordResetEmail = async (email, resetLink) => {
+  return { success: false, message: 'Not implemented' };
+};
