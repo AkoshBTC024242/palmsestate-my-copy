@@ -1,4 +1,4 @@
-// src/lib/emailService.js - COMPLETE WORKING VERSION WITH PROPER HTML TEMPLATE
+// src/lib/emailService.js - MAKE SURE THIS IS THE ACTUAL FILE
 import { supabase } from './supabase';
 
 // Embedded email template - ACTUAL TEMPLATE
@@ -88,7 +88,6 @@ const generateApplicationEmailHTML = (data) => {
 </html>`;
 };
 
-// Generate status update text content
 const generateStatusUpdateText = (data) => {
   const status = data.status || 'submitted';
   const isStatusUpdate = status && status !== 'submitted';
@@ -129,13 +128,11 @@ Questions? Contact: applications@palmsestate.org
 `.trim();
 };
 
-// Validate UUID format
 const isValidUUID = (uuid) => {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuid && uuidRegex.test(uuid);
 };
 
-// Log email to database with YOUR column names
 async function logEmailToDatabase(to, userId, applicationId, data, status, resendId = null, errorMessage = null) {
   try {
     const emailType = data.status === 'submitted' ? 'application_confirmation' : 'status_update';
@@ -143,12 +140,9 @@ async function logEmailToDatabase(to, userId, applicationId, data, status, resen
       ? `Application Received - ${data.propertyName}` 
       : `Application Status Update - ${data.propertyName}`;
     
-    // Validate resendId if provided
     let validatedResendId = null;
     if (resendId && isValidUUID(resendId)) {
       validatedResendId = resendId;
-    } else if (resendId) {
-      console.warn('⚠️ Invalid Resend ID format, not logging:', resendId);
     }
     
     const logData = {
@@ -166,7 +160,6 @@ async function logEmailToDatabase(to, userId, applicationId, data, status, resen
       sent_at: new Date().toISOString()
     };
     
-    // Only add resend_id if it's a valid UUID
     if (validatedResendId) {
       logData.resend_id = validatedResendId;
     }
@@ -176,23 +169,21 @@ async function logEmailToDatabase(to, userId, applicationId, data, status, resen
     if (error) {
       console.error('❌ Failed to insert email log:', error);
       return false;
-    } else {
-      console.log('📝 Email logged to database successfully');
-      return true;
     }
+    
+    console.log('📝 Email logged to database');
+    return true;
   } catch (error) {
     console.error('❌ Failed to log email:', error);
     return false;
   }
 }
 
-// Main function - Application Confirmation
 export const sendApplicationConfirmation = async (userEmail, applicationData) => {
   console.log('=== EMAIL SERVICE START ===');
-  console.log('📧 Sending application confirmation to:', userEmail);
+  console.log('📧 Sending to:', userEmail);
   
   try {
-    // Prepare email data
     const emailData = {
       applicationId: applicationData.applicationId || `APP-${Date.now()}`,
       propertyName: applicationData.propertyName || applicationData.propertyTitle || 'Property',
@@ -203,38 +194,35 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
       statusNote: applicationData.statusNote || ''
     };
     
-    // Generate email content
     const htmlContent = generateApplicationEmailHTML(emailData);
     const textContent = generateStatusUpdateText(emailData);
     
-    console.log('📧 Generated HTML content length:', htmlContent.length);
-    console.log('📧 Generated text content length:', textContent.length);
+    console.log('📧 HTML Length:', htmlContent.length, 'chars');
     
-    // Get user ID from email
+    if (htmlContent.length < 1000) {
+      console.error('❌ HTML is too short! Might be placeholder.');
+    }
+    
     let userId = null;
     try {
-      const { data: userData, error } = await supabase
+      const { data: userData } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', userEmail)
         .maybeSingle();
       
-      if (!error && userData) {
-        userId = userData.id;
-      }
+      if (userData) userId = userData.id;
     } catch (error) {
-      console.log('Could not find user ID for email:', userEmail);
+      console.log('No user ID found for:', userEmail);
     }
     
-    // Determine subject
     const subject = emailData.status === 'submitted' 
       ? `Application Received - ${emailData.propertyName}` 
       : `Application Status Update - ${emailData.propertyName}`;
     
-    // Use Supabase Edge Function to send email
-    console.log('📤 Calling Supabase Edge Function...');
+    console.log('📤 Calling Edge Function...');
     
-    const { data: edgeFunctionResult, error: edgeError } = await supabase.functions.invoke('send-email', {
+    const { data: result, error } = await supabase.functions.invoke('send-email', {
       body: {
         to: userEmail,
         subject: subject,
@@ -245,10 +233,9 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
       }
     });
     
-    if (edgeError) {
-      console.error('❌ Edge Function error:', edgeError);
+    if (error) {
+      console.error('❌ Edge Function error:', error);
       
-      // Log error to database
       await logEmailToDatabase(
         userEmail,
         userId,
@@ -256,29 +243,28 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
         emailData,
         'failed',
         null,
-        edgeError.message
+        error.message
       );
       
       return {
         success: false,
-        error: edgeError.message,
+        error: error.message,
         message: 'Failed to send email'
       };
     }
     
-    console.log('✅ Edge Function response:', edgeFunctionResult);
+    console.log('✅ Edge Function result:', result);
     
-    if (edgeFunctionResult.success) {
-      console.log('✅ Email sent successfully via Edge Function');
+    if (result.success) {
+      console.log('✅ Email sent successfully');
       
-      // Log to database
       await logEmailToDatabase(
         userEmail,
         userId,
         applicationData.applicationId,
         emailData,
         'sent',
-        edgeFunctionResult.emailId || null
+        result.emailId || null
       );
       
       return {
@@ -286,12 +272,11 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
         message: 'Email sent successfully',
         reference: emailData.referenceNumber,
         method: 'edge-function',
-        emailId: edgeFunctionResult.emailId || null
+        emailId: result.emailId || null
       };
     } else {
-      console.error('❌ Edge Function returned error:', edgeFunctionResult.error);
+      console.error('❌ Edge Function error:', result.error);
       
-      // Log error to database
       await logEmailToDatabase(
         userEmail,
         userId,
@@ -299,19 +284,18 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
         emailData,
         'failed',
         null,
-        edgeFunctionResult.error
+        result.error
       );
       
       return {
         success: false,
-        error: edgeFunctionResult.error,
+        error: result.error,
         message: 'Failed to send email'
       };
     }
     
   } catch (error) {
     console.error('❌ Email service error:', error);
-    
     return {
       success: false,
       error: error.message,
@@ -320,7 +304,6 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
   }
 };
 
-// Function to send admin notification
 export const sendAdminNotification = async (applicationData) => {
   console.log('📧 Sending admin notification...');
   try {
@@ -332,14 +315,12 @@ export const sendAdminNotification = async (applicationData) => {
       statusNote: 'New application submitted - requires review'
     };
     
-    // Generate email content
     const htmlContent = generateApplicationEmailHTML(emailData);
     const textContent = generateStatusUpdateText(emailData);
     
     const subject = `New Application - ${emailData.propertyName}`;
     
-    // Use Supabase Edge Function to send email
-    const { data: edgeFunctionResult, error: edgeError } = await supabase.functions.invoke('send-email', {
+    const { data: result, error } = await supabase.functions.invoke('send-email', {
       body: {
         to: adminEmail,
         subject: subject,
@@ -350,12 +331,12 @@ export const sendAdminNotification = async (applicationData) => {
       }
     });
     
-    if (edgeError) {
-      console.error('❌ Admin email error:', edgeError);
-      return { success: false, error: edgeError.message };
+    if (error) {
+      console.error('❌ Admin email error:', error);
+      return { success: false, error: error.message };
     }
     
-    return edgeFunctionResult;
+    return result;
     
   } catch (error) {
     console.error('❌ Admin notification error:', error);
@@ -363,17 +344,14 @@ export const sendAdminNotification = async (applicationData) => {
   }
 };
 
-// New function for sending status updates
 export const sendApplicationStatusUpdate = async (userEmail, applicationData) => {
   console.log('📧 Sending status update to:', userEmail);
   try {
-    // Prepare email data with status info
     const emailData = {
       ...applicationData,
       status: applicationData.status || 'updated'
     };
     
-    // Use the same send function but with status data
     return await sendApplicationConfirmation(userEmail, emailData);
     
   } catch (error) {
@@ -386,7 +364,6 @@ export const sendApplicationStatusUpdate = async (userEmail, applicationData) =>
   }
 };
 
-// Simple email test function
 export const sendTestEmail = async (toEmail) => {
   console.log('🧪 Sending test email to:', toEmail);
   
@@ -399,7 +376,6 @@ export const sendTestEmail = async (toEmail) => {
   });
 };
 
-// Check if email service is configured
 export const canSendEmails = async () => {
   return {
     hasEmailService: true,
@@ -419,11 +395,10 @@ export async function testEmailService() {
     referenceNumber: 'TEST-' + Date.now()
   });
   
-  console.log('📧 Test email result:', result);
+  console.log('📧 Test result:', result);
   return result;
 }
 
-// For compatibility
 export const sendEmailViaEdgeFunction = async (emailData) => {
   return sendApplicationConfirmation(emailData.to, emailData);
 };
