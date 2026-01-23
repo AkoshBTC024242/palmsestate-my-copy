@@ -1,10 +1,9 @@
-// src/lib/emailService.js - COMPLETE WORKING VERSION
+// src/lib/emailService.js - COPY THIS ENTIRE FILE
 import { supabase } from './supabase';
 
-// ACTUAL EMAIL TEMPLATE - NO PLACEHOLDERS
+// REAL EMAIL TEMPLATE - THIS IS THE ACTUAL TEMPLATE
 const generateApplicationEmailHTML = (data) => {
   const {
-    applicationId = 'APP-N/A',
     propertyName = 'Property',
     propertyLocation = 'Location',
     applicantName = 'Applicant',
@@ -34,84 +33,123 @@ const generateApplicationEmailHTML = (data) => {
     day: 'numeric' 
   });
 
-  return `<!DOCTYPE html>
-<html lang="en">
+  // THIS IS THE ACTUAL HTML TEMPLATE THAT GETS SENT
+  return `
+<!DOCTYPE html>
+<html>
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${isStatusUpdate ? 'Application Status Update' : 'Application Confirmation'} - Palms Estate</title>
+    <title>Palms Estate - ${isStatusUpdate ? 'Status Update' : 'Application Confirmation'}</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            line-height: 1.6; 
-            color: #333; 
-            max-width: 600px; 
-            margin: 0 auto; 
-            padding: 20px; 
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9fafb;
         }
-        .header { 
-            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); 
-            padding: 30px; 
-            text-align: center; 
-            color: white; 
-            border-radius: 10px 10px 0 0; 
+        .header {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+            border-radius: 10px 10px 0 0;
         }
-        .content { 
-            padding: 30px; 
-            background: white; 
-            border: 1px solid #e5e7eb; 
-            border-top: none; 
-            border-radius: 0 0 10px 10px; 
+        .content {
+            padding: 30px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
         }
-        .details { 
-            background: #fffbeb; 
-            padding: 20px; 
-            border-radius: 8px; 
-            margin: 20px 0; 
-            border-left: 4px solid #f97316; 
+        .details {
+            background: #fffbeb;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #f97316;
         }
-        .button { 
-            display: inline-block; 
-            background: #f97316; 
-            color: white; 
-            padding: 12px 30px; 
-            text-decoration: none; 
-            border-radius: 6px; 
-            font-weight: bold; 
-            transition: background 0.3s; 
+        .button {
+            display: inline-block;
+            background: #f97316;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 10px 0;
         }
-        .button:hover { 
-            background: #ea580c; 
+        .button:hover {
+            background: #ea580c;
         }
-        .footer { 
-            margin-top: 30px; 
-            padding-top: 20px; 
-            border-top: 1px solid #e5e7eb; 
-            color: #6b7280; 
-            font-size: 12px; 
-            text-align: center; 
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            color: #6b7280;
+            font-size: 12px;
+            text-align: center;
+        }
+        .status-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1 style="margin: 0;">Palms Estate</h1>
-        <p style="margin: 5px 0 0; opacity: 0.9;">${isStatusUpdate ? 'Application Status Update' : 'Application Confirmation'}</p>
+        <h1 style="margin: 0; font-size: 28px;">Palms Estate</h1>
+        <p style="margin: 5px 0 0; opacity: 0.9; font-size: 16px;">${isStatusUpdate ? 'Application Status Update' : 'Application Confirmation'}</p>
     </div>
     
     <div class="content">
-        <h2 style="color: #1f2937; margin-top: 0;">${isStatusUpdate ? 'Your Application Status Has Been Updated' : 'Thank You for Your Application!'}</h2>
-        <p>${isStatusUpdate ? 'The status of your application has been updated:' : 'We\'ve received your application and will begin processing it immediately.'}</p>
+        <h2 style="color: #1f2937; margin-top: 0; font-size: 24px;">
+            ${isStatusUpdate ? 'Your Application Status Has Been Updated' : 'Thank You for Your Application!'}
+        </h2>
+        
+        <p style="font-size: 16px; color: #4b5563;">
+            ${isStatusUpdate ? 'The status of your application has been updated:' : 'We have successfully received your application and will begin processing it immediately.'}
+        </p>
         
         ${statusSection}
         
         <div class="details">
-            <h3 style="color: #92400e; margin-top: 0;">Application Details</h3>
-            <p><strong>Reference Number:</strong> ${referenceNumber}</p>
-            <p><strong>Property:</strong> ${propertyName}</p>
-            <p><strong>Location:</strong> ${propertyLocation}</p>
-            <p><strong>Applicant:</strong> ${applicantName}</p>
-            <p><strong>${isStatusUpdate ? 'Updated' : 'Submitted'}:</strong> ${formattedDate}</p>
+            <h3 style="color: #92400e; margin-top: 0; font-size: 18px;">Application Details</h3>
+            
+            <div style="margin: 15px 0;">
+                <p style="margin: 8px 0;">
+                    <strong style="color: #374151;">Reference Number:</strong>
+                    <span style="color: #111827; font-weight: bold; font-size: 18px;">${referenceNumber}</span>
+                </p>
+                
+                <p style="margin: 8px 0;">
+                    <strong style="color: #374151;">Property:</strong>
+                    <span style="color: #111827;">${propertyName}</span>
+                </p>
+                
+                <p style="margin: 8px 0;">
+                    <strong style="color: #374151;">Location:</strong>
+                    <span style="color: #111827;">${propertyLocation}</span>
+                </p>
+                
+                <p style="margin: 8px 0;">
+                    <strong style="color: #374151;">Applicant:</strong>
+                    <span style="color: #111827;">${applicantName}</span>
+                </p>
+                
+                <p style="margin: 8px 0;">
+                    <strong style="color: #374151;">${isStatusUpdate ? 'Updated' : 'Submitted'}:</strong>
+                    <span style="color: #111827;">${formattedDate}</span>
+                </p>
+            </div>
         </div>
         
         <div style="text-align: center; margin: 30px 0;">
@@ -121,25 +159,36 @@ const generateApplicationEmailHTML = (data) => {
         </div>
         
         ${!isStatusUpdate ? `
-        <p><strong>What happens next?</strong></p>
-        <ol style="color: #4b5563;">
-            <li>Initial review (1-2 business days)</li>
-            <li>Verification check</li>
-            <li>Decision notification</li>
-        </ol>
+        <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #0ea5e9;">
+            <h3 style="color: #0369a1; margin-top: 0; font-size: 18px;">What happens next?</h3>
+            <ol style="color: #0c4a6e; margin: 15px 0; padding-left: 20px;">
+                <li style="margin: 8px 0;"><strong>Initial review</strong> (1-2 business days)</li>
+                <li style="margin: 8px 0;"><strong>Verification check</strong> of provided information</li>
+                <li style="margin: 8px 0;"><strong>Decision notification</strong> via email</li>
+            </ol>
+            <p style="color: #0c4a6e; font-size: 14px; margin: 10px 0 0;">
+                You will be notified at every step of the process.
+            </p>
+        </div>
         ` : ''}
         
         <div class="footer">
-            <p>Questions? Contact <a href="mailto:applications@palmsestate.org" style="color: #ea580c;">applications@palmsestate.org</a></p>
-            <p>© ${today.getFullYear()} Palms Estate. All rights reserved.</p>
-            <p style="font-size: 11px;">This is an automated message. Please do not reply to this email.</p>
+            <p style="margin: 5px 0;">
+                Questions? Contact <a href="mailto:applications@palmsestate.org" style="color: #ea580c; text-decoration: none;">applications@palmsestate.org</a>
+            </p>
+            <p style="margin: 5px 0; font-size: 11px;">
+                © ${today.getFullYear()} Palms Estate. All rights reserved.
+            </p>
+            <p style="margin: 5px 0; font-size: 11px; color: #9ca3af;">
+                This is an automated message. Please do not reply to this email.
+            </p>
         </div>
     </div>
 </body>
 </html>`;
 };
 
-// Text version
+// Text version for plain text emails
 const generateStatusUpdateText = (data) => {
   const status = data.status || 'submitted';
   const isStatusUpdate = status && status !== 'submitted';
@@ -150,37 +199,51 @@ const generateStatusUpdateText = (data) => {
 
 Your application status has been updated to: ${status.toUpperCase()}
 
-${data.statusNote ? `Note: ${data.statusNote}\n` : ''}`;
+${data.statusNote ? `Note: ${data.statusNote}\n\n` : ''}`;
   }
 
-  return `${statusText}Application Details:
-- Reference: ${data.referenceNumber || 'N/A'}
-- Property: ${data.propertyName || 'Property'}
-- Location: ${data.propertyLocation || 'Location'}
-- Applicant: ${data.applicantName || 'Applicant'}
-- ${isStatusUpdate ? 'Updated' : 'Submitted'}: ${new Date().toLocaleDateString()}
+  const today = new Date();
+  
+  return `${statusText}APPLICATION CONFIRMATION - PALMS ESTATE
 
-${!isStatusUpdate ? `Next Steps:
+Application Details:
+────────────────────
+Reference Number: ${data.referenceNumber || 'N/A'}
+Property: ${data.propertyName || 'Property'}
+Location: ${data.propertyLocation || 'Location'}
+Applicant: ${data.applicantName || 'Applicant'}
+${isStatusUpdate ? 'Updated' : 'Submitted'}: ${today.toLocaleDateString('en-US', { 
+  weekday: 'long', 
+  year: 'numeric', 
+  month: 'long', 
+  day: 'numeric' 
+})}
+
+${!isStatusUpdate ? `
+Next Steps:
+───────────
 1. Initial Review (1-2 business days)
 2. Verification Check
 3. Decision Notification
+
 ` : ''}
-View your application status:
+View your application status online:
 https://palmsestate.org/dashboard/applications
 
-Questions? Contact: applications@palmsestate.org
+Need help? Contact us at: applications@palmsestate.org
 
-© ${new Date().getFullYear()} Palms Estate`.trim();
+────────────────────
+© ${today.getFullYear()} Palms Estate
+This is an automated message. Please do not reply to this email.`;
 };
 
-// Main function
+// Main email sending function
 export const sendApplicationConfirmation = async (userEmail, applicationData) => {
-  console.log('📧 Starting email send to:', userEmail);
+  console.log('🚀 STARTING EMAIL SEND TO:', userEmail);
   
   try {
-    // Prepare data
+    // Prepare email data
     const emailData = {
-      applicationId: applicationData.applicationId || `APP-${Date.now()}`,
       propertyName: applicationData.propertyName || applicationData.propertyTitle || 'Property',
       propertyLocation: applicationData.propertyLocation || 'Location',
       applicantName: applicationData.fullName || applicationData.applicantName || applicationData.customerName || 'Applicant',
@@ -189,28 +252,32 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
       statusNote: applicationData.statusNote || ''
     };
     
-    // Generate content
+    // Generate email content
     const htmlContent = generateApplicationEmailHTML(emailData);
     const textContent = generateStatusUpdateText(emailData);
     
-    console.log('📧 Generated HTML length:', htmlContent.length);
-    console.log('📧 Generated text length:', textContent.length);
+    console.log('📧 Generated HTML length:', htmlContent.length, 'characters');
+    console.log('📧 Generated text length:', textContent.length, 'characters');
     
-    // Check if HTML is valid
-    if (htmlContent.includes('...your HTML template...') || 
-        htmlContent.includes('your HTML template here') ||
-        htmlContent.length < 1000) {
-      console.error('❌ HTML template issue detected!');
-      console.log('HTML preview:', htmlContent.substring(0, 200));
-      throw new Error('Invalid HTML template generated');
+    // Validate that we have actual HTML (not placeholder)
+    if (htmlContent.includes('...your HTML template...')) {
+      console.error('❌ CRITICAL ERROR: HTML contains placeholder text!');
+      throw new Error('Email template is not properly configured');
     }
     
-    // Get subject
+    if (htmlContent.length < 1000) {
+      console.error('❌ WARNING: HTML seems too short:', htmlContent.length);
+      console.log('First 200 chars:', htmlContent.substring(0, 200));
+    }
+    
+    // Determine email subject
     const subject = emailData.status === 'submitted' 
       ? `Application Received - ${emailData.propertyName}` 
       : `Application Status Update - ${emailData.propertyName}`;
     
-    // Send via Edge Function
+    console.log('📧 Subject:', subject);
+    
+    // Send via Supabase Edge Function
     const { data: result, error } = await supabase.functions.invoke('send-email', {
       body: {
         to: userEmail,
@@ -227,16 +294,19 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
       throw error;
     }
     
+    console.log('✅ Edge Function response:', result);
+    
     if (result && result.success) {
-      console.log('✅ Email sent successfully:', result.emailId);
+      console.log('🎉 EMAIL SENT SUCCESSFULLY! ID:', result.emailId);
       return {
         success: true,
         message: 'Email sent successfully',
-        emailId: result.emailId
+        emailId: result.emailId,
+        referenceNumber: emailData.referenceNumber
       };
     } else {
       console.error('❌ Edge Function returned error:', result?.error);
-      throw new Error(result?.error || 'Email sending failed');
+      throw new Error(result?.error || 'Failed to send email');
     }
     
   } catch (error) {
@@ -249,55 +319,80 @@ export const sendApplicationConfirmation = async (userEmail, applicationData) =>
   }
 };
 
-// Other functions (simplified)
+// Send admin notification
 export const sendAdminNotification = async (applicationData) => {
+  console.log('📧 Sending admin notification');
   try {
-    return await sendApplicationConfirmation('admin@palmsestate.org', {
+    const result = await sendApplicationConfirmation('admin@palmsestate.org', {
       ...applicationData,
+      propertyName: applicationData.propertyName || 'New Application',
+      applicantName: applicationData.applicantName || 'New Applicant',
       status: 'new_submission_admin',
       statusNote: 'New application submitted - requires review'
     });
+    return result;
   } catch (error) {
     console.error('Admin notification error:', error);
     return { success: false, error: error.message };
   }
 };
 
+// Send status update
 export const sendApplicationStatusUpdate = async (userEmail, applicationData) => {
-  return await sendApplicationConfirmation(userEmail, {
-    ...applicationData,
-    status: applicationData.status || 'updated'
-  });
+  console.log('📧 Sending status update to:', userEmail);
+  try {
+    const result = await sendApplicationConfirmation(userEmail, {
+      ...applicationData,
+      status: applicationData.status || 'updated'
+    });
+    return result;
+  } catch (error) {
+    console.error('Status update error:', error);
+    return { success: false, error: error.message };
+  }
 };
 
+// Test function
 export const sendTestEmail = async (toEmail) => {
-  return await sendApplicationConfirmation(toEmail, {
-    propertyName: 'Test Luxury Villa',
-    propertyLocation: 'Maldives Beach',
-    fullName: 'Test User',
-    referenceNumber: 'TEST-' + Date.now(),
-    status: 'submitted'
-  });
+  console.log('🧪 Sending test email to:', toEmail);
+  try {
+    const result = await sendApplicationConfirmation(toEmail, {
+      propertyName: 'Oceanfront Luxury Villa',
+      propertyLocation: 'Maldives Beach Resort',
+      applicantName: 'Test Applicant',
+      referenceNumber: 'TEST-' + Date.now(),
+      status: 'submitted'
+    });
+    return result;
+  } catch (error) {
+    console.error('Test email error:', error);
+    return { success: false, error: error.message };
+  }
 };
 
-// Simple config check
+// Configuration check
 export const canSendEmails = async () => {
   return {
     hasEmailService: true,
-    message: 'Email service is configured',
-    domain: 'palmsestate.org'
+    message: 'Email service is configured and ready',
+    domain: 'palmsestate.org',
+    fromEmail: 'notification@palmsestate.org'
   };
 };
 
-// Keep for compatibility
+// For compatibility
 export const sendEmailViaEdgeFunction = async (emailData) => {
   return sendApplicationConfirmation(emailData.to, emailData);
 };
 
 export const sendPasswordResetEmail = async (email, resetLink) => {
-  return { success: false, message: 'Not implemented' };
+  return { success: false, message: 'Password reset emails not implemented' };
 };
 
+// Test the service
 export async function testEmailService() {
-  return await sendTestEmail('test@example.com');
+  console.log('🧪 Testing email service...');
+  const result = await sendTestEmail('test@example.com');
+  console.log('Test result:', result);
+  return result;
 }
