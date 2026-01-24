@@ -1,11 +1,14 @@
-// src/lib/applicationStatus.js - UPDATED WITH PAYMENT INTEGRATION
+// src/lib/applicationStatus.js - DEBUG VERSION
 import { supabase } from './supabase';
 import { sendApplicationConfirmation } from './emailService';
 
 // Update application status and send email
 export async function updateApplicationStatus(applicationId, newStatus, note = '') {
+  console.log('=== DEBUG: updateApplicationStatus START ===');
+  console.log('Inputs:', { applicationId, newStatus, note });
+  
   try {
-    console.log('Updating application status:', { applicationId, newStatus, note });
+    console.log('1. Fetching application details...');
     
     // Get application details first
     const { data: application, error: fetchError } = await supabase
@@ -14,23 +17,33 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
       .eq('id', applicationId)
       .single();
     
-    if (fetchError) throw fetchError;
+    if (fetchError) {
+      console.error('❌ Fetch error:', fetchError);
+      throw fetchError;
+    }
     
-    // Update status in database - using only fields that exist in the table
+    console.log('2. Application fetched:', { 
+      id: application.id,
+      currentStatus: application.status,
+      email: application.email 
+    });
+    
+    // Update status in database
     const updateData = {
       status: newStatus,
       updated_at: new Date().toISOString(),
       last_status_change: new Date().toISOString()
     };
 
-    // Set specific timestamps based on status (using fields that exist)
+    console.log('3. Setting timestamps for status:', newStatus);
+    
+    // Set specific timestamps based on status
     if (newStatus === 'approved_pending_info') {
       updateData.initial_approved_at = new Date().toISOString();
     } else if (newStatus === 'approved') {
       updateData.final_approved_at = new Date().toISOString();
     } else if (newStatus === 'rejected') {
       updateData.rejection_reason = note;
-      // Note: There is no rejected_at field in the table
     } else if (newStatus === 'paid_under_review') {
       updateData.paid_at = new Date().toISOString();
       updateData.payment_status = 'paid';
@@ -40,8 +53,9 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
       updateData.payment_status = 'pending';
     }
 
-    console.log('Updating application with data:', updateData);
+    console.log('4. Update data:', updateData);
     
+    console.log('5. Updating database...');
     const { data, error } = await supabase
       .from('applications')
       .update(updateData)
@@ -50,13 +64,16 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
       .single();
     
     if (error) {
-      console.error('Supabase update error:', error);
+      console.error('❌ Supabase update error:', error);
       throw error;
     }
+    
+    console.log('6. Database updated successfully');
     
     // Send status update email to applicant
     let emailResult = { success: false };
     try {
+      console.log('7. Preparing email data...');
       const emailData = {
         fullName: application.full_name,
         referenceNumber: application.reference_number,
@@ -64,38 +81,29 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
         propertyName: application.property?.title || 'Property',
         propertyLocation: application.property?.location || 'Location',
         status: newStatus,
-        statusNote: note
+        statusNote: note || `Your application status has been updated to ${newStatus}.`
       };
 
       // Add payment link for pre-approved and payment pending statuses
       if (newStatus === 'pre_approved' || newStatus === 'payment_pending') {
         emailData.paymentLink = `https://palmsestate.org/payment/${application.id}`;
-        
-        if (newStatus === 'payment_pending') {
-          emailData.statusNote = note || 'Application fee payment is pending. Please pay the $50 fee to continue with your application.';
-        }
+        emailData.statusNote = note || 'Please pay the $50 application fee to continue with your application.';
+        console.log('8. Added payment link to email data');
       }
 
-      // Add payment details for paid status
-      if (newStatus === 'paid_under_review') {
-        emailData.paymentAmount = '$50.00';
-        emailData.paymentDate = new Date().toLocaleDateString('en-US', {
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric'
-        });
-      }
-
+      console.log('8. Sending email with data:', emailData);
+      
       emailResult = await sendApplicationConfirmation(application.email, emailData);
       
-      console.log('Status update email sent:', emailResult);
+      console.log('9. Email result:', emailResult);
     } catch (emailError) {
-      console.warn('Failed to send status update email:', emailError);
+      console.warn('⚠️ Email sending failed (continuing anyway):', emailError);
       // Continue anyway - status was updated
     }
     
     // Log the status change
     try {
+      console.log('10. Logging status change...');
       await supabase.from('application_status_logs').insert({
         application_id: applicationId,
         from_status: application.status,
@@ -104,12 +112,14 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
         changed_by: 'admin',
         created_at: new Date().toISOString()
       });
+      console.log('11. Status change logged');
     } catch (logError) {
-      console.warn('Could not log status change:', logError);
+      console.warn('⚠️ Could not log status change:', logError);
     }
     
     // Add a note about status change
     try {
+      console.log('12. Adding admin note...');
       await supabase
         .from('application_notes')
         .insert({
@@ -118,26 +128,12 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
           created_by: 'system',
           created_at: new Date().toISOString()
         });
+      console.log('13. Admin note added');
     } catch (noteError) {
-      console.warn('Could not add note:', noteError);
+      console.warn('⚠️ Could not add note:', noteError);
     }
-
-    // Send admin notification for important status changes
-    if (newStatus === 'pre_approved' || newStatus === 'paid_under_review' || newStatus === 'approved') {
-      try {
-        await sendApplicationConfirmation('admin@palmsestate.org', {
-          fullName: application.full_name,
-          referenceNumber: application.reference_number,
-          applicationId: application.id,
-          propertyName: application.property?.title || 'Property',
-          status: newStatus,
-          statusNote: `Application ${newStatus === 'pre_approved' ? 'pre-approved and payment requested' : newStatus === 'paid_under_review' ? 'fee paid, ready for final review' : 'fully approved'} by admin. ${note ? `Note: ${note}` : ''}`,
-          paymentAmount: newStatus === 'paid_under_review' ? '$50.00' : undefined
-        });
-      } catch (adminEmailError) {
-        console.warn('Failed to send admin notification:', adminEmailError);
-      }
-    }
+    
+    console.log('=== DEBUG: updateApplicationStatus SUCCESS ===');
     
     return {
       success: true,
@@ -147,7 +143,11 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
     };
     
   } catch (error) {
-    console.error('Error updating application status:', error);
+    console.error('=== DEBUG: updateApplicationStatus ERROR ===');
+    console.error('Error details:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    
     return {
       success: false,
       error: error.message,
@@ -156,28 +156,13 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
   }
 }
 
-// Send status update email function
-export async function sendApplicationStatusUpdate(userEmail, applicationData) {
-  try {
-    console.log('Sending status update to:', userEmail);
-    
-    // Use the main sendApplicationConfirmation function
-    return await sendApplicationConfirmation(userEmail, applicationData);
-    
-  } catch (error) {
-    console.error('❌ Status update email error:', error);
-    return {
-      success: false,
-      error: error.message,
-      message: 'Failed to send status update email'
-    };
-  }
-}
-
 // Send payment request email
 export async function sendPaymentRequest(applicationId, note = '') {
+  console.log('=== DEBUG: sendPaymentRequest START ===');
+  console.log('Inputs:', { applicationId, note });
+  
   try {
-    console.log('Sending payment request for application:', applicationId);
+    console.log('1. Fetching application for payment request...');
     
     // Get application details
     const { data: application, error: fetchError } = await supabase
@@ -186,14 +171,27 @@ export async function sendPaymentRequest(applicationId, note = '') {
       .eq('id', applicationId)
       .single();
     
-    if (fetchError) throw fetchError;
+    if (fetchError) {
+      console.error('❌ Fetch error:', fetchError);
+      throw fetchError;
+    }
+    
+    console.log('2. Application fetched:', {
+      id: application.id,
+      status: application.status,
+      email: application.email
+    });
     
     // Update status to payment_pending if not already
     if (application.status !== 'payment_pending') {
+      console.log('3. Updating status to payment_pending...');
       await updateApplicationStatus(applicationId, 'payment_pending', note || 'Payment request sent');
+    } else {
+      console.log('3. Status already payment_pending, skipping update');
     }
     
     // Send payment request email
+    console.log('4. Sending payment request email...');
     const emailResult = await sendApplicationConfirmation(application.email, {
       fullName: application.full_name,
       referenceNumber: application.reference_number,
@@ -205,8 +203,11 @@ export async function sendPaymentRequest(applicationId, note = '') {
       paymentLink: `https://palmsestate.org/payment/${application.id}`
     });
     
+    console.log('5. Payment request email result:', emailResult);
+    
     // Add a note about payment request
     try {
+      console.log('6. Adding payment request note...');
       await supabase
         .from('application_notes')
         .insert({
@@ -215,9 +216,12 @@ export async function sendPaymentRequest(applicationId, note = '') {
           created_by: 'system',
           created_at: new Date().toISOString()
         });
+      console.log('7. Note added');
     } catch (noteError) {
-      console.warn('Could not add note:', noteError);
+      console.warn('⚠️ Could not add note:', noteError);
     }
+    
+    console.log('=== DEBUG: sendPaymentRequest SUCCESS ===');
     
     return {
       success: true,
@@ -226,7 +230,10 @@ export async function sendPaymentRequest(applicationId, note = '') {
     };
     
   } catch (error) {
-    console.error('Error sending payment request:', error);
+    console.error('=== DEBUG: sendPaymentRequest ERROR ===');
+    console.error('Error details:', error);
+    console.error('Error message:', error.message);
+    
     return {
       success: false,
       error: error.message,
@@ -251,47 +258,62 @@ function getStatusLabel(status) {
   return labels[status] || status;
 }
 
-export async function getApplicationWithDetails(applicationId) {
+// Test function to debug email sending
+export async function testEmailService(toEmail = 'test@example.com') {
+  console.log('=== DEBUG: testEmailService START ===');
+  
   try {
-    const { data, error } = await supabase
-      .from('applications')
-      .select(`
-        *,
-        property:properties(*),
-        status_logs:application_status_logs(*)
-      `)
-      .eq('id', applicationId)
-      .single();
+    console.log('1. Testing sendApplicationConfirmation...');
     
-    if (error) throw error;
+    const result = await sendApplicationConfirmation(toEmail, {
+      fullName: 'Test User',
+      referenceNumber: 'TEST-' + Date.now().toString().slice(-6),
+      applicationId: 'test-123',
+      propertyName: 'Test Property',
+      propertyLocation: 'Test Location',
+      status: 'pre_approved',
+      statusNote: 'This is a test email to verify the email system is working.'
+    });
     
-    return { success: true, data };
+    console.log('2. Test result:', result);
+    console.log('=== DEBUG: testEmailService END ===');
+    
+    return result;
+    
   } catch (error) {
+    console.error('❌ Test failed:', error);
     return { success: false, error: error.message };
   }
 }
 
-// Get payment status
-export async function getPaymentStatus(applicationId) {
+// Simple status update without email
+export async function updateStatusOnly(applicationId, newStatus, note = '') {
+  console.log('=== DEBUG: updateStatusOnly START ===');
+  
   try {
+    const updateData = {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+      last_status_change: new Date().toISOString()
+    };
+
+    console.log('Update data:', updateData);
+    
     const { data, error } = await supabase
       .from('applications')
-      .select('payment_status, stripe_payment_id, paid_at, application_fee')
+      .update(updateData)
       .eq('id', applicationId)
+      .select()
       .single();
     
     if (error) throw error;
     
-    return { 
-      success: true, 
-      data: {
-        paymentStatus: data.payment_status || 'unpaid',
-        paymentId: data.stripe_payment_id,
-        paidAt: data.paid_at,
-        fee: data.application_fee || 50
-      }
-    };
+    console.log('=== DEBUG: updateStatusOnly SUCCESS ===');
+    return { success: true, data };
+    
   } catch (error) {
+    console.error('=== DEBUG: updateStatusOnly ERROR ===');
+    console.error('Error:', error);
     return { success: false, error: error.message };
   }
 }
