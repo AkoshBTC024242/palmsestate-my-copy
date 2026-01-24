@@ -1,4 +1,4 @@
-// src/pages/admin/AdminApplicationDetail.jsx - CORRECTED IMPORT
+// src/pages/admin/AdminApplicationDetail.jsx - UPDATED VERSION
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
@@ -14,7 +14,6 @@ import {
   AlertTriangle, Info, History, ArrowRight, RefreshCw,
   Bell, MailOpen, Send as SendIcon
 } from 'lucide-react';
-
 
 function AdminApplicationDetail() {
   const { id } = useParams();
@@ -140,6 +139,9 @@ function AdminApplicationDetail() {
   const handleStatusUpdate = async (newStatus, note = '') => {
     try {
       setUpdating(true);
+      setUpdateMessage(''); // Clear any previous messages
+
+      console.log(`Updating status to: ${newStatus} with note: ${note}`);
 
       const result = await updateApplicationStatus(id, newStatus, note);
       
@@ -213,55 +215,64 @@ function AdminApplicationDetail() {
         color: 'bg-blue-100 text-blue-800',
         icon: <Clock className="w-5 h-5" />,
         label: 'Submitted',
-        badgeColor: 'border-blue-200'
+        badgeColor: 'border-blue-200',
+        bgColor: 'bg-blue-50'
       },
       under_review: { 
         color: 'bg-indigo-100 text-indigo-800',
         icon: <AlertCircle className="w-5 h-5" />,
         label: 'Under Review',
-        badgeColor: 'border-indigo-200'
+        badgeColor: 'border-indigo-200',
+        bgColor: 'bg-indigo-50'
       },
       pre_approved: { 
         color: 'bg-amber-100 text-amber-800',
         icon: <AlertCircle className="w-5 h-5" />,
         label: 'Pre-Approved',
-        badgeColor: 'border-amber-200'
+        badgeColor: 'border-amber-200',
+        bgColor: 'bg-amber-50'
       },
       approved_pending_info: { 
         color: 'bg-cyan-100 text-cyan-800',
         icon: <FileCheck className="w-5 h-5" />,
         label: 'Approved - Pending Info',
-        badgeColor: 'border-cyan-200'
+        badgeColor: 'border-cyan-200',
+        bgColor: 'bg-cyan-50'
       },
       additional_info_submitted: { 
         color: 'bg-purple-100 text-purple-800',
         icon: <FileText className="w-5 h-5" />,
         label: 'Additional Info Submitted',
-        badgeColor: 'border-purple-200'
+        badgeColor: 'border-purple-200',
+        bgColor: 'bg-purple-50'
       },
       paid_under_review: { 
         color: 'bg-violet-100 text-violet-800',
         icon: <CreditCard className="w-5 h-5" />,
         label: 'Paid - Under Review',
-        badgeColor: 'border-violet-200'
+        badgeColor: 'border-violet-200',
+        bgColor: 'bg-violet-50'
       },
       approved: { 
         color: 'bg-emerald-100 text-emerald-800',
         icon: <CheckCircle className="w-5 h-5" />,
         label: 'Approved',
-        badgeColor: 'border-emerald-200'
+        badgeColor: 'border-emerald-200',
+        bgColor: 'bg-emerald-50'
       },
       rejected: { 
         color: 'bg-rose-100 text-rose-800',
         icon: <XCircle className="w-5 h-5" />,
         label: 'Rejected',
-        badgeColor: 'border-rose-200'
+        badgeColor: 'border-rose-200',
+        bgColor: 'bg-rose-50'
       },
       payment_pending: {
         color: 'bg-orange-100 text-orange-800',
         icon: <CreditCard className="w-5 h-5" />,
         label: 'Payment Pending',
-        badgeColor: 'border-orange-200'
+        badgeColor: 'border-orange-200',
+        bgColor: 'bg-orange-50'
       }
     };
 
@@ -285,10 +296,11 @@ function AdminApplicationDetail() {
   };
 
   const formatCurrency = (amount) => {
+    if (!amount) return '$0.00';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(amount || 0);
+    }).format(amount);
   };
 
   // Get available next statuses
@@ -298,11 +310,11 @@ function AdminApplicationDetail() {
     const statusFlow = {
       submitted: ['under_review', 'rejected'],
       under_review: ['pre_approved', 'approved_pending_info', 'rejected'],
-      pre_approved: ['paid_under_review', 'rejected'],
+      pre_approved: ['payment_pending', 'rejected'],
+      payment_pending: ['paid_under_review', 'rejected'],
       paid_under_review: ['approved', 'rejected'],
       approved_pending_info: ['additional_info_submitted', 'rejected'],
-      additional_info_submitted: ['approved', 'rejected'],
-      payment_pending: ['paid_under_review', 'rejected']
+      additional_info_submitted: ['approved', 'rejected']
     };
 
     return statusFlow[application.status] || [];
@@ -368,13 +380,24 @@ function AdminApplicationDetail() {
       });
     }
 
-    if (application.rejected_at) {
+    if (application.paid_at) {
       events.push({
-        date: application.rejected_at,
-        title: 'Application Rejected',
-        description: application.rejection_reason || 'Application rejected',
-        icon: <XCircle className="w-4 h-4" />,
-        color: 'bg-rose-500'
+        date: application.paid_at,
+        title: 'Payment Received',
+        description: 'Application fee paid',
+        icon: <CreditCard className="w-4 h-4" />,
+        color: 'bg-green-500'
+      });
+    }
+
+    // Add last status change if available
+    if (application.last_status_change) {
+      events.push({
+        date: application.last_status_change,
+        title: 'Last Status Update',
+        description: 'Application status was updated',
+        icon: <History className="w-4 h-4" />,
+        color: 'bg-gray-500'
       });
     }
 
@@ -472,6 +495,11 @@ function AdminApplicationDetail() {
                 <span className="text-sm text-gray-500">
                   Created: {formatDate(application.created_at)}
                 </span>
+                {application.last_status_change && (
+                  <span className="text-sm text-gray-500">
+                    Last Updated: {formatDate(application.last_status_change)}
+                  </span>
+                )}
               </div>
             </div>
             
@@ -562,9 +590,9 @@ function AdminApplicationDetail() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm text-gray-600">Last Updated</p>
+                        <p className="text-sm text-gray-600">Last Status Change</p>
                         <p className="font-medium text-gray-900">
-                          {formatDate(application.updated_at)}
+                          {formatDate(application.last_status_change || application.updated_at)}
                         </p>
                       </div>
                     </div>
@@ -584,8 +612,11 @@ function AdminApplicationDetail() {
                           style={{ 
                             width: application.status === 'submitted' ? '20%' :
                                    application.status === 'under_review' ? '40%' :
-                                   application.status === 'approved_pending_info' ? '60%' :
+                                   application.status === 'pre_approved' ? '50%' :
+                                   application.status === 'payment_pending' ? '60%' :
+                                   application.status === 'approved_pending_info' ? '70%' :
                                    application.status === 'additional_info_submitted' ? '80%' :
+                                   application.status === 'paid_under_review' ? '90%' :
                                    application.status === 'approved' ? '100%' : '0%'
                           }}
                         ></div>
@@ -606,6 +637,16 @@ function AdminApplicationDetail() {
                           </button>
                         )}
                         
+                        {application.status === 'pre_approved' && (
+                          <button
+                            onClick={() => handleStatusUpdate('payment_pending')}
+                            disabled={updating}
+                            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-medium rounded-lg hover:shadow transition-all disabled:opacity-50"
+                          >
+                            {updating ? 'Processing...' : 'Request Payment'}
+                          </button>
+                        )}
+
                         {application.status === 'additional_info_submitted' && (
                           <button
                             onClick={() => handleStatusUpdate('approved')}
@@ -651,7 +692,13 @@ function AdminApplicationDetail() {
                       <div>
                         <p className="text-sm text-gray-600">Preferred Tour Date</p>
                         <p className="font-medium text-gray-900">
-                          {application.preferred_tour_date ? formatDate(application.preferred_tour_date) : 'Not specified'}
+                          {application.preferred_tour_date || application.preferred_date 
+                            ? new Date(application.preferred_tour_date || application.preferred_date).toLocaleDateString('en-US', {
+                                month: 'long',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })
+                            : 'Not specified'}
                         </p>
                       </div>
                       <div>
@@ -745,10 +792,10 @@ function AdminApplicationDetail() {
                         <p className="text-sm text-gray-600">Applied On</p>
                         <p className="font-medium">{formatDate(application.created_at)}</p>
                       </div>
-                      {application.notes && (
+                      {(application.message || application.notes) && (
                         <div className="md:col-span-2">
                           <p className="text-sm text-gray-600">Message/Notes</p>
-                          <p className="font-medium">{application.notes}</p>
+                          <p className="font-medium">{application.message || application.notes}</p>
                         </div>
                       )}
                     </div>
@@ -1014,6 +1061,8 @@ function AdminApplicationDetail() {
                         ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'
                         : status === 'approved_pending_info'
                         ? 'bg-cyan-50 hover:bg-cyan-100 text-cyan-700'
+                        : status === 'payment_pending'
+                        ? 'bg-orange-50 hover:bg-orange-100 text-orange-700'
                         : 'bg-blue-50 hover:bg-blue-100 text-blue-700'
                     } disabled:opacity-50`}
                   >
@@ -1024,6 +1073,8 @@ function AdminApplicationDetail() {
                     <p className="text-sm mt-1 opacity-75">
                       {status === 'approved_pending_info' 
                         ? 'Approve initial application and request detailed info'
+                        : status === 'payment_pending'
+                        ? 'Request payment for application fee'
                         : `Change status to ${getStatusLabel(status).toLowerCase()}`
                       }
                     </p>
@@ -1054,10 +1105,10 @@ function AdminApplicationDetail() {
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
                     <MailOpen className="w-4 h-4 text-green-600" />
-                    <span className="font-medium text-gray-800">Last Email Sent</span>
+                    <span className="font-medium text-gray-800">Email Status</span>
                   </div>
                   <p className="text-sm text-gray-600">
-                    {application.last_email_sent_at ? formatDate(application.last_email_sent_at) : 'No emails sent yet'}
+                    Emails are sent automatically when status changes. Click below to send manually.
                   </p>
                 </div>
                 
