@@ -1,4 +1,4 @@
-// src/lib/applicationStatus.js - CORRECTED VERSION
+// src/lib/applicationStatus.js - UPDATED WITH CORRECT FIELDS
 import { supabase } from './supabase';
 import { sendApplicationConfirmation } from './emailService';
 
@@ -16,23 +16,29 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
     
     if (fetchError) throw fetchError;
     
-    // Update status in database
+    // Update status in database - using only fields that exist in the table
     const updateData = {
       status: newStatus,
       updated_at: new Date().toISOString(),
-      last_email_sent_at: new Date().toISOString()
+      last_status_change: new Date().toISOString()  // This field exists
     };
 
-    // Set specific timestamps based on status
+    // Set specific timestamps based on status (using fields that exist)
     if (newStatus === 'approved_pending_info') {
       updateData.initial_approved_at = new Date().toISOString();
     } else if (newStatus === 'approved') {
       updateData.final_approved_at = new Date().toISOString();
     } else if (newStatus === 'rejected') {
-      updateData.rejected_at = new Date().toISOString();
-      updateData.rejection_reason = note;
+      updateData.rejection_reason = note;  // This field exists
+      // Note: There is no rejected_at field in the table
+    } else if (newStatus === 'paid_under_review') {
+      updateData.paid_at = new Date().toISOString();
+    } else if (newStatus === 'additional_info_submitted') {
+      updateData.additional_info_submitted_at = new Date().toISOString();
     }
 
+    console.log('Updating application with data:', updateData);
+    
     const { data, error } = await supabase
       .from('applications')
       .update(updateData)
@@ -40,7 +46,10 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase update error:', error);
+      throw error;
+    }
     
     // Send status update email to applicant
     let emailResult = { success: false };
