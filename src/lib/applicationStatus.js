@@ -1,10 +1,10 @@
-// src/lib/applicationStatus.js - DEBUG VERSION
+// src/lib/applicationStatus.js - CORRECTED WITH ALL EXPORTS
 import { supabase } from './supabase';
 import { sendApplicationConfirmation } from './emailService';
 
 // Update application status and send email
 export async function updateApplicationStatus(applicationId, newStatus, note = '') {
-  console.log('=== DEBUG: updateApplicationStatus START ===');
+  console.log('=== updateApplicationStatus START ===');
   console.log('Inputs:', { applicationId, newStatus, note });
   
   try {
@@ -133,7 +133,7 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
       console.warn('⚠️ Could not add note:', noteError);
     }
     
-    console.log('=== DEBUG: updateApplicationStatus SUCCESS ===');
+    console.log('=== updateApplicationStatus SUCCESS ===');
     
     return {
       success: true,
@@ -143,10 +143,9 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
     };
     
   } catch (error) {
-    console.error('=== DEBUG: updateApplicationStatus ERROR ===');
+    console.error('=== updateApplicationStatus ERROR ===');
     console.error('Error details:', error);
     console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
     
     return {
       success: false,
@@ -156,9 +155,33 @@ export async function updateApplicationStatus(applicationId, newStatus, note = '
   }
 }
 
+// Send status update email function
+export async function sendApplicationStatusUpdate(userEmail, applicationData) {
+  console.log('=== sendApplicationStatusUpdate START ===');
+  console.log('Inputs:', { userEmail, applicationData });
+  
+  try {
+    console.log('Sending status update to:', userEmail);
+    
+    // Use the main sendApplicationConfirmation function
+    const result = await sendApplicationConfirmation(userEmail, applicationData);
+    
+    console.log('=== sendApplicationStatusUpdate SUCCESS ===');
+    return result;
+    
+  } catch (error) {
+    console.error('❌ sendApplicationStatusUpdate error:', error);
+    return {
+      success: false,
+      error: error.message,
+      message: 'Failed to send status update email'
+    };
+  }
+}
+
 // Send payment request email
 export async function sendPaymentRequest(applicationId, note = '') {
-  console.log('=== DEBUG: sendPaymentRequest START ===');
+  console.log('=== sendPaymentRequest START ===');
   console.log('Inputs:', { applicationId, note });
   
   try {
@@ -221,7 +244,7 @@ export async function sendPaymentRequest(applicationId, note = '') {
       console.warn('⚠️ Could not add note:', noteError);
     }
     
-    console.log('=== DEBUG: sendPaymentRequest SUCCESS ===');
+    console.log('=== sendPaymentRequest SUCCESS ===');
     
     return {
       success: true,
@@ -230,7 +253,7 @@ export async function sendPaymentRequest(applicationId, note = '') {
     };
     
   } catch (error) {
-    console.error('=== DEBUG: sendPaymentRequest ERROR ===');
+    console.error('=== sendPaymentRequest ERROR ===');
     console.error('Error details:', error);
     console.error('Error message:', error.message);
     
@@ -258,9 +281,57 @@ function getStatusLabel(status) {
   return labels[status] || status;
 }
 
+// Export the helper function if needed elsewhere
+export { getStatusLabel };
+
+export async function getApplicationWithDetails(applicationId) {
+  try {
+    const { data, error } = await supabase
+      .from('applications')
+      .select(`
+        *,
+        property:properties(*),
+        status_logs:application_status_logs(*)
+      `)
+      .eq('id', applicationId)
+      .single();
+    
+    if (error) throw error;
+    
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Get payment status
+export async function getPaymentStatus(applicationId) {
+  try {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('payment_status, stripe_payment_id, paid_at, application_fee')
+      .eq('id', applicationId)
+      .single();
+    
+    if (error) throw error;
+    
+    return { 
+      success: true, 
+      data: {
+        paymentStatus: data.payment_status || 'unpaid',
+        paymentId: data.stripe_payment_id,
+        paidAt: data.paid_at,
+        fee: data.application_fee || 50
+      }
+    };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
 // Test function to debug email sending
 export async function testEmailService(toEmail = 'test@example.com') {
-  console.log('=== DEBUG: testEmailService START ===');
+  console.log('=== testEmailService START ===');
   
   try {
     console.log('1. Testing sendApplicationConfirmation...');
@@ -276,7 +347,7 @@ export async function testEmailService(toEmail = 'test@example.com') {
     });
     
     console.log('2. Test result:', result);
-    console.log('=== DEBUG: testEmailService END ===');
+    console.log('=== testEmailService END ===');
     
     return result;
     
@@ -288,7 +359,7 @@ export async function testEmailService(toEmail = 'test@example.com') {
 
 // Simple status update without email
 export async function updateStatusOnly(applicationId, newStatus, note = '') {
-  console.log('=== DEBUG: updateStatusOnly START ===');
+  console.log('=== updateStatusOnly START ===');
   
   try {
     const updateData = {
@@ -308,11 +379,11 @@ export async function updateStatusOnly(applicationId, newStatus, note = '') {
     
     if (error) throw error;
     
-    console.log('=== DEBUG: updateStatusOnly SUCCESS ===');
+    console.log('=== updateStatusOnly SUCCESS ===');
     return { success: true, data };
     
   } catch (error) {
-    console.error('=== DEBUG: updateStatusOnly ERROR ===');
+    console.error('=== updateStatusOnly ERROR ===');
     console.error('Error:', error);
     return { success: false, error: error.message };
   }
