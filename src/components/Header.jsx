@@ -3,9 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Menu, X, User, LogOut, Settings, FileText, 
-  Home, Heart, Shield, ChevronDown 
+  Home, Heart, Shield, ChevronDown, Search 
 } from 'lucide-react';
 import PreloadLink from './PreloadLink';
+// Import your logo
+import logo from '../assets/logo.svg'; // Adjust path as needed
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -64,26 +66,9 @@ export default function Header() {
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Logo - Left aligned for professional look */}
-          <PreloadLink to="/" className="flex items-center gap-3 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-[#F97316]/20 rounded-lg blur-lg group-hover:bg-[#F97316]/30 transition-all"></div>
-              <div className="relative w-10 h-10 bg-[#F97316] rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">P</span>
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-light tracking-tight">
-                <span className="text-white">Palms</span>
-                <span className="text-[#F97316] ml-1">Estate</span>
-              </span>
-              <span className="text-[10px] text-[#A1A1AA] tracking-wider -mt-1">REAL ESTATE</span>
-            </div>
-          </PreloadLink>
-
-          {/* Desktop Navigation - Centered */}
+          {/* Left Navigation - Desktop */}
           <div className="hidden md:flex items-center gap-1">
-            {navigation.map((item) => (
+            {navigation.slice(0, 2).map((item) => (
               <PreloadLink
                 key={item.name}
                 to={item.path}
@@ -98,40 +83,55 @@ export default function Header() {
             ))}
           </div>
 
-          {/* Right Section - Professional Actions */}
+          {/* Centered Logo */}
+          <PreloadLink to="/" className="absolute left-1/2 transform -translate-x-1/2">
+            <img 
+              src={logo} 
+              alt="Palms Estate" 
+              className="h-10 w-auto md:h-12"
+            />
+          </PreloadLink>
+
+          {/* Right Section */}
           <div className="hidden md:flex items-center gap-3">
+            {/* Right navigation items */}
+            {navigation.slice(2).map((item) => (
+              <PreloadLink
+                key={item.name}
+                to={item.path}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+                  isActive(item.path)
+                    ? 'text-[#F97316] bg-[#F97316]/10'
+                    : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
+                }`}
+              >
+                {item.name}
+              </PreloadLink>
+            ))}
+
             {user ? (
-              <div className="relative" ref={userMenuRef}>
+              <div className="relative ml-2" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-3 px-3 py-2 bg-[#18181B] border border-[#27272A] rounded-lg hover:border-[#F97316]/30 transition-all group"
+                  className="flex items-center gap-2 px-3 py-2 bg-[#18181B] border border-[#27272A] rounded-lg hover:border-[#F97316]/30 transition-all group"
                 >
                   <div className="w-8 h-8 rounded-md bg-[#F97316]/10 flex items-center justify-center">
                     <User className="w-4 h-4 text-[#F97316]" />
-                  </div>
-                  <div className="flex flex-col items-start">
-                    <span className="text-sm font-medium text-white">
-                      {user.email?.split('@')[0]}
-                    </span>
-                    <span className="text-[10px] text-[#A1A1AA]">
-                      {isAdmin ? 'Administrator' : 'Member'}
-                    </span>
                   </div>
                   <ChevronDown className={`w-4 h-4 text-[#A1A1AA] transition-transform duration-300 ${
                     showUserMenu ? 'rotate-180' : ''
                   }`} />
                 </button>
 
-                {/* Professional Dropdown Menu */}
+                {/* Dropdown Menu */}
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-64 bg-[#18181B] border border-[#27272A] rounded-lg shadow-2xl overflow-hidden">
                     <div className="p-3 border-b border-[#27272A] bg-[#0A0A0A]">
                       <p className="text-sm font-medium text-white">{user.email}</p>
                       <p className="text-xs text-[#A1A1AA] mt-1">
-                        {isAdmin ? 'Administrator Access' : 'Member Account'}
+                        {isAdmin ? 'Administrator' : 'Member'}
                       </p>
                     </div>
-
                     <div className="p-2">
                       <PreloadLink
                         to="/dashboard"
@@ -141,60 +141,29 @@ export default function Header() {
                         <Home className="w-4 h-4" />
                         Dashboard
                       </PreloadLink>
-
                       {isAdmin && (
                         <PreloadLink
                           to="/admin"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-[#F97316] bg-[#F97316]/5 hover:bg-[#F97316]/10 rounded-md transition-all border-l-2 border-[#F97316]"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-[#F97316] bg-[#F97316]/5 rounded-md border-l-2 border-[#F97316]"
                         >
                           <Shield className="w-4 h-4" />
-                          Admin Dashboard
+                          Admin
                         </PreloadLink>
                       )}
-
-                      <PreloadLink
-                        to="/dashboard/applications"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-md transition-all"
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md transition-all mt-2"
                       >
-                        <FileText className="w-4 h-4" />
-                        Applications
-                      </PreloadLink>
-
-                      <PreloadLink
-                        to="/dashboard/saved"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-md transition-all"
-                      >
-                        <Heart className="w-4 h-4" />
-                        Saved Properties
-                      </PreloadLink>
-
-                      <PreloadLink
-                        to="/dashboard/settings"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-md transition-all"
-                      >
-                        <Settings className="w-4 h-4" />
-                        Settings
-                      </PreloadLink>
-
-                      <div className="border-t border-[#27272A] mt-2 pt-2">
-                        <button
-                          onClick={handleSignOut}
-                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md transition-all"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Sign Out
-                        </button>
-                      </div>
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2 ml-2">
                 <PreloadLink
                   to="/signin"
                   className="px-4 py-2 text-sm font-medium text-[#A1A1AA] hover:text-white transition-colors"
@@ -203,11 +172,11 @@ export default function Header() {
                 </PreloadLink>
                 <PreloadLink
                   to="/signup"
-                  className="px-4 py-2 bg-[#F97316] text-white text-sm font-medium rounded-lg hover:bg-[#EA580C] transition-all shadow-lg shadow-orange-500/20"
+                  className="px-4 py-2 bg-[#F97316] text-white text-sm font-medium rounded-lg hover:bg-[#EA580C] transition-all"
                 >
-                  Get Started
+                  Sign Up
                 </PreloadLink>
-              </>
+              </div>
             )}
           </div>
 
@@ -223,6 +192,10 @@ export default function Header() {
         {/* Mobile Navigation */}
         {isOpen && (
           <div className="md:hidden py-4 border-t border-[#27272A] bg-[#0A0A0A]">
+            {/* Mobile Logo at top of menu */}
+            <div className="flex justify-center mb-4">
+              <img src={logo} alt="Palms Estate" className="h-8" />
+            </div>
             <div className="space-y-1">
               {navigation.map((item) => (
                 <PreloadLink
@@ -243,9 +216,6 @@ export default function Header() {
                 <div className="pt-4 mt-4 border-t border-[#27272A]">
                   <div className="px-4 py-2">
                     <p className="text-sm text-white">{user.email}</p>
-                    <p className="text-xs text-[#A1A1AA] mt-1">
-                      {isAdmin ? 'Administrator' : 'Member'}
-                    </p>
                   </div>
                   <PreloadLink
                     to="/dashboard"
@@ -255,19 +225,9 @@ export default function Header() {
                     <Home className="w-4 h-4" />
                     Dashboard
                   </PreloadLink>
-                  {isAdmin && (
-                    <PreloadLink
-                      to="/admin"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-[#F97316] bg-[#F97316]/5 hover:bg-[#F97316]/10 rounded-lg border-l-2 border-[#F97316]"
-                    >
-                      <Shield className="w-4 h-4" />
-                      Admin Dashboard
-                    </PreloadLink>
-                  )}
                   <button
                     onClick={handleSignOut}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 rounded-lg mt-2"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 rounded-lg"
                   >
                     <LogOut className="w-4 h-4" />
                     Sign Out
@@ -287,7 +247,7 @@ export default function Header() {
                     onClick={() => setIsOpen(false)}
                     className="flex-1 px-4 py-3 bg-[#F97316] text-white text-sm font-medium rounded-lg hover:bg-[#EA580C] text-center"
                   >
-                    Get Started
+                    Sign Up
                   </PreloadLink>
                 </div>
               )}
@@ -297,4 +257,4 @@ export default function Header() {
       </nav>
     </header>
   );
-}
+            }
