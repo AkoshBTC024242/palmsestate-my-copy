@@ -19,7 +19,7 @@ function Hero() {
   }, []);
 
   const stats = [
-    { value: '250+', label: 'Active Listings', icon: Building2 },
+    { value: '250+', label: 'Active Properties', icon: Building2 },
     { value: '800+', label: 'Happy Clients', icon: Users },
     { value: '98%', label: 'Satisfaction Rate', icon: TrendingUp },
     { value: '45+', label: 'REALTORS®', icon: Shield }
