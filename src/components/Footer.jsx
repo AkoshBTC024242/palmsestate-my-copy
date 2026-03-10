@@ -34,14 +34,14 @@ export default function Footer() {
     },
   ];
 
-  // Updated social links with YouTube and Map/Location
+  // Updated social links with custom Facebook URL
   const socialLinks = [
-    { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
+    { icon: Facebook, href: 'https://www.facebook.com/share/1AouKZ1mDp/', label: 'Facebook' },
     { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
     { icon: Twitter, href: 'https://twitter.com', label: 'X / Twitter' },
     { icon: Youtube, href: 'https://youtube.com', label: 'YouTube' },
     { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-    { icon: Map, href: '#', label: 'Location' }, // Map pin icon
+    { icon: Map, href: '#', label: 'Location' },
   ];
 
   return (
@@ -64,31 +64,17 @@ export default function Footer() {
             </Link>
             
             <div className="text-gray-300 text-sm md:text-base max-w-xl mt-2">
-              <span className="text-orange-500" style={{ color: '#FF6600' }}>Redefining Sophisticated Living</span> | Buffalo, NY – Marketing Agency That Sells Homes
+              <span className="text-orange-500" style={{ color: '#FF6600' }}>Redefining Sophisticated Living</span> | Buffalo, NY – Marketing Agency That Sells Homes and Rent Homes
             </div>
 
-            {/* REALTOR® house symbol with realistic SVG logo */}
+            {/* REALTOR® official SVG logo */}
             <div className="flex items-center gap-4 mt-4">
-              <svg width="140" height="120" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
-                {/* Rectangular block background (orange) */}
-                <rect x="40" y="20" width="120" height="100" rx="8" fill="#ff6600" />
-                
-                {/* Stylized block "R" (white) - geometric Futura-like shape */}
-                <g fill="#ffffff" fontFamily="Arial, Helvetica, sans-serif" fontWeight="bold">
-                  {/* Vertical left leg */}
-                  <rect x="55" y="35" width="20" height="70" />
-                  {/* Top horizontal */}
-                  <rect x="75" y="35" width="60" height="20" />
-                  {/* Middle horizontal */}
-                  <rect x="75" y="65" width="50" height="20" />
-                  {/* Diagonal leg (bottom right) */}
-                  <polygon points="135,85 75,85 135,105" />
+              <svg width="140" height="120" viewBox="0 0 192.756 192.756" xmlns="http://www.w3.org/2000/svg">
+                <g fillRule="evenodd" clipRule="evenodd">
+                  <path fill="#fff" d="M0 0h192.756v192.756H0V0z"/>
+                  <path d="M25.387 2.835v141.989h139.841V2.835H25.387zm74.779 17.956l12.859-.004c6.998 0 13.578 2.726 18.527 7.674 4.947 4.948 7.672 11.526 7.672 18.523 0 14.445-11.752 26.197-26.199 26.197l-12.859.015V20.791zm-15.72 104.993H45.501V20.801h38.945v104.983zm15.72.11V76.515l50.348 49.379h-50.348zM44.435 179.999h10.306v-3.691H44.435v-4.902h11.163v-3.691H40.005v21.527H56.1v-3.691H44.435v-5.552zM87.603 167.715h-4.43v21.527h14.735v-3.691H87.603v-17.836zM100.324 171.406h6.526v17.836h4.429v-17.836h6.291v-3.691h-17.246v3.691zM171.01 168.508c-2.277 0-4.113 1.836-4.113 4.092a4.106 4.106 0 0 0 4.113 4.112 4.095 4.095 0 0 0 4.092-4.112 4.091 4.091 0 0 0-4.092-4.092zm0 7.711a3.605 3.605 0 0 1-3.609-3.619 3.6 3.6 0 0 1 3.609-3.598 3.598 3.598 0 0 1 3.598 3.598 3.605 3.605 0 0 1-3.598 3.619zM34.458 186.673c-.03-1.093-.088-3.927-.207-4.813-.236-1.949-1.654-2.48-2.392-2.982 1.447-.856 2.392-1.535 2.923-3.396.531-1.859.088-3.396-.207-4.341-.621-2.332-2.806-3.337-4.961-3.425h-11.96v21.527h4.43v-8.505h5.197c1.536 0 2.599.709 2.658 2.156-.059 1.564-.059 3.277 0 4.341.059.709.236 1.358.591 2.008h4.754v-.797c-.472-.297-.826-.562-.826-1.773zm-6.32-9.627h-6.054v-5.64h5.995c1.979 0 2.687.886 2.687 2.421.267 2.126-1.594 3.219-2.628 3.219zM71.808 167.715h-5.109l-7.5 21.527h4.518l1.506-4.312h7.974l1.477 4.312h4.519l-7.385-21.527zm-5.376 13.524l2.836-8.356 2.864 8.356h-5.7zM137.732 170.048c-1.801-1.86-4.43-2.688-7.176-2.688s-5.375.827-7.176 2.688c-2.008 2.097-3.189 5.345-3.189 8.593s1.182 6.497 3.189 8.594c1.801 1.86 4.43 2.688 7.176 2.688s5.375-.827 7.176-2.688c2.008-2.097 3.189-5.346 3.189-8.594s-1.181-6.496-3.189-8.593zm-3.218 14.557c-1.123 1.034-2.539 1.447-3.957 1.447s-2.836-.413-3.957-1.447c-1.418-1.299-2.127-3.632-2.156-5.965.029-2.333.738-4.666 2.156-5.965 1.121-1.034 2.539-1.447 3.957-1.447s2.834.413 3.957 1.447c1.418 1.299 2.127 3.632 2.156 5.965-.029 2.334-.738 4.667-2.156 5.965zM162.205 186.673c-.029-1.093-.088-3.927-.205-4.813-.236-1.949-1.654-2.48-2.393-2.982 1.447-.856 2.393-1.535 2.924-3.396.531-1.859.088-3.396-.207-4.341-.621-2.332-2.805-3.337-4.961-3.425h-11.961v21.527h4.43v-8.505h5.197c1.537 0 2.6.709 2.658 2.156-.059 1.564-.059 3.277 0 4.341.059.709.236 1.358.59 2.008h4.756v-.797c-.472-.297-.828-.562-.828-1.773zm-6.318-9.627h-6.055v-5.64h5.996c1.979 0 2.688.886 2.688 2.421.265 2.126-1.596 3.219-2.629 3.219z" fill="#000"/>
+                  <path d="M173.113 171.525c0-.387-.172-.795-.516-.988-.342-.204-.729-.225-1.115-.225h-1.998v4.585h.559v-2.116h1.031l1.311 2.116h.664l-1.385-2.116c.816-.021 1.449-.353 1.449-1.256zm-2.211.817h-.859v-1.622h1.311c.568 0 1.191.086 1.191.795 0 .934-.998.827-1.643.827z" fill="#000"/>
                 </g>
-                
-                {/* REALTOR® text below (orange) */}
-                <text x="100" y="145" fontFamily="Arial, Helvetica, sans-serif" fontSize="28" fontWeight="bold" fill="#ff6600" textAnchor="middle">
-                  REALTOR®
-                </text>
               </svg>
             </div>
           </div>
@@ -253,7 +239,7 @@ export default function Footer() {
         {/* Very bottom: NAR disclaimer */}
         <div className="text-xs text-gray-500 leading-relaxed pt-6 border-t border-gray-800 mt-2">
           <p className="mb-2">
-            <strong className="text-orange-500">REALTOR®</strong> is a registered trademark of the National Association of REALTORS® and identifies real estate professionals who are members of NAR and/or the quality of services they provide. Inspired by palmestates.com branding: focus on unlocking potential, data-driven marketing, luxury experiences, and the Palm Movement.
+            <strong className="text-orange-500">REALTOR®</strong> is a registered trademark of the National Association of REALTORS® and identifies real estate professionals who are members of NAR and/or the quality of services they provide. Inspired by palmestates.org branding: focus on unlocking potential, data-driven marketing, luxury experiences, and the Palm Movement.
           </p>
           <p>© {currentYear} Palm Estates. All rights reserved. Buffalo, NY</p>
         </div>
