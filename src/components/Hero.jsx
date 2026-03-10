@@ -23,7 +23,7 @@ function Hero() {
           }}
         />
 
-        {/* Black gradient overlays for depth - updated to black/orange theme */}
+        {/* Black gradient overlays for depth */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-black/80"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent"></div>
         
@@ -50,18 +50,18 @@ function Hero() {
           </span>
         </div>
 
-        {/* Main Headline - Ultra Premium */}
+        {/* Main Headline */}
         <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-light text-white mb-6 md:mb-8 leading-[0.9] tracking-tight">
           Exceptional <span className="text-orange-500 italic" style={{ color: '#FF6600' }}>Living</span> Awaits
         </h1>
 
-        {/* Subtitle - Elegant & Clean */}
+        {/* Subtitle */}
         <p className="font-montserrat text-xl md:text-2xl text-white/90 mb-10 md:mb-12 max-w-3xl mx-auto font-light leading-relaxed tracking-wide">
           Access premium residences through our exclusive property portfolio. 
           Experience unparalleled service and discretion in every detail.
         </p>
 
-        {/* Primary CTA Button - Orange */}
+        {/* Primary CTA Button */}
         <div className="mb-16 md:mb-20">
           <Link
             to="/properties"
@@ -73,7 +73,7 @@ function Hero() {
           </Link>
         </div>
 
-        {/* Luxury Stats - Always visible on mobile with responsive grid */}
+        {/* Luxury Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 lg:gap-8 max-w-4xl mx-auto px-2">
           {[
             { value: '250+', label: 'Premium Properties', icon: <Sparkles className="w-4 h-4 md:w-5 md:h-5" /> },
@@ -102,7 +102,7 @@ function Hero() {
         </div>
       </div>
 
-      {/* Scroll Indicator - Minimal */}
+      {/* Scroll Indicator */}
       <div className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 transition-opacity duration-700 ${
         isLoaded ? 'opacity-100' : 'opacity-0'
       }`}>
@@ -114,8 +114,8 @@ function Hero() {
         </div>
       </div>
 
-      {/* Custom CSS for smooth animations */}
-      <style jsx>{`
+      {/* Add animation styles directly in the component */}
+      <style>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
