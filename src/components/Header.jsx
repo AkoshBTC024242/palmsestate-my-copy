@@ -66,17 +66,13 @@ export default function Header() {
           {/* Left spacer for centering logo */}
           <div className="w-32 md:w-48 lg:w-64"></div>
 
-          {/* Logo - Centered - Text Only */}
+          {/* Logo - Centered - Clean version without icon */}
           <PreloadLink to="/" className="absolute left-1/2 transform -translate-x-1/2 group">
-            <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold tracking-tight">
-                <span className="text-white">Palms</span>
-                <span className="text-orange-500" style={{ color: '#FF6600' }}> Estate</span>
-              </div>
-              <div className="text-xs md:text-sm text-gray-400 mt-0.5 tracking-wide">
-                Redefining Sophisticated Living
-              </div>
+            <div className="text-3xl md:text-4xl font-bold tracking-tight">
+              <span className="text-white">Palms</span>
+              <span className="text-orange-500" style={{ color: '#FF6600' }}> Estate</span>
             </div>
+            <div className="text-xs text-gray-400 text-center mt-0.5">Redefining Sophisticated Living</div>
           </PreloadLink>
 
           {/* User Actions */}
