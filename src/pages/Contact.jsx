@@ -4,6 +4,7 @@ import {
   MessageSquare, User, Mail as MailIcon, Calendar,
   Shield, Star, Users, Globe
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 function Contact() {
   const [formData, setFormData] = useState({
@@ -19,6 +20,7 @@ function Contact() {
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
 
   const serviceTypes = [
     'Luxury Villa Rental',
@@ -34,13 +36,63 @@ function Contact() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitted(true);
-      setIsSubmitting(false);
+    setError(null);
+
+    try {
+      // 1. Save to Supabase
+      const { data, error: supabaseError } = await supabase
+        .from('contact_submissions')
+        .insert([
+          {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            service_type: formData.serviceType,
+            preferred_date: formData.preferredDate || null,
+            message: formData.message,
+            subscribe: formData.subscribe,
+            status: 'new',
+            created_at: new Date().toISOString()
+          }
+        ])
+        .select();
+
+      if (supabaseError) throw supabaseError;
+
+      // 2. Send email notification via Supabase Edge Function or email service
+      // For now, we'll use a simple email notification via a third-party service
+      // You can replace this with your preferred email service (SendGrid, Resend, etc.)
       
-      // Reset form after success
+      // Option 1: Using a webhook or Edge Function
+      const emailResponse = await fetch('/api/send-contact-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: 'admin@palmsestate.org',
+          subject: `New Contact Form Submission: ${formData.firstName} ${formData.lastName}`,
+          formData: {
+            name: `${formData.firstName} ${formData.lastName}`,
+            email: formData.email,
+            phone: formData.phone,
+            serviceType: formData.serviceType,
+            preferredDate: formData.preferredDate,
+            message: formData.message,
+            subscribe: formData.subscribe
+          }
+        }),
+      });
+
+      if (!emailResponse.ok) {
+        console.error('Email notification failed, but form was saved');
+      }
+
+      // Success!
+      setIsSubmitted(true);
+      
+      // Reset form after success (but keep submitted state)
       setTimeout(() => {
         setFormData({
           firstName: '',
@@ -54,7 +106,13 @@ function Contact() {
         });
         setIsSubmitted(false);
       }, 5000);
-    }, 1500);
+
+    } catch (err) {
+      console.error('Submission error:', err);
+      setError('There was an error submitting your form. Please try again or call us directly.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -92,8 +150,8 @@ function Contact() {
             {/* Contact Card */}
             <div className="backdrop-blur-md bg-white/80 border border-gray-200/50 rounded-3xl p-8 shadow-xl">
               <h3 className="font-serif text-2xl font-bold text-gray-900 mb-8">Contact Information</h3>
-              
-              <div className="space-y-8">
+
+<div className="space-y-8">
                 {/* Phone */}
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl">
@@ -174,7 +232,7 @@ function Contact() {
             {/* Why Choose Us Card */}
             <div className="backdrop-blur-md bg-white/80 border border-gray-200/50 rounded-3xl p-8 shadow-xl">
               <h3 className="font-serif text-2xl font-bold text-gray-900 mb-6">Why Choose Palms Estate</h3>
-              
+
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <Star className="w-6 h-6 text-amber-500 mt-1 flex-shrink-0" />
@@ -184,7 +242,7 @@ function Contact() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
+<div className="flex items-start gap-4">
                   <Shield className="w-6 h-6 text-amber-500 mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-sans font-bold text-gray-900">Complete Confidentiality</h4>
@@ -266,6 +324,12 @@ function Contact() {
                   <p className="font-sans text-gray-600 mb-8">
                     Complete the form below and our luxury property specialists will contact you to arrange a private viewing or consultation.
                   </p>
+
+                  {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                      {error}
+                    </div>
+                  )}
 
                   <form onSubmit={handleSubmit} className="space-y-8">
                     {/* Name Row */}
@@ -436,7 +500,7 @@ function Contact() {
             {/* FAQ Section */}
             <div className="mt-8 backdrop-blur-md bg-white/80 border border-gray-200/50 rounded-3xl p-8 shadow-xl">
               <h3 className="font-serif text-2xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h3>
-              
+
               <div className="space-y-6">
                 <div>
                   <h4 className="font-sans font-bold text-gray-900 mb-2 flex items-center gap-2">
