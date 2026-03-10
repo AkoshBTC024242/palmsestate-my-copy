@@ -1,13 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Menu, X, User, LogOut, Settings, FileText, 
-  Home, Heart, Shield, ChevronDown, Search 
-} from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, FileText, Home as HomeIcon, Heart, Shield, ChevronDown } from 'lucide-react';
 import PreloadLink from './PreloadLink';
-// Import your logo
-import logo from '../assets/logo.svg'; // Adjust path as needed
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -60,8 +55,8 @@ export default function Header() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         scrolled 
-          ? 'bg-[#0A0A0A]/95 backdrop-blur-md border-b border-[#27272A] shadow-lg' 
-          : 'bg-transparent'
+          ? 'bg-black/95 backdrop-blur-md border-b border-[#27272A] shadow-2xl' 
+          : 'bg-black/80 backdrop-blur-sm border-b border-[#27272A]/50'
       }`}
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -72,10 +67,10 @@ export default function Header() {
               <PreloadLink
                 key={item.name}
                 to={item.path}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
+                className={`px-4 py-2 text-sm font-light tracking-wide transition-all duration-300 ${
                   isActive(item.path)
-                    ? 'text-[#F97316] bg-[#F97316]/10'
-                    : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
+                    ? 'text-[#F97316]'
+                    : 'text-[#A1A1AA] hover:text-white'
                 }`}
               >
                 {item.name}
@@ -85,96 +80,128 @@ export default function Header() {
 
           {/* Centered Logo */}
           <PreloadLink to="/" className="absolute left-1/2 transform -translate-x-1/2">
-            <img 
-              src={logo} 
-              alt="Palms Estate" 
-              className="h-10 w-auto md:h-12"
-            />
+            <div className="flex flex-col items-center">
+              <div className="text-2xl md:text-3xl font-light tracking-tight">
+                <span className="text-white font-medium">Palms</span>
+                <span className="text-[#F97316] font-light ml-1">Estate</span>
+              </div>
+              <div className="text-[10px] text-[#A1A1AA] tracking-[0.3em] -mt-1">
+                REAL ESTATE
+              </div>
+            </div>
           </PreloadLink>
 
           {/* Right Section */}
-          <div className="hidden md:flex items-center gap-3">
-            {/* Right navigation items */}
-            {navigation.slice(2).map((item) => (
-              <PreloadLink
-                key={item.name}
-                to={item.path}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-300 ${
-                  isActive(item.path)
-                    ? 'text-[#F97316] bg-[#F97316]/10'
-                    : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
-                }`}
-              >
-                {item.name}
-              </PreloadLink>
-            ))}
+          <div className="hidden md:flex items-center gap-4">
+            {/* Right Navigation */}
+            <div className="flex items-center gap-1 mr-2">
+              {navigation.slice(2).map((item) => (
+                <PreloadLink
+                  key={item.name}
+                  to={item.path}
+                  className={`px-4 py-2 text-sm font-light tracking-wide transition-all duration-300 ${
+                    isActive(item.path)
+                      ? 'text-[#F97316]'
+                      : 'text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  {item.name}
+                </PreloadLink>
+              ))}
+            </div>
 
             {user ? (
-              <div className="relative ml-2" ref={userMenuRef}>
+              <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 px-3 py-2 bg-[#18181B] border border-[#27272A] rounded-lg hover:border-[#F97316]/30 transition-all group"
+                  className="flex items-center gap-2 pl-3 pr-2 py-1.5 bg-[#111111] border border-[#27272A] rounded-full hover:border-[#F97316]/30 transition-all group"
                 >
-                  <div className="w-8 h-8 rounded-md bg-[#F97316]/10 flex items-center justify-center">
-                    <User className="w-4 h-4 text-[#F97316]" />
+                  <div className="w-7 h-7 rounded-full bg-[#F97316]/10 flex items-center justify-center">
+                    <User className="w-3.5 h-3.5 text-[#F97316]" />
                   </div>
-                  <ChevronDown className={`w-4 h-4 text-[#A1A1AA] transition-transform duration-300 ${
+                  <span className="text-sm text-white max-w-[100px] truncate">
+                    {user.email?.split('@')[0]}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-[#A1A1AA] transition-transform duration-300 ${
                     showUserMenu ? 'rotate-180' : ''
                   }`} />
                 </button>
 
                 {/* Dropdown Menu */}
                 {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-64 bg-[#18181B] border border-[#27272A] rounded-lg shadow-2xl overflow-hidden">
-                    <div className="p-3 border-b border-[#27272A] bg-[#0A0A0A]">
+                  <div className="absolute right-0 mt-2 w-64 bg-[#111111] border border-[#27272A] rounded-xl shadow-2xl overflow-hidden">
+                    <div className="p-4 border-b border-[#27272A]">
                       <p className="text-sm font-medium text-white">{user.email}</p>
                       <p className="text-xs text-[#A1A1AA] mt-1">
                         {isAdmin ? 'Administrator' : 'Member'}
                       </p>
                     </div>
+
                     <div className="p-2">
                       <PreloadLink
                         to="/dashboard"
                         onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-md transition-all"
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
                       >
-                        <Home className="w-4 h-4" />
+                        <HomeIcon className="w-4 h-4" />
                         Dashboard
                       </PreloadLink>
+
                       {isAdmin && (
                         <PreloadLink
                           to="/admin"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-[#F97316] bg-[#F97316]/5 rounded-md border-l-2 border-[#F97316]"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-[#F97316] bg-[#F97316]/5 hover:bg-[#F97316]/10 rounded-lg transition-all"
                         >
                           <Shield className="w-4 h-4" />
-                          Admin
+                          Admin Dashboard
                         </PreloadLink>
                       )}
-                      <button
-                        onClick={handleSignOut}
-                        className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-md transition-all mt-2"
+
+                      <PreloadLink
+                        to="/dashboard/applications"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
                       >
-                        <LogOut className="w-4 h-4" />
-                        Sign Out
-                      </button>
+                        <FileText className="w-4 h-4" />
+                        Applications
+                      </PreloadLink>
+
+                      <PreloadLink
+                        to="/dashboard/saved"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
+                      >
+                        <Heart className="w-4 h-4" />
+                        Saved
+                      </PreloadLink>
+
+                      <div className="border-t border-[#27272A] mt-2 pt-2">
+                        <button
+                          onClick={handleSignOut}
+                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Sign Out
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2 ml-2">
+              <div className="flex items-center gap-3">
                 <PreloadLink
                   to="/signin"
-                  className="px-4 py-2 text-sm font-medium text-[#A1A1AA] hover:text-white transition-colors"
+                  className="text-sm text-[#A1A1AA] hover:text-white transition-colors"
                 >
                   Sign In
                 </PreloadLink>
                 <PreloadLink
                   to="/signup"
-                  className="px-4 py-2 bg-[#F97316] text-white text-sm font-medium rounded-lg hover:bg-[#EA580C] transition-all"
+                  className="px-4 py-2 bg-[#F97316] text-white text-sm font-medium rounded-full hover:bg-[#EA580C] transition-all shadow-lg shadow-orange-500/20"
                 >
-                  Sign Up
+                  Get Started
                 </PreloadLink>
               </div>
             )}
@@ -183,7 +210,7 @@ export default function Header() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 rounded-lg text-[#A1A1AA] hover:text-white hover:bg-[#18181B] transition-colors"
+            className="md:hidden p-2 rounded-lg text-[#A1A1AA] hover:text-white transition-colors"
           >
             {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -191,21 +218,17 @@ export default function Header() {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-[#27272A] bg-[#0A0A0A]">
-            {/* Mobile Logo at top of menu */}
-            <div className="flex justify-center mb-4">
-              <img src={logo} alt="Palms Estate" className="h-8" />
-            </div>
+          <div className="md:hidden py-4 border-t border-[#27272A]">
             <div className="space-y-1">
               {navigation.map((item) => (
                 <PreloadLink
                   key={item.name}
                   to={item.path}
                   onClick={() => setIsOpen(false)}
-                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  className={`block px-4 py-3 rounded-lg text-sm transition-colors ${
                     isActive(item.path)
-                      ? 'text-[#F97316] bg-[#F97316]/10'
-                      : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
+                      ? 'text-[#F97316] bg-[#F97316]/5'
+                      : 'text-[#A1A1AA] hover:text-white hover:bg-[#111111]'
                   }`}
                 >
                   {item.name}
@@ -213,18 +236,28 @@ export default function Header() {
               ))}
 
               {user ? (
-                <div className="pt-4 mt-4 border-t border-[#27272A]">
+                <div className="pt-4 mt-4 border-t border-[#27272A] space-y-1">
                   <div className="px-4 py-2">
                     <p className="text-sm text-white">{user.email}</p>
                   </div>
                   <PreloadLink
                     to="/dashboard"
                     onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#18181B] rounded-lg"
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#111111] rounded-lg"
                   >
-                    <Home className="w-4 h-4" />
+                    <HomeIcon className="w-4 h-4" />
                     Dashboard
                   </PreloadLink>
+                  {isAdmin && (
+                    <PreloadLink
+                      to="/admin"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-[#F97316] bg-[#F97316]/5 rounded-lg"
+                    >
+                      <Shield className="w-4 h-4" />
+                      Admin
+                    </PreloadLink>
+                  )}
                   <button
                     onClick={handleSignOut}
                     className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 rounded-lg"
@@ -238,16 +271,16 @@ export default function Header() {
                   <PreloadLink
                     to="/signin"
                     onClick={() => setIsOpen(false)}
-                    className="flex-1 px-4 py-3 text-sm font-medium text-[#A1A1AA] hover:text-white hover:bg-[#18181B] rounded-lg text-center"
+                    className="flex-1 px-4 py-3 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#111111] rounded-lg text-center"
                   >
                     Sign In
                   </PreloadLink>
                   <PreloadLink
                     to="/signup"
                     onClick={() => setIsOpen(false)}
-                    className="flex-1 px-4 py-3 bg-[#F97316] text-white text-sm font-medium rounded-lg hover:bg-[#EA580C] text-center"
+                    className="flex-1 px-4 py-3 bg-[#F97316] text-white text-sm rounded-lg hover:bg-[#EA580C] text-center"
                   >
-                    Sign Up
+                    Get Started
                   </PreloadLink>
                 </div>
               )}
@@ -257,4 +290,4 @@ export default function Header() {
       </nav>
     </header>
   );
-            }
+}
