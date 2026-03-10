@@ -22,7 +22,7 @@ export default function Disclaimer() {
           </h1>
           <div className="h-1 w-24 bg-orange-500 mb-6"></div>
           <p className="text-gray-400 text-lg">
-            Important legal information and disclosures for Palm Estates
+            Important legal information and disclosures for Palms Estate {/* Changed */}
           </p>
         </div>
 
@@ -41,7 +41,7 @@ export default function Disclaimer() {
           </div>
           <div className="pl-14 text-gray-400 text-sm space-y-3">
             <p>
-              The term REALTOR® is used throughout this website to identify real estate professionals who are members of NAR and/or the quality of services they provide. Palm Estates is committed to upholding the highest standards of professional practice as outlined in the REALTOR® Code of Ethics.
+              The term REALTOR® is used throughout this website to identify real estate professionals who are members of NAR and/or the quality of services they provide. Palms Estate is committed to upholding the highest standards of professional practice as outlined in the REALTOR® Code of Ethics. {/* Changed */}
             </p>
             <p>
               For more information about the REALTOR® organization and its Code of Ethics, visit{' '}
@@ -66,7 +66,7 @@ export default function Disclaimer() {
             <div>
               <h2 className="text-2xl font-bold mb-2">Equal Housing Opportunity</h2>
               <p className="text-gray-300 leading-relaxed">
-                Palm Estates is committed to compliance with all federal, state, and local fair housing laws.
+                Palms Estate is committed to compliance with all federal, state, and local fair housing laws. {/* Changed */}
               </p>
             </div>
           </div>
@@ -102,7 +102,7 @@ export default function Disclaimer() {
           </div>
           <div className="pl-14 text-gray-400 text-sm space-y-3">
             <p>
-              The information contained on this website is for general informational purposes only. While Palm Estates endeavors to keep the information up-to-date and correct, we make no representations or warranties of any kind, express or implied, about the completeness, accuracy, reliability, suitability, or availability with respect to the website or the information, products, services, or related graphics contained on the website for any purpose.
+              The information contained on this website is for general informational purposes only. While Palms Estate endeavors to keep the information up-to-date and correct, we make no representations or warranties of any kind, express or implied, about the completeness, accuracy, reliability, suitability, or availability with respect to the website or the information, products, services, or related graphics contained on the website for any purpose. {/* Changed */}
             </p>
             <p>
               Property listings, pricing, and availability are subject to change without notice. All property information is deemed reliable but not guaranteed and should be independently verified.
@@ -122,10 +122,10 @@ export default function Disclaimer() {
           </div>
           <div className="pl-14 text-gray-400 text-sm space-y-3">
             <p>
-              By using this website, you agree to the terms and conditions set forth herein. Palm Estates reserves the right to modify these terms at any time without prior notice.
+              By using this website, you agree to the terms and conditions set forth herein. Palms Estate reserves the right to modify these terms at any time without prior notice. {/* Changed */}
             </p>
             <p>
-              All content, logos, and branding on this site are the property of Palm Estates unless otherwise noted. Unauthorized use or reproduction is prohibited.
+              All content, logos, and branding on this site are the property of Palms Estate unless otherwise noted. Unauthorized use or reproduction is prohibited. {/* Changed */}
             </p>
           </div>
         </div>
@@ -138,7 +138,7 @@ export default function Disclaimer() {
               <MapPin className="w-5 h-5 text-orange-500 mt-1 flex-shrink-0" />
               <div>
                 <p className="text-gray-300 font-medium">Office Address</p>
-                <p className="text-gray-400 text-sm">Palm Estates<br />Buffalo, New York 14201</p>
+                <p className="text-gray-400 text-sm">Palms Estate<br />Buffalo, New York 14201</p> {/* Changed */}
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -152,7 +152,7 @@ export default function Disclaimer() {
               <Mail className="w-5 h-5 text-orange-500 mt-1 flex-shrink-0" />
               <div>
                 <p className="text-gray-300 font-medium">Email</p>
-                <p className="text-gray-400 text-sm">admin@palmsestate.org</p>
+                <p className="text-gray-400 text-sm">admin@palmsestate.org</p> {/* Changed */}
               </div>
             </div>
             <div className="flex items-start gap-3">
