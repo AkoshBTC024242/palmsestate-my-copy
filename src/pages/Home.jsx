@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Home as HomeIcon, MapPin, Shield, Users, TrendingUp, Star, ChevronRight, CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import Hero from '../components/Hero'; // Import the Hero component
 
 export default function Home() {
   const [featuredProperties, setFeaturedProperties] = useState([]);
@@ -62,115 +63,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section with Orange Theme */}
-      <div className="relative bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full mix-blend-overlay filter blur-3xl animate-pulse delay-700"></div>
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left Content */}
-            <div className="text-white space-y-8">
-              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium">
-                <Star className="w-4 h-4 fill-current" />
-                <span>Trusted by 800+ Happy Renters</span>
-              </div>
-
-              <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
-                Your Dream Rental <br />
-                <span className="text-orange-200">Awaits You</span>
-              </h1>
-
-              <p className="text-xl text-orange-100 leading-relaxed">
-                Discover premium rental properties across the United States. Experience luxury living with Palms Estate - where comfort meets affordability.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link
-                  to="/properties"
-                  className="group inline-flex items-center justify-center px-8 py-4 bg-white text-orange-600 font-semibold rounded-xl hover:bg-orange-50 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
-                >
-                  Browse Rentals
-                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-
-                <Link
-                  to="/signup"
-                  className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300"
-                >
-                  Get Started
-                </Link>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/20">
-                <div>
-                  <div className="text-3xl font-bold">{stats.properties}+</div>
-                  <div className="text-orange-200 text-sm">Rentals Available</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold">{stats.residents}+</div>
-                  <div className="text-orange-200 text-sm">Happy Renters</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-bold">{stats.satisfaction}%</div>
-                  <div className="text-orange-200 text-sm">Satisfaction</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Image/Visual */}
-            <div className="hidden lg:block">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-tr from-orange-400 to-orange-600 rounded-3xl transform rotate-3"></div>
-                <div className="relative bg-white rounded-3xl shadow-2xl p-8 transform -rotate-1 hover:rotate-0 transition-transform duration-300">
-                  <div className="space-y-6">
-                    <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
-                          <HomeIcon className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900">Modern Apartment</div>
-                          <div className="text-sm text-gray-600">Los Angeles, CA</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">$2,500/mo</div>
-                        <div className="text-xs text-gray-500">Available</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-orange-50 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
-                          <MapPin className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900">Luxury Condo</div>
-                          <div className="text-sm text-gray-600">New York, NY</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold text-orange-600">$3,200/mo</div>
-                        <div className="text-xs text-gray-500">Available</div>
-                      </div>
-                    </div>
-
-                    <div className="p-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl text-white text-center">
-                      <div className="text-3xl font-bold mb-1">800+</div>
-                      <div className="text-orange-100">Rentals Listed</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Use the Hero component */}
+      <Hero />
 
       {/* Features Section */}
       <div className="py-24 bg-gray-50">
