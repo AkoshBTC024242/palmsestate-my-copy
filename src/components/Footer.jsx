@@ -24,7 +24,7 @@ export default function Footer() {
       ],
     },
     {
-      title: 'Palm Movement',
+      title: 'Palms Movement', // Changed from 'Palm Movement'
       links: [
         { name: 'Unlock Potential', path: '/unlock' },
         { name: 'Data-Driven Marketing', path: '/data-marketing' },
@@ -58,8 +58,8 @@ export default function Footer() {
             <Link to="/" className="inline-block group">
               <div className="text-4xl md:text-5xl font-bold tracking-tight">
                 <span className="text-white">P</span>
-                <span className="text-orange-600" style={{ color: '#FF6600' }}>alm</span>
-                <span className="text-white"> Estates</span>
+                <span className="text-orange-600" style={{ color: '#FF6600' }}>alms</span>
+                <span className="text-white"> Estate</span>
               </div>
             </Link>
             
@@ -122,7 +122,7 @@ export default function Footer() {
             {/* Buffalo address */}
             <div className="mt-4 text-gray-400 text-sm flex items-start gap-2">
               <MapPin className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
-              <span>Palm Estates<br />Buffalo, New York 14201</span>
+              <span>Palms Estate<br />Buffalo, New York 14201</span> {/* Changed */}
             </div>
           </div>
 
@@ -153,9 +153,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Palm Movement */}
+          {/* Palms Movement - Changed from Palm Movement */}
           <div>
-            <h3 className="text-xl font-bold mb-4 text-white border-b border-gray-800 pb-2">Palm Movement</h3>
+            <h3 className="text-xl font-bold mb-4 text-white border-b border-gray-800 pb-2">Palms Movement</h3>
             <ul className="space-y-3">
               <li>
                 <Link to="/unlock" className="text-gray-400 hover:text-orange-500 transition-colors inline-block">
@@ -180,9 +180,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Fourth column - additional Palm Estates info */}
+          {/* Fourth column - additional Palms Estate info */}
           <div>
-            <h3 className="text-xl font-bold mb-4 text-white border-b border-gray-800 pb-2">Palm Estates</h3>
+            <h3 className="text-xl font-bold mb-4 text-white border-b border-gray-800 pb-2">Palms Estate</h3> {/* Changed */}
             <ul className="space-y-3">
               <li>
                 <Link to="/listings" className="text-gray-400 hover:text-orange-500 transition-colors inline-block">
@@ -239,9 +239,9 @@ export default function Footer() {
         {/* Very bottom: NAR disclaimer */}
         <div className="text-xs text-gray-500 leading-relaxed pt-6 border-t border-gray-800 mt-2">
           <p className="mb-2">
-            <strong className="text-orange-500">REALTOR®</strong> is a registered trademark of the National Association of REALTORS® and identifies real estate professionals who are members of NAR and/or the quality of services they provide. Inspired by palmestates.org branding: focus on unlocking potential, data-driven marketing, luxury experiences, and the Palm Movement.
+            <strong className="text-orange-500">REALTOR®</strong> is a registered trademark of the National Association of REALTORS® and identifies real estate professionals who are members of NAR and/or the quality of services they provide. Inspired by palmsestate.org branding: focus on unlocking potential, data-driven marketing, luxury experiences, and the Palms Movement. {/* Changed */}
           </p>
-          <p>© {currentYear} Palm Estates. All rights reserved. Buffalo, NY</p>
+          <p>© {currentYear} Palms Estate. All rights reserved. Buffalo, NY</p> {/* Changed */}
         </div>
       </div>
     </footer>
