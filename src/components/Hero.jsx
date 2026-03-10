@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Star, Home as HomeIcon, MapPin } from 'lucide-react';
+import { 
+  ArrowRight, 
+  Home, 
+  Users, 
+  Building2, 
+  CheckCircle,
+  TrendingUp,
+  Shield 
+} from 'lucide-react';
 
 function Hero() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -10,153 +18,144 @@ function Hero() {
     return () => clearTimeout(timer);
   }, []);
 
-  const stats = {
-    properties: 250,
-    residents: 800,
-    satisfaction: 98
-  };
+  const stats = [
+    { value: '250+', label: 'Active Listings', icon: Building2 },
+    { value: '800+', label: 'Happy Clients', icon: Users },
+    { value: '98%', label: 'Satisfaction Rate', icon: TrendingUp },
+    { value: '45+', label: 'REALTORS®', icon: Shield }
+  ];
 
   return (
-    <div className="relative bg-black overflow-hidden">
-      {/* Decorative orange elements */}
-      <div className="absolute inset-0 opacity-20">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-orange-500 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-500 rounded-full mix-blend-overlay filter blur-3xl animate-pulse delay-700"></div>
-      </div>
-
-      {/* Subtle orange gradient overlay */}
+    <div className="relative bg-[#0A0A0A] overflow-hidden">
+      {/* Sophisticated gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-orange-500/5"></div>
+      
+      {/* Subtle pattern overlay */}
+      <div className="absolute inset-0 opacity-[0.02]" 
+        style={{
+          backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+          backgroundSize: '40px 40px'
+        }}
+      />
 
+      {/* Main Content */}
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left Content */}
-          <div className="text-white space-y-8">
-            {/* Trust badge */}
-            <div className="inline-flex items-center gap-2 bg-orange-500/10 backdrop-blur-sm border border-orange-500/20 px-4 py-2 rounded-full text-sm font-medium">
-              <Star className="w-4 h-4 fill-orange-500 text-orange-500" />
-              <span className="text-orange-400">Trusted by 800+ Happy Clients</span>
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Professional Trust Indicators */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+            <div className="flex items-center gap-2 px-4 py-2 bg-[#18181B] rounded-full border border-[#27272A]">
+              <Shield className="w-4 h-4 text-[#F97316]" />
+              <span className="text-sm text-[#A1A1AA]">Certified REALTORS®</span>
             </div>
-
-            {/* Headline - orange accent on second line */}
-            <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
-              Your Property Journey, <br />
-              <span className="text-orange-500" style={{ color: '#FF6600' }}>Expertly Guided</span>
-            </h1>
-
-            {/* Description */}
-            <p className="text-xl text-gray-300 leading-relaxed">
-              Whether you're buying, selling, or renting, our certified REALTORS® deliver 
-              data-driven marketing and white-glove service for luxury homes and premium rentals.
-            </p>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                to="/properties"
-                className="group inline-flex items-center justify-center px-8 py-4 bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600 transition-all duration-300 shadow-xl shadow-orange-500/20 hover:shadow-2xl hover:shadow-orange-500/40 hover:scale-105"
-                style={{ backgroundColor: '#FF6600' }}
-              >
-                Browse Properties
-                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-
-              <Link
-                to="/contact"
-                className="inline-flex items-center justify-center px-8 py-4 border-2 border-orange-500/50 text-white font-semibold rounded-xl hover:bg-orange-500/10 transition-all duration-300"
-              >
-                Talk to a Realtor
-              </Link>
+            <div className="flex items-center gap-2 px-4 py-2 bg-[#18181B] rounded-full border border-[#27272A]">
+              <CheckCircle className="w-4 h-4 text-[#F97316]" />
+              <span className="text-sm text-[#A1A1AA]">Equal Housing Opportunity</span>
             </div>
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-6 pt-8 border-t border-gray-800">
-              <div>
-                <div className="text-3xl font-bold text-white">{stats.properties}+</div>
-                <div className="text-gray-400 text-sm">Active Listings</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-white">{stats.residents}+</div>
-                <div className="text-gray-400 text-sm">Happy Clients</div>
-              </div>
-              <div>
-                <div className="text-3xl font-bold text-white">{stats.satisfaction}%</div>
-                <div className="text-gray-400 text-sm">Satisfaction</div>
-              </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-[#18181B] rounded-full border border-[#27272A]">
+              <TrendingUp className="w-4 h-4 text-[#F97316]" />
+              <span className="text-sm text-[#A1A1AA]">Data-Driven Marketing</span>
             </div>
           </div>
 
-          {/* Right Visual with property cards */}
-          <div className="hidden lg:block">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-orange-500 to-orange-600 rounded-3xl transform rotate-3 opacity-30"></div>
-              <div className="relative bg-gray-900 rounded-3xl shadow-2xl p-8 transform -rotate-1 hover:rotate-0 transition-transform duration-300 border border-orange-500/20">
-                <div className="space-y-6">
-                  {/* Property Card 1 */}
-                  <div className="flex items-center justify-between p-4 bg-black rounded-xl border border-orange-500/10 hover:border-orange-500/30 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
-                        <HomeIcon className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">Luxury Estate</div>
-                        <div className="text-sm text-gray-400">Buffalo, NY</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-orange-500">$1.2M</div>
-                      <div className="text-xs text-gray-500">For Sale</div>
+          {/* Main Headline - Clean and impactful */}
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-light tracking-tight mb-6">
+            <span className="text-white">Real Estate,</span>
+            <br />
+            <span className="text-[#F97316] font-medium">Redefined</span>
+          </h1>
+
+          {/* Supporting text - Professional and clear */}
+          <p className="text-xl text-[#A1A1AA] mb-12 max-w-2xl mx-auto leading-relaxed">
+            Whether you're buying, selling, or renting, our team of certified professionals 
+            delivers exceptional results through data-driven strategies and white-glove service.
+          </p>
+
+          {/* CTA Buttons - Clean and purposeful */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            <Link
+              to="/properties"
+              className="group inline-flex items-center justify-center px-8 py-4 bg-[#F97316] text-white font-medium rounded-lg hover:bg-[#EA580C] transition-all duration-300 shadow-lg shadow-orange-500/20 hover:shadow-xl hover:shadow-orange-500/30 min-w-[200px]"
+            >
+              Explore Properties
+              <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+            
+            <Link
+              to="/contact"
+              className="inline-flex items-center justify-center px-8 py-4 bg-[#18181B] text-white font-medium rounded-lg border border-[#27272A] hover:border-[#F97316] hover:bg-[#F97316]/5 transition-all duration-300 min-w-[200px]"
+            >
+              Schedule Consultation
+            </Link>
+          </div>
+
+          {/* Stats Grid - Clean and organized */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            {stats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
+                <div 
+                  key={index}
+                  className={`text-center transition-all duration-700 ${
+                    isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                  }`}
+                  style={{ transitionDelay: `${200 + index * 100}ms` }}
+                >
+                  <div className="flex justify-center mb-3">
+                    <div className="w-12 h-12 rounded-lg bg-[#F97316]/10 flex items-center justify-center">
+                      <Icon className="w-6 h-6 text-[#F97316]" />
                     </div>
                   </div>
-
-                  {/* Property Card 2 */}
-                  <div className="flex items-center justify-between p-4 bg-black rounded-xl border border-orange-500/10 hover:border-orange-500/30 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
-                        <MapPin className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">Modern Apartment</div>
-                        <div className="text-sm text-gray-400">New York, NY</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-orange-500">$3,200/mo</div>
-                      <div className="text-xs text-gray-500">For Rent</div>
-                    </div>
+                  <div className="text-2xl md:text-3xl font-light text-white mb-1">
+                    {stat.value}
                   </div>
-
-                  {/* Stats Card */}
-                  <div className="p-6 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl text-white text-center">
-                    <div className="text-3xl font-bold mb-1">15+ Years</div>
-                    <div className="text-orange-100">of Real Estate Excellence</div>
+                  <div className="text-xs md:text-sm text-[#A1A1AA] uppercase tracking-wider">
+                    {stat.label}
                   </div>
                 </div>
-              </div>
+              );
+            })}
+          </div>
+
+          {/* Professional Affiliations */}
+          <div className="mt-16 pt-8 border-t border-[#27272A]">
+            <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-[#A1A1AA]">
+              <span>National Association of REALTORS®</span>
+              <span className="w-1 h-1 rounded-full bg-[#27272A]"></span>
+              <span>Equal Housing Opportunity</span>
+              <span className="w-1 h-1 rounded-full bg-[#27272A]"></span>
+              <span>Buffalo Niagara Association</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Scroll Indicator */}
-      <div className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 transition-opacity duration-700 ${
+      <div className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 transition-opacity duration-1000 ${
         isLoaded ? 'opacity-100' : 'opacity-0'
       }`}>
-        <div className="animate-bounce flex flex-col items-center">
-          <span className="text-orange-400/70 text-sm mb-2 font-montserrat tracking-widest">EXPLORE</span>
-          <svg className="w-6 h-6 text-orange-500/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-          </svg>
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-xs text-[#A1A1AA] tracking-widest">SCROLL</span>
+          <div className="w-5 h-9 border-2 border-[#27272A] rounded-full flex justify-center">
+            <div className="w-1 h-2 bg-[#F97316] rounded-full mt-2 animate-scroll"></div>
+          </div>
         </div>
       </div>
 
-      {/* Animation styles */}
+      {/* Custom Animations */}
       <style>{`
+        @keyframes scroll {
+          0%, 100% { transform: translateY(0); opacity: 0.5; }
+          50% { transform: translateY(10px); opacity: 1; }
+        }
+        .animate-scroll {
+          animation: scroll 2s ease-in-out infinite;
+        }
         @keyframes pulse {
-          0%, 100% { opacity: 0.2; }
-          50% { opacity: 0.3; }
+          0%, 100% { opacity: 0.1; }
+          50% { opacity: 0.15; }
         }
         .animate-pulse {
-          animation: pulse 3s ease-in-out infinite;
+          animation: pulse 4s ease-in-out infinite;
         }
         .delay-700 {
           animation-delay: 700ms;
