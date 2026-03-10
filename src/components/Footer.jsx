@@ -67,13 +67,29 @@ export default function Footer() {
               <span className="text-orange-500" style={{ color: '#FF6600' }}>Redefining Sophisticated Living</span> | Buffalo, NY – Marketing Agency That Sells Homes
             </div>
 
-            {/* REALTOR® house symbol with integrated R */}
-            <div className="flex items-center gap-3 mt-4">
-              <div className="relative flex items-center justify-center w-12 h-12 bg-orange-700 rounded-lg overflow-hidden" style={{ backgroundColor: '#b33e1f' }}>
-                <div className="absolute inset-0 flex items-center justify-center text-white text-2xl font-bold">🏠</div>
-                <div className="absolute bottom-0 right-0 text-white text-xs font-bold bg-black bg-opacity-60 px-1 rounded-tl">®</div>
-              </div>
-              <span className="text-white font-semibold text-lg">REALTOR<sup>®</sup></span>
+            {/* REALTOR® house symbol with realistic SVG logo */}
+            <div className="flex items-center gap-4 mt-4">
+              <svg width="140" height="120" viewBox="0 0 200 160" xmlns="http://www.w3.org/2000/svg">
+                {/* Rectangular block background (orange) */}
+                <rect x="40" y="20" width="120" height="100" rx="8" fill="#ff6600" />
+                
+                {/* Stylized block "R" (white) - geometric Futura-like shape */}
+                <g fill="#ffffff" fontFamily="Arial, Helvetica, sans-serif" fontWeight="bold">
+                  {/* Vertical left leg */}
+                  <rect x="55" y="35" width="20" height="70" />
+                  {/* Top horizontal */}
+                  <rect x="75" y="35" width="60" height="20" />
+                  {/* Middle horizontal */}
+                  <rect x="75" y="65" width="50" height="20" />
+                  {/* Diagonal leg (bottom right) */}
+                  <polygon points="135,85 75,85 135,105" />
+                </g>
+                
+                {/* REALTOR® text below (orange) */}
+                <text x="100" y="145" fontFamily="Arial, Helvetica, sans-serif" fontSize="28" fontWeight="bold" fill="#ff6600" textAnchor="middle">
+                  REALTOR®
+                </text>
+              </svg>
             </div>
           </div>
 
@@ -205,14 +221,26 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom row: accessibility left / disclaimer right */}
+        {/* Bottom row: accessibility left / disclaimer right + Equal Housing Opportunity */}
         <div className="flex flex-col sm:flex-row justify-between items-center py-6 border-t border-gray-800 mt-4">
-          <div className="flex items-center gap-2 text-blue-400 mb-4 sm:mb-0">
-            <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center">
-              <span className="text-xl">♿</span>
+          <div className="flex items-center gap-4 mb-4 sm:mb-0">
+            {/* Accessibility icon */}
+            <div className="flex items-center gap-2 text-blue-400">
+              <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center">
+                <span className="text-xl">♿</span>
+              </div>
+              <span className="text-sm text-gray-400">Accessibility</span>
             </div>
-            <span className="text-sm text-gray-400">Accessibility features</span>
+            
+            {/* Equal Housing Opportunity logo */}
+            <div className="flex items-center gap-2 border-l border-gray-800 pl-4">
+              <div className="w-8 h-8 bg-blue-600 rounded-sm flex items-center justify-center text-white font-bold text-xs">
+                <span className="rotate-45 text-lg">🏠</span>
+              </div>
+              <span className="text-sm text-gray-300">Equal Housing<br />Opportunity</span>
+            </div>
           </div>
+          
           <Link to="/disclaimer" className="text-orange-500 hover:text-orange-400 font-medium border-b border-orange-500 border-dotted">
             Buffalo Disclaimer
           </Link>
