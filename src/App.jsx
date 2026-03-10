@@ -1,4 +1,4 @@
-// src/App.jsx - UPDATED WITH EMAIL CONFIRMATION ROUTES
+// src/App.jsx - UPDATED WITH EMAIL CONFIRMATION ROUTES AND DISCLAIMER PAGE
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
@@ -18,13 +18,14 @@ import Contact from './pages/Contact';
 import About from './pages/About';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
-import VerificationSent from './pages/VerificationSent'; // NEW
-import EmailConfirmed from './pages/EmailConfirmed'; // NEW
+import VerificationSent from './pages/VerificationSent';
+import EmailConfirmed from './pages/EmailConfirmed';
 import VerificationSuccess from './pages/VerificationSuccess';
 import ApplicationForm from './pages/ApplicationForm';
 import InitialApplyForm from './pages/InitialApplyForm';
 import PostApprovalForm from './pages/dashboard/PostApprovalForm';
 import NotFound from './pages/NotFound';
+import Disclaimer from './pages/Disclaimer'; // NEW: Import Disclaimer page
 
 // Dashboard pages
 import Dashboard from './pages/Dashboard';
@@ -53,7 +54,7 @@ function App() {
         <AuthProvider>
           <DashboardProvider>
             <ScrollToTop />
-            
+
             <div className="min-h-screen flex flex-col">
               <Routes>
                 {/* ===== PUBLIC ROUTES WITH HEADER/FOOTER ===== */}
@@ -66,7 +67,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 <Route path="/properties" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -76,7 +77,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 <Route path="/properties/:id" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -86,7 +87,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 <Route path="/properties/:id/initial-apply" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -96,7 +97,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 <Route path="/contact" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -106,7 +107,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 <Route path="/about" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -116,7 +117,18 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
+                {/* NEW: Disclaimer route */}
+                <Route path="/disclaimer" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Disclaimer />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
                 <Route path="/signin" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -126,7 +138,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 <Route path="/signup" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -136,7 +148,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 {/* EMAIL VERIFICATION FLOW ROUTES */}
                 <Route path="/verification-sent" element={
                   <div className="min-h-screen flex flex-col">
@@ -147,7 +159,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 <Route path="/email-confirmed" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -157,7 +169,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 <Route path="/verification-success" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -167,7 +179,7 @@ function App() {
                     <Footer />
                   </div>
                 } />
-                
+
                 {/* ===== USER DASHBOARD ROUTES ===== */}
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
@@ -176,7 +188,7 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/dashboard/applications" element={
                   <ProtectedRoute>
                     <DashboardLayout>
@@ -184,7 +196,7 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/dashboard/applications/:id" element={
                   <ProtectedRoute>
                     <DashboardLayout>
@@ -192,7 +204,7 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/dashboard/applications/:id/post-approval" element={
                   <ProtectedRoute>
                     <DashboardLayout>
@@ -200,7 +212,7 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/dashboard/applications/:id/payment" element={
                   <ProtectedRoute>
                     <DashboardLayout>
@@ -208,7 +220,7 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/dashboard/saved" element={
                   <ProtectedRoute>
                     <DashboardLayout>
@@ -216,7 +228,7 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/dashboard/profile" element={
                   <ProtectedRoute>
                     <DashboardLayout>
@@ -224,7 +236,7 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 <Route path="/dashboard/settings" element={
                   <ProtectedRoute>
                     <DashboardLayout>
@@ -232,68 +244,68 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
-                
+
                 {/* ===== ADMIN DASHBOARD ROUTES ===== */}
                 <Route path="/admin" element={
                   <AdminProtectedRoute>
                     <AdminDashboard />
                   </AdminProtectedRoute>
                 } />
-                
+
                 <Route path="/admin/properties" element={
                   <AdminProtectedRoute>
                     <AdminProperties />
                   </AdminProtectedRoute>
                 } />
-                
+
                 <Route path="/admin/properties/new" element={
                   <AdminProtectedRoute>
                     <AdminPropertyEdit />
                   </AdminProtectedRoute>
                 } />
-                
+
                 <Route path="/admin/properties/:id/edit" element={
                   <AdminProtectedRoute>
                     <AdminPropertyEdit />
                   </AdminProtectedRoute>
                 } />
-                
+
                 <Route path="/admin/applications" element={
                   <AdminProtectedRoute>
                     <AdminApplications />
                   </AdminProtectedRoute>
                 } />
-                
+
                 <Route path="/admin/applications/:id" element={
                   <AdminProtectedRoute>
                     <AdminApplicationDetail />
                   </AdminProtectedRoute>
                 } />
-                
+
                 <Route path="/admin/users" element={
                   <AdminProtectedRoute>
                     <AdminUsers />
                   </AdminProtectedRoute>
                 } />
-                
+
                 <Route path="/admin/payments" element={
                   <AdminProtectedRoute>
                     <AdminPayments />
                   </AdminProtectedRoute>
                 } />
-                
+
                 <Route path="/admin/analytics" element={
                   <AdminProtectedRoute>
                     <AdminAnalytics />
                   </AdminProtectedRoute>
                 } />
-                
+
                 <Route path="/admin/settings" element={
                   <AdminProtectedRoute>
                     <AdminSettings />
                   </AdminProtectedRoute>
                 } />
-                
+
                 {/* ===== PROTECTED APPLICATION FORM ===== */}
                 <Route path="/properties/:id/apply" element={
                   <ProtectedRoute>
@@ -306,7 +318,7 @@ function App() {
                     </div>
                   </ProtectedRoute>
                 } />
-                
+
                 {/* ===== 404 PAGE ===== */}
                 <Route path="*" element={
                   <div className="min-h-screen flex flex-col">
@@ -327,4 +339,3 @@ function App() {
 }
 
 export default App;
-
