@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background house shape -->
+  <path d="M256 20 L492 220 L492 492 L20 492 L20 220 Z" fill="#f04a23"/>
+
+  <!-- Palm tree trunk -->
+  <path d="M255 330 C240 300 250 260 260 220 C270 180 280 150 300 120 
+           C285 140 270 180 260 220 C250 260 240 300 255 330 Z" fill="black"/>
+
+  <!-- Palm leaves -->
+  <path d="M260 210 C200 180 140 180 90 210 C140 200 200 210 240 230 Z" fill="black"/>
+  <path d="M260 210 C210 150 180 120 150 110 C180 140 210 180 240 220 Z" fill="black"/>
+  <path d="M260 210 C300 170 360 170 420 200 C360 200 310 210 270 230 Z" fill="black"/>
+  <path d="M260 210 C300 140 330 110 360 100 C330 140 300 180 270 220 Z" fill="black"/>
+  <path d="M260 210 C240 250 210 290 180 320 C210 290 240 260 270 230 Z" fill="black"/>
+</svg>
