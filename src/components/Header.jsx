@@ -66,30 +66,18 @@ export default function Header() {
           {/* Left spacer for centering logo */}
           <div className="w-32 md:w-48 lg:w-64"></div>
 
-          {/* Logo - Centered */}
-          <PreloadLink to="/" className="flex items-center space-x-3 group absolute left-1/2 transform -translate-x-1/2">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl blur-xl opacity-60 group-hover:opacity-80 transition-opacity"></div>
-              <div className="relative w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/40 transition-all">
-                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
+          {/* Logo - Centered - Text Only */}
+          <PreloadLink to="/" className="absolute left-1/2 transform -translate-x-1/2 group">
+            <div className="text-center">
+              <div className="text-2xl md:text-3xl font-bold tracking-tight">
+                <span className="text-white">Palms</span>
+                <span className="text-orange-500" style={{ color: '#FF6600' }}> Estate</span>
               </div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold">
-                <span className="text-white">P</span>
-                <span className="text-orange-500" style={{ color: '#FF6600' }}>alm</span>
-                <span className="text-white"> Estates</span>
+              <div className="text-xs md:text-sm text-gray-400 mt-0.5 tracking-wide">
+                Redefining Sophisticated Living
               </div>
-              <div className="text-xs text-gray-400">Redefining Sophisticated Living</div>
             </div>
           </PreloadLink>
-
-          {/* Desktop Navigation - Hidden on desktop, we'll use right side for actions */}
-          <div className="hidden md:flex items-center space-x-1">
-            {/* Navigation moved to right side with user actions */}
-          </div>
 
           {/* User Actions */}
           <div className="hidden md:flex items-center space-x-4">
