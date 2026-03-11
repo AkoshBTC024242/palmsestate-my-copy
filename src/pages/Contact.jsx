@@ -33,87 +33,160 @@ function Contact() {
     'Other'
   ];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setError(null);
 
-    try {
-      // 1. Save to Supabase
-      const { data, error: supabaseError } = await supabase
-        .from('contact_submissions')
-        .insert([
-          {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            service_type: formData.serviceType,
-            preferred_date: formData.preferredDate || null,
-            message: formData.message,
-            subscribe: formData.subscribe,
-            status: 'new',
-            created_at: new Date().toISOString()
-          }
-        ])
-        .select();
+  try {
+    // Log the form data being submitted
+    console.log('Submitting form data:', formData);
 
-      if (supabaseError) throw supabaseError;
+    // 1. Save to Supabase
+    const { data, error: supabaseError } = await supabase
+      .from('contact_submissions')
+      .insert([
+        {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          service_type: formData.serviceType,
+          preferred_date: formData.preferredDate || null,
+          message: formData.message,
+          subscribe: formData.subscribe,
+          status: 'new'
+        }
+      ])
+      .select();
 
-      // 2. Send email notification via Supabase Edge Function or email service
-      // For now, we'll use a simple email notification via a third-party service
-      // You can replace this with your preferred email service (SendGrid, Resend, etc.)
-      
-      // Option 1: Using a webhook or Edge Function
-      const emailResponse = await fetch('/api/send-contact-notification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          to: 'admin@palmsestate.org',
-          subject: `New Contact Form Submission: ${formData.firstName} ${formData.lastName}`,
-          formData: {
-            name: `${formData.firstName} ${formData.lastName}`,
-            email: formData.email,
-            phone: formData.phone,
-            serviceType: formData.serviceType,
-            preferredDate: formData.preferredDate,
-            message: formData.message,
-            subscribe: formData.subscribe
-          }
-        }),
-      });
+    // Log the response
+    console.log('Supabase response:', { data, error: supabaseError });
 
-      if (!emailResponse.ok) {
-        console.error('Email notification failed, but form was saved');
-      }
-
-      // Success!
-      setIsSubmitted(true);
-      
-      // Reset form after success (but keep submitted state)
-      setTimeout(() => {
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          serviceType: '',
-          preferredDate: '',
-          message: '',
-          subscribe: true
-        });
-        setIsSubmitted(false);
-      }, 5000);
-
-    } catch (err) {
-      console.error('Submission error:', err);
-      setError('There was an error submitting your form. Please try again or call us directly.');
-    } finally {
-      setIsSubmitting(false);
+    if (supabaseError) {
+      console.error('Supabase error details:', supabaseError);
+      throw new Error(supabaseError.message);
     }
-  };
+
+    console.log('Form submitted successfully to Supabase:', data);
+
+    // 2. Send email notification via Resend
+    console.log('Attempting to send email notification...');
+    
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer re_VvYfG9dS_3rBCrzATk9j2DmdadGESd9g1`, // Your Resend API key
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Palms Estate <onboarding@resend.dev>', // Use your verified domain or resend.dev for testing
+        to: ['admin@palmsestate.org'],
+        subject: `New Contact Form Submission: ${formData.firstName} ${formData.lastName}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #F97316, #EA580C); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+              .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; border-radius: 0 0 10px 10px; }
+              .field { margin-bottom: 15px; }
+              .label { font-weight: bold; color: #F97316; }
+              .value { margin-top: 5px; padding: 10px; background: white; border-radius: 5px; }
+              .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h2>New Contact Form Submission</h2>
+              </div>
+              <div class="content">
+                <div class="field">
+                  <div class="label">Name:</div>
+                  <div class="value">${formData.firstName} ${formData.lastName}</div>
+                </div>
+                
+                <div class="field">
+                  <div class="label">Email:</div>
+                  <div class="value">${formData.email}</div>
+                </div>
+                
+                <div class="field">
+                  <div class="label">Phone:</div>
+                  <div class="value">${formData.phone}</div>
+                </div>
+                
+                <div class="field">
+                  <div class="label">Service Type:</div>
+                  <div class="value">${formData.serviceType}</div>
+                </div>
+                
+                ${formData.preferredDate ? `
+                <div class="field">
+                  <div class="label">Preferred Contact Date:</div>
+                  <div class="value">${formData.preferredDate}</div>
+                </div>
+                ` : ''}
+                
+                <div class="field">
+                  <div class="label">Message:</div>
+                  <div class="value">${formData.message.replace(/\n/g, '<br>')}</div>
+                </div>
+                
+                <div class="field">
+                  <div class="label">Newsletter Subscription:</div>
+                  <div class="value">${formData.subscribe ? 'Yes' : 'No'}</div>
+                </div>
+              </div>
+              <div class="footer">
+                <p>This message was sent from the Palms Estate contact form.</p>
+                <p>© ${new Date().getFullYear()} Palms Estate. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+      }),
+    });
+
+    const emailData = await emailResponse.json();
+    console.log('Resend API response:', emailData);
+
+    if (!emailResponse.ok) {
+      console.error('Resend API error:', emailData);
+      // Don't throw error here - form was saved successfully, just log the email error
+    } else {
+      console.log('Email sent successfully:', emailData);
+    }
+
+    // Success!
+    setIsSubmitted(true);
+    
+    // Reset form after success
+    setTimeout(() => {
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        serviceType: '',
+        preferredDate: '',
+        message: '',
+        subscribe: true
+      });
+      setIsSubmitted(false);
+    }, 5000);
+
+  } catch (err) {
+    console.error('Full submission error:', err);
+    setError(`There was an error submitting your form: ${err.message}. Please try again or call us directly.`);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
