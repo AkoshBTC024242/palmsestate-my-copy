@@ -58,7 +58,6 @@ function Contact() {
             status: 'new'
           }
         ])
-        .select();
 
       if (supabaseError) {
         console.error('Supabase error:', supabaseError);
