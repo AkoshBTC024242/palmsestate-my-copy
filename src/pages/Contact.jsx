@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Phone, Mail, MapPin, Clock, Send, CheckCircle, 
   MessageSquare, User, Mail as MailIcon, Calendar,
-  Shield, Star, Users, Globe
+  Shield, Star, Users, Globe, ArrowRight, X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -21,6 +21,7 @@ function Contact() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [submittedData, setSubmittedData] = useState(null);
 
   const serviceTypes = [
     'Luxury Villa Rental',
@@ -41,8 +42,8 @@ function Contact() {
     try {
       console.log('Submitting form data:', formData);
 
-      // Direct insert without checking session
-      const { data, error: supabaseError } = await supabase
+      // 1. Save to Supabase
+      const { data: insertData, error: supabaseError } = await supabase
         .from('contact_submissions')
         .insert([
           {
@@ -56,7 +57,8 @@ function Contact() {
             subscribe: formData.subscribe,
             status: 'new'
           }
-        ]);
+        ])
+        .select();
 
       if (supabaseError) {
         console.error('Supabase error:', supabaseError);
@@ -65,7 +67,16 @@ function Contact() {
 
       console.log('Form saved to Supabase successfully');
 
-      // Send email notification via Edge Function
+      // Store submitted data for confirmation
+      setSubmittedData({
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        serviceType: formData.serviceType,
+        preferredDate: formData.preferredDate,
+        message: formData.message
+      });
+
+      // 2. Send notification to admin via Edge Function
       try {
         const emailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-contact-email', {
           method: 'POST',
@@ -87,28 +98,44 @@ function Contact() {
         });
 
         const emailData = await emailResponse.json();
-        console.log('Email notification response:', emailData);
+        console.log('Admin notification response:', emailData);
       } catch (emailErr) {
-        console.error('Email notification failed (form still saved):', emailErr);
+        console.error('Admin notification failed (form still saved):', emailErr);
+      }
+
+      // 3. Send confirmation email to user
+      try {
+        const userEmailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-user-confirmation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            userData: {
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+              serviceType: formData.serviceType,
+              preferredDate: formData.preferredDate,
+              message: formData.message
+            } 
+          }),
+        });
+
+        const userEmailData = await userEmailResponse.json();
+        console.log('User confirmation email response:', userEmailData);
+      } catch (userEmailErr) {
+        console.error('User confirmation email failed:', userEmailErr);
       }
 
       // Success!
       setIsSubmitted(true);
       
-      // Reset form after success
+      // Auto-hide success message after 10 seconds
       setTimeout(() => {
-        setFormData({
-          firstName: '',
-          lastName: '',
-          email: '',
-          phone: '',
-          serviceType: '',
-          preferredDate: '',
-          message: '',
-          subscribe: true
-        });
         setIsSubmitted(false);
-      }, 5000);
+        setSubmittedData(null);
+      }, 10000);
 
     } catch (err) {
       console.error('Form submission error:', err);
@@ -126,20 +153,36 @@ function Contact() {
     }));
   };
 
+  const handleDismissSuccess = () => {
+    setIsSubmitted(false);
+    setSubmittedData(null);
+    // Reset form
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      serviceType: '',
+      preferredDate: '',
+      message: '',
+      subscribe: true
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50/50 pt-24 pb-20">
+    <div className="min-h-screen bg-[#0A0A0A] pt-24 pb-20">
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
         <div className="text-center mb-12">
-          <div className="inline-block backdrop-blur-md bg-white/60 border border-gray-200/50 rounded-2xl px-8 py-4 mb-6">
-            <span className="font-sans text-amber-600 font-semibold tracking-widest text-sm md:text-base uppercase">
+          <div className="inline-block bg-[#18181B] border border-[#F97316]/20 rounded-2xl px-8 py-4 mb-6">
+            <span className="font-sans text-[#F97316] font-semibold tracking-widest text-sm md:text-base uppercase">
               PREMIUM CONCIERGE
             </span>
           </div>
-          <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-            Connect With <span className="text-amber-600">Excellence</span>
+          <h1 className="font-serif text-4xl md:text-6xl lg:text-7xl font-light text-white mb-6 leading-tight">
+            Connect With <span className="text-[#F97316] font-medium">Excellence</span>
           </h1>
-          <p className="font-sans text-lg md:text-xl lg:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="font-sans text-lg md:text-xl lg:text-2xl text-[#A1A1AA] max-w-3xl mx-auto leading-relaxed">
             Your journey to exceptional living begins with a conversation. 
             Our dedicated luxury advisors are ready to guide you every step of the way.
           </p>
@@ -151,52 +194,52 @@ function Contact() {
           {/* Left Column - Contact Information */}
           <div className="lg:col-span-1 space-y-8">
             {/* Contact Card */}
-            <div className="backdrop-blur-md bg-white/80 border border-gray-200/50 rounded-3xl p-8 shadow-xl">
-              <h3 className="font-serif text-2xl font-bold text-gray-900 mb-8">Contact Information</h3>
+            <div className="bg-[#18181B] border border-[#27272A] rounded-3xl p-8 shadow-xl">
+              <h3 className="font-serif text-2xl font-bold text-white mb-8">Contact Information</h3>
 
               <div className="space-y-8">
                 {/* Phone */}
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl">
-                    <Phone className="w-6 h-6 text-amber-600" />
+                  <div className="w-12 h-12 flex items-center justify-center bg-[#F97316]/10 rounded-xl">
+                    <Phone className="w-6 h-6 text-[#F97316]" />
                   </div>
                   <div>
-                    <h4 className="font-sans font-bold text-gray-900 mb-1">24/7 Concierge</h4>
+                    <h4 className="font-sans font-bold text-white mb-1">24/7 Concierge</h4>
                     <a 
                       href="tel:+18286239765" 
-                      className="font-sans text-amber-600 hover:text-amber-700 transition-colors text-lg"
+                      className="font-sans text-[#F97316] hover:text-[#F97316]/80 transition-colors text-lg"
                     >
                       +1 (828) 623-9765
                     </a>
-                    <p className="font-sans text-gray-600 text-sm mt-1">Available around the clock</p>
+                    <p className="font-sans text-[#A1A1AA] text-sm mt-1">Available around the clock</p>
                   </div>
                 </div>
 
                 {/* Email */}
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl">
-                    <MailIcon className="w-6 h-6 text-amber-600" />
+                  <div className="w-12 h-12 flex items-center justify-center bg-[#F97316]/10 rounded-xl">
+                    <MailIcon className="w-6 h-6 text-[#F97316]" />
                   </div>
                   <div>
-                    <h4 className="font-sans font-bold text-gray-900 mb-1">Email</h4>
+                    <h4 className="font-sans font-bold text-white mb-1">Email</h4>
                     <a 
                       href="mailto:admin@palmsestate.org" 
-                      className="font-sans text-amber-600 hover:text-amber-700 transition-colors"
+                      className="font-sans text-[#F97316] hover:text-[#F97316]/80 transition-colors"
                     >
                       admin@palmsestate.org
                     </a>
-                    <p className="font-sans text-gray-600 text-sm mt-1">Response within 2 hours</p>
+                    <p className="font-sans text-[#A1A1AA] text-sm mt-1">Response within 2 hours</p>
                   </div>
                 </div>
 
                 {/* Global Offices */}
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl">
-                    <Globe className="w-6 h-6 text-amber-600" />
+                  <div className="w-12 h-12 flex items-center justify-center bg-[#F97316]/10 rounded-xl">
+                    <Globe className="w-6 h-6 text-[#F97316]" />
                   </div>
                   <div>
-                    <h4 className="font-sans font-bold text-gray-900 mb-1">Global Offices</h4>
-                    <div className="font-sans text-gray-700">
+                    <h4 className="font-sans font-bold text-white mb-1">Global Offices</h4>
+                    <div className="font-sans text-[#A1A1AA]">
                       <p className="mb-1">• Miami: Luxury District</p>
                       <p className="mb-1">• New York: Upper East Side</p>
                       <p className="mb-1">• London: Mayfair</p>
@@ -207,85 +250,85 @@ function Contact() {
               </div>
 
               {/* Divider */}
-              <div className="my-8 border-t border-gray-200"></div>
+              <div className="my-8 border-t border-[#27272A]"></div>
 
               {/* Service Hours */}
               <div>
-                <h4 className="font-sans font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-amber-600" />
+                <h4 className="font-sans font-bold text-white mb-4 flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-[#F97316]" />
                   Service Hours
                 </h4>
-                <div className="space-y-2 font-sans text-gray-700">
+                <div className="space-y-2 font-sans text-[#A1A1AA]">
                   <div className="flex justify-between">
                     <span>Concierge:</span>
-                    <span className="font-bold">24/7</span>
+                    <span className="font-bold text-white">24/7</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Office Hours:</span>
-                    <span className="font-bold">8 AM - 8 PM (Local)</span>
+                    <span className="font-bold text-white">8 AM - 8 PM (Local)</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Emergency:</span>
-                    <span className="font-bold text-green-600">Always Available</span>
+                    <span className="font-bold text-green-500">Always Available</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Why Choose Us Card */}
-            <div className="backdrop-blur-md bg-white/80 border border-gray-200/50 rounded-3xl p-8 shadow-xl">
-              <h3 className="font-serif text-2xl font-bold text-gray-900 mb-6">Why Choose Palms Estate</h3>
+            <div className="bg-[#18181B] border border-[#27272A] rounded-3xl p-8 shadow-xl">
+              <h3 className="font-serif text-2xl font-bold text-white mb-6">Why Choose Palms Estate</h3>
 
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <Star className="w-6 h-6 text-amber-500 mt-1 flex-shrink-0" />
+                  <Star className="w-6 h-6 text-[#F97316] mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-sans font-bold text-gray-900">Award-Winning Service</h4>
-                    <p className="font-sans text-gray-600 text-sm mt-1">Recognized by Forbes Global Properties</p>
+                    <h4 className="font-sans font-bold text-white">Award-Winning Service</h4>
+                    <p className="font-sans text-[#A1A1AA] text-sm mt-1">Recognized by Forbes Global Properties</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <Shield className="w-6 h-6 text-amber-500 mt-1 flex-shrink-0" />
+                  <Shield className="w-6 h-6 text-[#F97316] mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-sans font-bold text-gray-900">Complete Confidentiality</h4>
-                    <p className="font-sans text-gray-600 text-sm mt-1">NDA protection for all clients</p>
+                    <h4 className="font-sans font-bold text-white">Complete Confidentiality</h4>
+                    <p className="font-sans text-[#A1A1AA] text-sm mt-1">NDA protection for all clients</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <Users className="w-6 h-6 text-amber-500 mt-1 flex-shrink-0" />
+                  <Users className="w-6 h-6 text-[#F97316] mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-sans font-bold text-gray-900">Dedicated Advisor</h4>
-                    <p className="font-sans text-gray-600 text-sm mt-1">Personal concierge for each client</p>
+                    <h4 className="font-sans font-bold text-white">Dedicated Advisor</h4>
+                    <p className="font-sans text-[#A1A1AA] text-sm mt-1">Personal concierge for each client</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <CheckCircle className="w-6 h-6 text-amber-500 mt-1 flex-shrink-0" />
+                  <CheckCircle className="w-6 h-6 text-[#F97316] mt-1 flex-shrink-0" />
                   <div>
-                    <h4 className="font-sans font-bold text-gray-900">Verified Properties</h4>
-                    <p className="font-sans text-gray-600 text-sm mt-1">Every listing personally inspected</p>
+                    <h4 className="font-sans font-bold text-white">Verified Properties</h4>
+                    <p className="font-sans text-[#A1A1AA] text-sm mt-1">Every listing personally inspected</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Response Time Card */}
-            <div className="backdrop-blur-md bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200/50 rounded-3xl p-8 shadow-xl">
-              <h3 className="font-serif text-2xl font-bold text-gray-900 mb-4">Our Commitment</h3>
+            <div className="bg-gradient-to-br from-[#F97316]/10 to-[#EA580C]/5 border border-[#F97316]/20 rounded-3xl p-8 shadow-xl">
+              <h3 className="font-serif text-2xl font-bold text-white mb-4">Our Commitment</h3>
               <div className="space-y-4">
-                <div className="bg-white/70 rounded-2xl p-4">
-                  <div className="font-sans text-3xl font-bold text-amber-600 mb-1">2 Hours</div>
-                  <div className="font-sans text-gray-700">Initial Response Time</div>
+                <div className="bg-[#0A0A0A] rounded-2xl p-4 border border-[#27272A]">
+                  <div className="font-sans text-3xl font-bold text-[#F97316] mb-1">2 Hours</div>
+                  <div className="font-sans text-[#A1A1AA]">Initial Response Time</div>
                 </div>
-                <div className="bg-white/70 rounded-2xl p-4">
-                  <div className="font-sans text-3xl font-bold text-amber-600 mb-1">24 Hours</div>
-                  <div className="font-sans text-gray-700">Property Viewing Arranged</div>
+                <div className="bg-[#0A0A0A] rounded-2xl p-4 border border-[#27272A]">
+                  <div className="font-sans text-3xl font-bold text-[#F97316] mb-1">24 Hours</div>
+                  <div className="font-sans text-[#A1A1AA]">Property Viewing Arranged</div>
                 </div>
-                <div className="bg-white/70 rounded-2xl p-4">
-                  <div className="font-sans text-3xl font-bold text-amber-600 mb-1">7 Days</div>
-                  <div className="font-sans text-gray-700">Average Closing Time</div>
+                <div className="bg-[#0A0A0A] rounded-2xl p-4 border border-[#27272A]">
+                  <div className="font-sans text-3xl font-bold text-[#F97316] mb-1">7 Days</div>
+                  <div className="font-sans text-[#A1A1AA]">Average Closing Time</div>
                 </div>
               </div>
             </div>
@@ -293,43 +336,89 @@ function Contact() {
 
           {/* Right Column - Contact Form */}
           <div className="lg:col-span-2">
-            <div className="backdrop-blur-md bg-white/80 border border-gray-200/50 rounded-3xl p-8 md:p-12 shadow-xl">
+            <div className="bg-[#18181B] border border-[#27272A] rounded-3xl p-8 md:p-12 shadow-xl relative">
               {isSubmitted ? (
-                <div className="text-center py-12">
-                  <div className="w-24 h-24 mx-auto mb-6 flex items-center justify-center bg-gradient-to-r from-green-100 to-emerald-100 rounded-full">
-                    <CheckCircle className="w-12 h-12 text-green-600" />
+                <div className="text-center py-12 relative">
+                  {/* Dismiss button */}
+                  <button
+                    onClick={handleDismissSuccess}
+                    className="absolute top-4 right-4 text-[#A1A1AA] hover:text-white transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+
+                  {/* Success Animation */}
+                  <div className="relative mb-8">
+                    <div className="w-28 h-28 mx-auto relative">
+                      {/* Outer ring animation */}
+                      <div className="absolute inset-0 border-4 border-[#F97316]/30 rounded-full animate-ping"></div>
+                      {/* Inner circle */}
+                      <div className="absolute inset-2 bg-[#F97316]/20 rounded-full flex items-center justify-center">
+                        <div className="w-16 h-16 bg-gradient-to-br from-[#F97316] to-[#EA580C] rounded-full flex items-center justify-center shadow-2xl shadow-[#F97316]/30">
+                          <CheckCircle className="w-8 h-8 text-white" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <h3 className="font-serif text-3xl font-bold text-gray-900 mb-4">Message Received</h3>
-                  <p className="font-sans text-gray-600 mb-8 max-w-lg mx-auto">
-                    Thank you for contacting Palms Estate. Our luxury concierge team will reach out to you within 2 hours to discuss your requirements.
+
+                  <h3 className="font-serif text-3xl font-bold text-white mb-4">Message Received!</h3>
+                  <p className="font-sans text-[#A1A1AA] mb-8 max-w-lg mx-auto">
+                    Thank you for contacting Palms Estate, <span className="text-[#F97316] font-semibold">{submittedData?.name}</span>. 
+                    We've sent a confirmation to <span className="text-white">{submittedData?.email}</span>.
                   </p>
-                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 max-w-lg mx-auto">
-                    <h4 className="font-sans font-bold text-gray-900 mb-2">What to Expect Next:</h4>
-                    <ul className="font-sans text-gray-700 space-y-2 text-left">
-                      <li className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-amber-600" />
-                        Initial contact within 2 hours
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-amber-600" />
-                        Dedicated advisor assigned
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-amber-600" />
-                        Viewing arrangement discussion
-                      </li>
-                    </ul>
+
+                  {/* What happens next */}
+                  <div className="bg-[#0A0A0A] rounded-2xl p-6 max-w-lg mx-auto border border-[#27272A]">
+                    <h4 className="font-sans font-bold text-white mb-4 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-[#F97316]" />
+                      What Happens Next?
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-[#F97316]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-[#F97316] text-xs font-bold">1</span>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-white text-sm font-medium">Check Your Email</p>
+                          <p className="text-[#A1A1AA] text-xs">We've sent a confirmation with your request details</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-[#F97316]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-[#F97316] text-xs font-bold">2</span>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-white text-sm font-medium">Advisor Assignment</p>
+                          <p className="text-[#A1A1AA] text-xs">A dedicated luxury advisor will be assigned to you</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-[#F97316]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <span className="text-[#F97316] text-xs font-bold">3</span>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-white text-sm font-medium">Initial Contact</p>
+                          <p className="text-[#A1A1AA] text-xs">You'll hear from us within 2 hours to discuss your needs</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Next steps preview */}
+                  <div className="mt-6 flex items-center justify-center gap-2 text-sm">
+                    <span className="text-[#A1A1AA]">Redirecting to home in 10 seconds</span>
+                    <ArrowRight className="w-4 h-4 text-[#F97316] animate-pulse" />
                   </div>
                 </div>
               ) : (
                 <>
-                  <h2 className="font-serif text-3xl font-bold text-gray-900 mb-2">Schedule Your Consultation</h2>
-                  <p className="font-sans text-gray-600 mb-8">
+                  <h2 className="font-serif text-3xl font-bold text-white mb-2">Schedule Your Consultation</h2>
+                  <p className="font-sans text-[#A1A1AA] mb-8">
                     Complete the form below and our luxury property specialists will contact you to arrange a private viewing or consultation.
                   </p>
 
                   {error && (
-                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500">
                       {error}
                     </div>
                   )}
@@ -338,7 +427,7 @@ function Contact() {
                     {/* Name Row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block font-sans font-medium text-gray-700 mb-2">
+                        <label className="block font-sans font-medium text-[#A1A1AA] mb-2">
                           First Name *
                         </label>
                         <input
@@ -346,13 +435,13 @@ function Contact() {
                           name="firstName"
                           value={formData.firstName}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent font-sans bg-white/50"
+                          className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#27272A] rounded-xl focus:ring-2 focus:ring-[#F97316] focus:border-transparent font-sans text-white placeholder-[#A1A1AA]/50"
                           placeholder="John"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block font-sans font-medium text-gray-700 mb-2">
+                        <label className="block font-sans font-medium text-[#A1A1AA] mb-2">
                           Last Name *
                         </label>
                         <input
@@ -360,7 +449,7 @@ function Contact() {
                           name="lastName"
                           value={formData.lastName}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent font-sans bg-white/50"
+                          className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#27272A] rounded-xl focus:ring-2 focus:ring-[#F97316] focus:border-transparent font-sans text-white placeholder-[#A1A1AA]/50"
                           placeholder="Smith"
                           required
                         />
@@ -370,7 +459,7 @@ function Contact() {
                     {/* Contact Row */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block font-sans font-medium text-gray-700 mb-2">
+                        <label className="block font-sans font-medium text-[#A1A1AA] mb-2">
                           Email Address *
                         </label>
                         <input
@@ -378,13 +467,13 @@ function Contact() {
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent font-sans bg-white/50"
+                          className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#27272A] rounded-xl focus:ring-2 focus:ring-[#F97316] focus:border-transparent font-sans text-white placeholder-[#A1A1AA]/50"
                           placeholder="john.smith@example.com"
                           required
                         />
                       </div>
                       <div>
-                        <label className="block font-sans font-medium text-gray-700 mb-2">
+                        <label className="block font-sans font-medium text-[#A1A1AA] mb-2">
                           Phone Number *
                         </label>
                         <input
@@ -392,7 +481,7 @@ function Contact() {
                           name="phone"
                           value={formData.phone}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent font-sans bg-white/50"
+                          className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#27272A] rounded-xl focus:ring-2 focus:ring-[#F97316] focus:border-transparent font-sans text-white placeholder-[#A1A1AA]/50"
                           placeholder="+1 (555) 123-4567"
                           required
                         />
@@ -402,24 +491,24 @@ function Contact() {
                     {/* Service & Date */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block font-sans font-medium text-gray-700 mb-2">
+                        <label className="block font-sans font-medium text-[#A1A1AA] mb-2">
                           Service Type *
                         </label>
                         <select
                           name="serviceType"
                           value={formData.serviceType}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent font-sans bg-white/50"
+                          className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#27272A] rounded-xl focus:ring-2 focus:ring-[#F97316] focus:border-transparent font-sans text-white"
                           required
                         >
-                          <option value="">Select a service</option>
+                          <option value="" className="bg-[#0A0A0A]">Select a service</option>
                           {serviceTypes.map(service => (
-                            <option key={service} value={service}>{service}</option>
+                            <option key={service} value={service} className="bg-[#0A0A0A]">{service}</option>
                           ))}
                         </select>
                       </div>
                       <div>
-                        <label className="block font-sans font-medium text-gray-700 mb-2">
+                        <label className="block font-sans font-medium text-[#A1A1AA] mb-2">
                           Preferred Contact Date
                         </label>
                         <input
@@ -427,14 +516,14 @@ function Contact() {
                           name="preferredDate"
                           value={formData.preferredDate}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent font-sans bg-white/50"
+                          className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#27272A] rounded-xl focus:ring-2 focus:ring-[#F97316] focus:border-transparent font-sans text-white"
                         />
                       </div>
                     </div>
 
                     {/* Message */}
                     <div>
-                      <label className="block font-sans font-medium text-gray-700 mb-2">
+                      <label className="block font-sans font-medium text-[#A1A1AA] mb-2">
                         Your Requirements *
                       </label>
                       <textarea
@@ -442,7 +531,7 @@ function Contact() {
                         value={formData.message}
                         onChange={handleChange}
                         rows={6}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent font-sans bg-white/50 resize-none"
+                        className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#27272A] rounded-xl focus:ring-2 focus:ring-[#F97316] focus:border-transparent font-sans text-white placeholder-[#A1A1AA]/50 resize-none"
                         placeholder="Please describe your requirements, preferred locations, budget range, timeline, and any specific amenities you're looking for..."
                         required
                       />
@@ -456,11 +545,11 @@ function Contact() {
                         name="subscribe"
                         checked={formData.subscribe}
                         onChange={handleChange}
-                        className="mt-1 h-5 w-5 text-amber-600 rounded border-gray-300 focus:ring-amber-500"
+                        className="mt-1 h-5 w-5 text-[#F97316] rounded border-[#27272A] bg-[#0A0A0A] focus:ring-[#F97316]"
                       />
-                      <label htmlFor="subscribe" className="ml-3 font-sans text-gray-700">
+                      <label htmlFor="subscribe" className="ml-3 font-sans text-[#A1A1AA]">
                         I wish to receive exclusive property updates, market insights, and luxury lifestyle content from Palms Estate. 
-                        <span className="block text-sm text-gray-500 mt-1">
+                        <span className="block text-sm text-[#A1A1AA]/60 mt-1">
                           You can unsubscribe at any time. We respect your privacy.
                         </span>
                       </label>
@@ -471,10 +560,10 @@ function Contact() {
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className={`w-full flex items-center justify-center gap-3 bg-gradient-to-r from-amber-600 to-orange-500 text-white py-4 rounded-xl font-sans font-bold transition-all duration-300 ${
+                        className={`w-full flex items-center justify-center gap-3 bg-gradient-to-r from-[#F97316] to-[#EA580C] text-white py-4 rounded-xl font-sans font-bold transition-all duration-300 ${
                           isSubmitting 
                             ? 'opacity-75 cursor-not-allowed' 
-                            : 'hover:shadow-xl hover:-translate-y-1'
+                            : 'hover:shadow-xl hover:shadow-[#F97316]/20 hover:-translate-y-1'
                         }`}
                       >
                         {isSubmitting ? (
@@ -489,10 +578,10 @@ function Contact() {
                           </>
                         )}
                       </button>
-                      <p className="text-center font-sans text-sm text-gray-500 mt-4">
+                      <p className="text-center font-sans text-sm text-[#A1A1AA]/60 mt-4">
                         By submitting this form, you agree to our{' '}
-                        <a href="/privacy" className="text-amber-600 hover:underline">Privacy Policy</a> and{' '}
-                        <a href="/terms" className="text-amber-600 hover:underline">Terms of Service</a>.
+                        <a href="/privacy" className="text-[#F97316] hover:underline">Privacy Policy</a> and{' '}
+                        <a href="/terms" className="text-[#F97316] hover:underline">Terms of Service</a>.
                       </p>
                     </div>
                   </form>
@@ -501,49 +590,49 @@ function Contact() {
             </div>
 
             {/* FAQ Section */}
-            <div className="mt-8 backdrop-blur-md bg-white/80 border border-gray-200/50 rounded-3xl p-8 shadow-xl">
-              <h3 className="font-serif text-2xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h3>
+            <div className="mt-8 bg-[#18181B] border border-[#27272A] rounded-3xl p-8 shadow-xl">
+              <h3 className="font-serif text-2xl font-bold text-white mb-6">Frequently Asked Questions</h3>
 
               <div className="space-y-6">
                 <div>
-                  <h4 className="font-sans font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-amber-600" />
+                  <h4 className="font-sans font-bold text-white mb-2 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-[#F97316]" />
                     What is the typical response time?
                   </h4>
-                  <p className="font-sans text-gray-600">
+                  <p className="font-sans text-[#A1A1AA]">
                     Our luxury concierge team responds to all inquiries within 2 hours during business hours, 
                     and within 4 hours outside of regular hours. For urgent matters, call our 24/7 line.
                   </p>
                 </div>
 
                 <div>
-                  <h4 className="font-sans font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-amber-600" />
+                  <h4 className="font-sans font-bold text-white mb-2 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-[#F97316]" />
                     Do you require NDAs for privacy?
                   </h4>
-                  <p className="font-sans text-gray-600">
+                  <p className="font-sans text-[#A1A1AA]">
                     Yes, we offer Non-Disclosure Agreements for all clients requiring complete confidentiality. 
                     This is standard for our high-profile and ultra-luxury clients.
                   </p>
                 </div>
 
                 <div>
-                  <h4 className="font-sans font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-amber-600" />
+                  <h4 className="font-sans font-bold text-white mb-2 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-[#F97316]" />
                     What locations do you serve?
                   </h4>
-                  <p className="font-sans text-gray-600">
+                  <p className="font-sans text-[#A1A1AA]">
                     We operate globally with a focus on luxury markets in North America, Europe, the Caribbean, 
                     Middle East, and Asia-Pacific. Our network includes over 50 prime locations worldwide.
                   </p>
                 </div>
 
                 <div>
-                  <h4 className="font-sans font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-amber-600" />
+                  <h4 className="font-sans font-bold text-white mb-2 flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-[#F97316]" />
                     Is there a fee for your consultation services?
                   </h4>
-                  <p className="font-sans text-gray-600">
+                  <p className="font-sans text-[#A1A1AA]">
                     Initial consultations are complimentary. For specialized services such as investment analysis 
                     or portfolio management, fees are discussed during the initial consultation.
                   </p>
