@@ -33,7 +33,7 @@ function Contact() {
     'Other'
   ];
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
   e.preventDefault();
   setIsSubmitting(true);
   setError(null);
@@ -70,24 +70,38 @@ const handleSubmit = async (e) => {
 
     console.log('Form submitted successfully to Supabase:', data);
 
-    // 2. Send email notification via Resend
+    // 2. Send email notification via Supabase Edge Function
     console.log('Attempting to send email notification...');
     
+    // Get the current session or anon key
+    const { data: { session } } = await supabase.auth.getSession();
+    
     const emailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-contact-email', {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${supabase.supabaseKey}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({ formData }),
-});        
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token || process.env.REACT_APP_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ 
+        formData: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          serviceType: formData.serviceType,
+          preferredDate: formData.preferredDate,
+          message: formData.message,
+          subscribe: formData.subscribe
+        } 
+      }),
+    });
 
     const emailData = await emailResponse.json();
-    console.log('Resend API response:', emailData);
+    console.log('Edge Function response:', emailData);
 
     if (!emailResponse.ok) {
-      console.error('Resend API error:', emailData);
-      // Don't throw error here - form was saved successfully, just log the email error
+      console.error('Edge Function error:', emailData);
+      // Don't throw - form was saved successfully, just log error
     } else {
       console.log('Email sent successfully:', emailData);
     }
