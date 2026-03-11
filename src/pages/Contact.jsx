@@ -34,103 +34,89 @@ function Contact() {
   ];
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  setError(null);
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
 
-  try {
-    // Log the form data being submitted
-    console.log('Submitting form data:', formData);
+    try {
+      console.log('Submitting form data:', formData);
 
-    // 1. Save to Supabase
-    const { data, error: supabaseError } = await supabase
-      .from('contact_submissions')
-      .insert([
-        {
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          service_type: formData.serviceType,
-          preferred_date: formData.preferredDate || null,
-          message: formData.message,
-          subscribe: formData.subscribe,
-          status: 'new'
-        }
-      ])
-      .select();
+      // Direct insert without checking session
+      const { data, error: supabaseError } = await supabase
+        .from('contact_submissions')
+        .insert([
+          {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            service_type: formData.serviceType,
+            preferred_date: formData.preferredDate || null,
+            message: formData.message,
+            subscribe: formData.subscribe,
+            status: 'new'
+          }
+        ]);
 
-    // Log the response
-    console.log('Supabase response:', { data, error: supabaseError });
+      if (supabaseError) {
+        console.error('Supabase error:', supabaseError);
+        throw new Error(supabaseError.message);
+      }
 
-    if (supabaseError) {
-      console.error('Supabase error details:', supabaseError);
-      throw new Error(supabaseError.message);
+      console.log('Form saved to Supabase successfully');
+
+      // Send email notification via Edge Function
+      try {
+        const emailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-contact-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            formData: {
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              email: formData.email,
+              phone: formData.phone,
+              serviceType: formData.serviceType,
+              preferredDate: formData.preferredDate,
+              message: formData.message,
+              subscribe: formData.subscribe
+            } 
+          }),
+        });
+
+        const emailData = await emailResponse.json();
+        console.log('Email notification response:', emailData);
+      } catch (emailErr) {
+        console.error('Email notification failed (form still saved):', emailErr);
+      }
+
+      // Success!
+      setIsSubmitted(true);
+      
+      // Reset form after success
+      setTimeout(() => {
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          serviceType: '',
+          preferredDate: '',
+          message: '',
+          subscribe: true
+        });
+        setIsSubmitted(false);
+      }, 5000);
+
+    } catch (err) {
+      console.error('Form submission error:', err);
+      setError(`There was an error submitting your form: ${err.message}. Please try again or call us directly.`);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    console.log('Form submitted successfully to Supabase:', data);
-
-    // 2. Send email notification via Supabase Edge Function
-    console.log('Attempting to send email notification...');
-    
-    // Get the current session or anon key
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    const emailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-contact-email', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token || process.env.REACT_APP_SUPABASE_ANON_KEY}`,
-      },
-      body: JSON.stringify({ 
-        formData: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          serviceType: formData.serviceType,
-          preferredDate: formData.preferredDate,
-          message: formData.message,
-          subscribe: formData.subscribe
-        } 
-      }),
-    });
-
-    const emailData = await emailResponse.json();
-    console.log('Edge Function response:', emailData);
-
-    if (!emailResponse.ok) {
-      console.error('Edge Function error:', emailData);
-      // Don't throw - form was saved successfully, just log error
-    } else {
-      console.log('Email sent successfully:', emailData);
-    }
-
-    // Success!
-    setIsSubmitted(true);
-    
-    // Reset form after success
-    setTimeout(() => {
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        serviceType: '',
-        preferredDate: '',
-        message: '',
-        subscribe: true
-      });
-      setIsSubmitted(false);
-    }, 5000);
-
-  } catch (err) {
-    console.error('Full submission error:', err);
-    setError(`There was an error submitting your form: ${err.message}. Please try again or call us directly.`);
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -168,7 +154,7 @@ function Contact() {
             <div className="backdrop-blur-md bg-white/80 border border-gray-200/50 rounded-3xl p-8 shadow-xl">
               <h3 className="font-serif text-2xl font-bold text-gray-900 mb-8">Contact Information</h3>
 
-<div className="space-y-8">
+              <div className="space-y-8">
                 {/* Phone */}
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl">
@@ -259,7 +245,7 @@ function Contact() {
                   </div>
                 </div>
 
-<div className="flex items-start gap-4">
+                <div className="flex items-start gap-4">
                   <Shield className="w-6 h-6 text-amber-500 mt-1 flex-shrink-0" />
                   <div>
                     <h4 className="font-sans font-bold text-gray-900">Complete Confidentiality</h4>
