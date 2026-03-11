@@ -3,7 +3,7 @@ import {
   ArrowRight, Home as HomeIcon, MapPin, Shield, Users, TrendingUp, 
   Star, ChevronRight, CheckCircle, Award, Camera, Sparkles,
   Globe, Clock, Phone, Mail, Quote, Building2, Key, Heart,
-  Zap, Sun, Wind, Maximize2, Wifi, Coffee, Droplet
+  Zap, Compass, Feather, Wind, Mountain, Sunset, Coffee
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
@@ -64,56 +64,53 @@ export default function Home() {
     return null;
   };
 
-  const luxuryAmenities = [
-    { icon: <Wifi className="w-5 h-5" />, name: 'High-Speed WiFi' },
-    { icon: <Wind className="w-5 h-5" />, name: 'Smart HVAC' },
-    { icon: <Sun className="w-5 h-5" />, name: 'Solar Panels' },
-    { icon: <Droplet className="w-5 h-5" />, name: 'Infinity Pool' },
-    { icon: <Maximize2 className="w-5 h-5" />, name: 'Open Floor Plan' },
-    { icon: <Coffee className="w-5 h-5" />, name: 'Wine Cellar' },
+  const luxuryExperiences = [
+    { icon: <Compass className="w-5 h-5" />, name: 'Private Island Access' },
+    { icon: <Mountain className="w-5 h-5" />, name: 'Mountain Retreats' },
+    { icon: <Sunset className="w-5 h-5" />, name: 'Sunset Cruises' },
+    { icon: <Feather className="w-5 h-5" />, name: 'Spa & Wellness' },
+    { icon: <Zap className="w-5 h-5" />, name: 'Concierge Service' },
+    { icon: <Coffee className="w-5 h-5" />, name: 'Private Chef' },
   ];
 
   const services = [
     {
       icon: <Building2 className="w-8 h-8" />,
-      title: 'Luxury Rentals',
-      description: 'Exclusive properties in prime locations worldwide.',
-      features: ['Private villas', 'Penthouse suites', 'Island estates']
+      title: 'Luxury Estates',
+      description: 'Exclusive properties in the world\'s most coveted locations.',
+      features: ['Waterfront villas', 'Penthouse collections', 'Historic estates']
     },
     {
       icon: <Key className="w-8 h-8" />,
-      title: 'Property Sales',
-      description: 'Expert guidance for buying or selling luxury real estate.',
-      features: ['Market analysis', 'Staging services', 'Legal support']
+      title: 'Investment Advisory',
+      description: 'Strategic guidance for luxury real estate investments.',
+      features: ['Market intelligence', 'Portfolio optimization', 'Exit strategies']
     },
     {
       icon: <Users className="w-8 h-8" />,
-      title: 'Concierge Services',
-      description: 'Personalized assistance for discerning clients.',
-      features: ['24/7 support', 'Travel arrangements', 'Event planning']
+      title: 'Lifestyle Management',
+      description: 'Comprehensive support for the discerning homeowner.',
+      features: ['Property management', 'Staff recruitment', 'Maintenance coordination']
     }
   ];
 
   const testimonials = [
     {
-      name: 'Jennifer Lawrence',
-      role: 'Actor & Producer',
-      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
-      quote: 'Palms Estate found us the perfect beachfront property in Malibu. Their discretion and professionalism are unmatched.',
+      name: 'The Harrison Family',
+      role: 'Founders, Harrison Foundation',
+      quote: 'Palms Estate didn\'t just find us a home—they understood our family\'s story and found a place where memories could take root. The villa in Tuscany has become our sanctuary, where our children learned to ride bikes and we rediscovered what matters most. We are forever grateful.',
       rating: 5
     },
     {
-      name: 'Michael Chen',
-      role: 'Tech Entrepreneur',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
-      quote: 'From investment properties to our family home, they\'ve been trusted advisors for over a decade.',
+      name: 'Dr. Elizabeth Chen',
+      role: 'Cardiothoracic Surgeon',
+      quote: 'After years of dedicating my life to saving others, Palms Estate helped me find a place to save myself. The penthouse they found overlooks the park, and every morning I watch the sunrise with a peace I never knew existed. They gave me more than a property—they gave me a haven.',
       rating: 5
     },
     {
-      name: 'Isabella Rossi',
-      role: 'Fashion Designer',
-      image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
-      quote: 'The attention to detail and understanding of luxury living sets them apart.',
+      name: 'James & Patricia Wellington',
+      role: 'Retired, Married 52 Years',
+      quote: 'We were looking for our forever home, somewhere to spend our golden years. The team at Palms Estate listened to our dreams and found us a cottage by the sea that exceeds every hope. Our grandchildren call it "Grandma\'s magic house," and every weekend feels like a fairytale. Thank you for making our dreams come true.',
       rating: 5
     }
   ];
@@ -133,14 +130,14 @@ export default function Home() {
         {/* ... hero content remains unchanged ... */}
       </div>
 
-      {/* Luxury Amenities Bar */}
+      {/* Luxury Experiences Bar */}
       <div className="bg-[#18181B] border-y border-[#27272A] py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-8">
-            {luxuryAmenities.map((amenity, index) => (
+            {luxuryExperiences.map((experience, index) => (
               <div key={index} className="flex items-center gap-2 text-[#A1A1AA] hover:text-[#F97316] transition-colors">
-                <span className="text-[#F97316]">{amenity.icon}</span>
-                <span className="text-sm font-light">{amenity.name}</span>
+                <span className="text-[#F97316]">{experience.icon}</span>
+                <span className="text-sm font-light">{experience.name}</span>
               </div>
             ))}
           </div>
@@ -158,11 +155,10 @@ export default function Home() {
               </span>
             </div>
             <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-white mb-6">
-              Comprehensive{' '}
-              <span className="text-[#F97316] font-medium">Luxury Solutions</span>
+              Curating <span className="text-[#F97316] font-medium">Extraordinary</span> Lives
             </h2>
             <p className="text-xl text-[#A1A1AA] max-w-3xl mx-auto">
-              From acquisition to management, we handle every detail with precision and care.
+              Beyond property transactions—we create lifestyles, build legacies, and nurture dreams.
             </p>
           </div>
 
@@ -173,7 +169,7 @@ export default function Home() {
                   <div className="text-[#F97316]">{service.icon}</div>
                 </div>
                 <h3 className="font-serif text-2xl font-light text-white mb-4">{service.title}</h3>
-                <p className="text-[#A1A1AA] mb-6">{service.description}</p>
+                <p className="text-[#A1A1AA] mb-6 leading-relaxed">{service.description}</p>
                 <ul className="space-y-3">
                   {service.features.map((feature, idx) => (
                     <li key={idx} className="flex items-center gap-2 text-sm text-[#A1A1AA]">
@@ -201,10 +197,9 @@ export default function Home() {
                   </span>
                 </div>
                 <h2 className="font-serif text-4xl md:text-5xl font-light text-white mb-2">
-                  Exclusive{' '}
-                  <span className="text-[#F97316] font-medium">Selections</span>
+                  Where <span className="text-[#F97316] font-medium">Dreams</span> Take Root
                 </h2>
-                <p className="text-[#A1A1AA] text-lg">Handpicked luxury residences for discerning clients</p>
+                <p className="text-[#A1A1AA] text-lg">Each property tells a story waiting for your next chapter</p>
               </div>
               <Link
                 to="/properties"
@@ -281,61 +276,57 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
               <div className="text-4xl md:text-5xl font-light text-[#F97316] mb-2">{stats.properties}+</div>
-              <div className="text-sm text-[#A1A1AA] uppercase tracking-wider">Active Properties</div>
+              <div className="text-sm text-[#A1A1AA] uppercase tracking-wider">Luxury Properties</div>
             </div>
             <div className="text-center">
               <div className="text-4xl md:text-5xl font-light text-[#F97316] mb-2">{stats.residents}+</div>
-              <div className="text-sm text-[#A1A1AA] uppercase tracking-wider">Happy Residents</div>
+              <div className="text-sm text-[#A1A1AA] uppercase tracking-wider">Grateful Families</div>
             </div>
             <div className="text-center">
               <div className="text-4xl md:text-5xl font-light text-[#F97316] mb-2">{stats.satisfaction}%</div>
-              <div className="text-sm text-[#A1A1AA] uppercase tracking-wider">Satisfaction Rate</div>
+              <div className="text-sm text-[#A1A1AA] uppercase tracking-wider">Joyful Moments</div>
             </div>
             <div className="text-center">
               <div className="text-4xl md:text-5xl font-light text-[#F97316] mb-2">15+</div>
-              <div className="text-sm text-[#A1A1AA] uppercase tracking-wider">Years Excellence</div>
+              <div className="text-sm text-[#A1A1AA] uppercase tracking-wider">Years of Heart</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Testimonials */}
+      {/* Testimonials - Emotional & Without Images */}
       <div className="py-24 bg-[#0A0A0A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-[#F97316]/10 border border-[#F97316]/20 rounded-2xl px-8 py-4 mb-6">
-              <Quote className="w-5 h-5 text-[#F97316]" />
+              <Heart className="w-5 h-5 text-[#F97316]" />
               <span className="font-sans text-[#F97316] font-semibold tracking-widest text-sm uppercase">
-                CLIENT TESTIMONIALS
+                STORIES OF THE HEART
               </span>
             </div>
             <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-white mb-6">
-              Trusted by{' '}
-              <span className="text-[#F97316] font-medium">Industry Leaders</span>
+              More Than <span className="text-[#F97316] font-medium">Homes</span>—<br />They're Where Life Happens
             </h2>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
               <div key={index} className="bg-[#18181B] border border-[#27272A] rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-[#F97316]/30">
-                <div className="flex items-center gap-4 mb-6">
-                  <img 
-                    src={testimonial.image} 
-                    alt={testimonial.name}
-                    className="w-16 h-16 rounded-full object-cover border-2 border-[#F97316]/20"
-                    loading="lazy"
-                  />
-                  <div>
-                    <h3 className="font-serif text-lg text-white">{testimonial.name}</h3>
-                    <p className="text-sm text-[#A1A1AA]">{testimonial.role}</p>
-                  </div>
+                <div className="mb-6">
+                  <Heart className="w-8 h-8 text-[#F97316]/40" />
                 </div>
-                <div className="flex gap-1 mb-4">
+                <div className="flex gap-1 mb-6">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-[#F97316] text-[#F97316]" />
                   ))}
                 </div>
-                <p className="text-[#A1A1AA] italic leading-relaxed">"{testimonial.quote}"</p>
+                <p className="text-[#E4E4E7] italic leading-relaxed mb-6">
+                  "{testimonial.quote}"
+                </p>
+                <div className="border-t border-[#27272A] pt-6">
+                  <div className="font-serif text-lg text-white">{testimonial.name}</div>
+                  <div className="text-sm text-[#A1A1AA] mt-1">{testimonial.role}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -345,7 +336,7 @@ export default function Home() {
       {/* Partners Section */}
       <div className="py-16 bg-[#18181B] border-y border-[#27272A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-[#A1A1AA] uppercase tracking-wider mb-8">Trusted by leading institutions</p>
+          <p className="text-center text-sm text-[#A1A1AA] uppercase tracking-wider mb-8">Trusted by leading institutions worldwide</p>
           <div className="flex flex-wrap justify-center items-center gap-12">
             {partners.map((partner, index) => (
               <div key={index} className="text-[#A1A1AA] hover:text-[#F97316] transition-colors font-light">
@@ -364,25 +355,26 @@ export default function Home() {
               <div className="inline-flex items-center gap-2 bg-[#F97316]/10 border border-[#F97316]/20 rounded-2xl px-6 py-3 mb-6">
                 <Award className="w-4 h-4 text-[#F97316]" />
                 <span className="font-sans text-[#F97316] font-semibold tracking-widest text-xs uppercase">
-                  WHY CHOOSE US
+                  OUR PROMISE
                 </span>
               </div>
               <h2 className="font-serif text-4xl md:text-5xl font-light text-white mb-6">
-                Beyond Traditional{' '}
-                <span className="text-[#F97316] font-medium">Real Estate</span>
+                We Don't Just Sell Properties—<br />
+                <span className="text-[#F97316] font-medium">We Change Lives</span>
               </h2>
               <p className="text-[#A1A1AA] text-lg mb-8 leading-relaxed">
-                We don't just find properties; we curate lifestyles. Our comprehensive approach ensures every detail is handled with precision and care.
+                Every family has a story. Every couple has a dream. Every individual deserves a place to belong. 
+                We listen, we understand, and we deliver not just houses, but homes where memories are made and legacies begin.
               </p>
               <div className="space-y-4">
                 {[
-                  'Personalized property matching',
-                  'Dedicated concierge service',
-                  'Global network of partners',
-                  'White-glove transaction management'
+                  'We cry at closings (the happy tears)',
+                  'Our advisors become family friends',
+                  'We remember your anniversary, birthday, and your dog\'s name',
+                  'Because for us, you\'re never just a client'
                 ].map((feature, index) => (
                   <div key={index} className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-[#F97316]" />
+                    <Heart className="w-5 h-5 text-[#F97316]" />
                     <span className="text-white">{feature}</span>
                   </div>
                 ))}
@@ -391,15 +383,15 @@ export default function Home() {
                 to="/about"
                 className="inline-flex items-center gap-2 mt-8 text-[#F97316] hover:text-[#F97316]/80 transition-colors"
               >
-                Learn more about us
+                Discover our story
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-[#18181B] border border-[#27272A] rounded-2xl p-6 text-center">
-                <Users className="w-8 h-8 text-[#F97316] mx-auto mb-3" />
-                <div className="text-2xl font-light text-white mb-1">50+</div>
-                <div className="text-xs text-[#A1A1AA]">Luxury Advisors</div>
+                <Heart className="w-8 h-8 text-[#F97316] mx-auto mb-3" />
+                <div className="text-2xl font-light text-white mb-1">800+</div>
+                <div className="text-xs text-[#A1A1AA]">Happy Families</div>
               </div>
               <div className="bg-[#18181B] border border-[#27272A] rounded-2xl p-6 text-center">
                 <Globe className="w-8 h-8 text-[#F97316] mx-auto mb-3" />
@@ -407,12 +399,12 @@ export default function Home() {
                 <div className="text-xs text-[#A1A1AA]">Countries</div>
               </div>
               <div className="bg-[#18181B] border border-[#27272A] rounded-2xl p-6 text-center">
-                <Building2 className="w-8 h-8 text-[#F97316] mx-auto mb-3" />
+                <HomeIcon className="w-8 h-8 text-[#F97316] mx-auto mb-3" />
                 <div className="text-2xl font-light text-white mb-1">200+</div>
-                <div className="text-xs text-[#A1A1AA]">Properties</div>
+                <div className="text-xs text-[#A1A1AA]">Dream Homes</div>
               </div>
               <div className="bg-[#18181B] border border-[#27272A] rounded-2xl p-6 text-center">
-                <Award className="w-8 h-8 text-[#F97316] mx-auto mb-3" />
+                <Star className="w-8 h-8 text-[#F97316] mx-auto mb-3" />
                 <div className="text-2xl font-light text-white mb-1">25+</div>
                 <div className="text-xs text-[#A1A1AA]">Awards</div>
               </div>
@@ -425,11 +417,11 @@ export default function Home() {
       <div className="py-24 bg-gradient-to-br from-[#F97316] to-[#EA580C]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-white mb-6">
-            Ready to Experience{' '}
-            <span className="text-white/90 font-medium">Luxury Living?</span>
+            Ready to Find the Place<br />
+            <span className="text-white/90 font-medium">Where Your Heart Belongs?</span>
           </h2>
           <p className="text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Let our team of luxury advisors help you find the perfect property that matches your lifestyle.
+            Let's start a conversation. We promise to listen, to care, and to find you not just a property, but a place you'll be proud to call home.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -437,14 +429,14 @@ export default function Home() {
               to="/properties"
               className="inline-flex items-center justify-center px-8 py-4 bg-black text-white font-medium rounded-full hover:bg-[#0A0A0A] transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1"
             >
-              Browse Properties
+              Begin Your Journey
               <ArrowRight className="ml-2 w-4 h-4" />
             </Link>
             <Link
               to="/contact"
               className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white font-medium rounded-full hover:bg-white/10 transition-all duration-300"
             >
-              Schedule Consultation
+              Tell Us Your Story
             </Link>
           </div>
 
@@ -456,11 +448,11 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-2 text-white/80">
               <Mail className="w-4 h-4" />
-              <span className="text-sm">concierge@palmsestate.org</span>
+              <span className="text-sm">hello@palmsestate.org</span>
             </div>
             <div className="flex items-center gap-2 text-white/80">
-              <Clock className="w-4 h-4" />
-              <span className="text-sm">24/7 Concierge</span>
+              <Heart className="w-4 h-4" />
+              <span className="text-sm">We're Here for You 24/7</span>
             </div>
           </div>
         </div>
