@@ -105,9 +105,9 @@ function About() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] pt-24 pb-20">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
+    <div className="min-h-screen bg-[#0A0A0A]">
+      {/* Hero Section - Seamlessly joined with header (no pt-24) */}
+      <section className="relative overflow-hidden min-h-screen flex items-center">
         {/* Background with gradient overlay */}
         <div className="absolute inset-0">
           <div 
@@ -121,7 +121,7 @@ function About() {
           <div className="absolute inset-0 bg-[#F97316]/5"></div>
         </div>
         
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-48">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
           <div className="bg-black/40 backdrop-blur-xl border border-[#F97316]/20 rounded-3xl p-8 md:p-16 max-w-4xl mx-auto shadow-2xl">
             <div className="text-center">
               <div className="inline-flex items-center gap-2 bg-[#F97316]/10 border border-[#F97316]/20 px-6 py-3 rounded-full text-sm tracking-widest font-sans font-light text-[#F97316] mb-6">
@@ -140,10 +140,20 @@ function About() {
             </div>
           </div>
         </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-xs text-[#A1A1AA] tracking-widest">DISCOVER</span>
+            <div className="w-5 h-9 border-2 border-[#27272A] rounded-full flex justify-center">
+              <div className="w-1 h-2 bg-[#F97316] rounded-full mt-2 animate-scroll"></div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* Our Story */}
-      <section className="py-16 md:py-24">
+      <section className="py-16 md:py-24 bg-[#0A0A0A]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="bg-[#18181B] border border-[#27272A] rounded-3xl p-8 md:p-12 shadow-xl">
@@ -408,6 +418,17 @@ function About() {
           </div>
         </div>
       </section>
+
+      {/* Custom Animations */}
+      <style>{`
+        @keyframes scroll {
+          0%, 100% { transform: translateY(0); opacity: 0.5; }
+          50% { transform: translateY(10px); opacity: 1; }
+        }
+        .animate-scroll {
+          animation: scroll 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }
