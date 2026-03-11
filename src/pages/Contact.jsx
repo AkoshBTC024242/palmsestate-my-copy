@@ -73,12 +73,14 @@ const handleSubmit = async (e) => {
     // 2. Send email notification via Resend
     console.log('Attempting to send email notification...');
     
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer re_VvYfG9dS_3rBCrzATk9j2DmdadGESd9g1`, // Your Resend API key
-        'Content-Type': 'application/json',
-      },
+    const emailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-contact-email', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${supabase.supabaseKey}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ formData }),
+});
       body: JSON.stringify({
         from: 'Palms Estate <onboarding@resend.dev>', // Use your verified domain or resend.dev for testing
         to: ['admin@palmsestate.org'],
