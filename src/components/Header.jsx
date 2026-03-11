@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Menu, X, User, LogOut, Settings, FileText, Home as HomeIcon, Heart, Shield, ChevronDown } from 'lucide-react';
+import { 
+  Menu, X, User, LogOut, Settings, FileText, 
+  Home, Heart, Shield, ChevronDown 
+} from 'lucide-react';
 import PreloadLink from './PreloadLink';
 
 export default function Header() {
@@ -86,7 +89,7 @@ export default function Header() {
                 <span className="text-[#F97316] font-light ml-1">Estate</span>
               </div>
               <div className="text-[10px] text-[#A1A1AA] tracking-[0.3em] -mt-1">
-                REAL ESTATE
+                REALTY
               </div>
             </div>
           </PreloadLink>
@@ -143,7 +146,7 @@ export default function Header() {
                         onClick={() => setShowUserMenu(false)}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
                       >
-                        <HomeIcon className="w-4 h-4" />
+                        <Home className="w-4 h-4" />
                         Dashboard
                       </PreloadLink>
 
@@ -174,6 +177,15 @@ export default function Header() {
                       >
                         <Heart className="w-4 h-4" />
                         Saved
+                      </PreloadLink>
+
+                      <PreloadLink
+                        to="/dashboard/settings"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Settings
                       </PreloadLink>
 
                       <div className="border-t border-[#27272A] mt-2 pt-2">
@@ -245,7 +257,7 @@ export default function Header() {
                     onClick={() => setIsOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#111111] rounded-lg"
                   >
-                    <HomeIcon className="w-4 h-4" />
+                    <Home className="w-4 h-4" />
                     Dashboard
                   </PreloadLink>
                   {isAdmin && (
