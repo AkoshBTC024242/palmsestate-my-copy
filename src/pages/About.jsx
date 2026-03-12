@@ -8,17 +8,33 @@ import { Link } from 'react-router-dom';
 function About() {
   const teamMembers = [
     {
+      name: 'Michael Hamlin',
+      title: 'CEO & Founder',
+      image: 'https://i.ibb.co/xKD2fNZs/image-44.jpg',
+      experience: '25+ years in real estate brokerage',
+      specialties: ['Strategic Vision', 'Market Leadership', 'Investment Strategy'],
+      bio: 'Higher education in broker and real estate with decades of industry leadership.'
+    },
+    {
+      name: 'Kathie Florini',
+      title: 'Chief Marketing Officer (CMO)',
+      image: 'https://i.ibb.co/2Yctrzy7/image-32.jpg',
+      experience: '20+ years in real estate marketing',
+      specialties: ['Brand Strategy', 'Digital Marketing', 'Client Acquisition'],
+      bio: 'Visionary marketing leader with a track record of building luxury brands.'
+    },
+    {
       name: 'Eleanor Sterling',
-      title: 'Founder & CEO',
-      image: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      title: 'Co-Founder & Chief Accounting Officer',
+      image: 'https://i.ibb.co/Qj74Wv2S/file-000000007318722f83c6d7e5b794cae2.png',
       experience: '15+ years in luxury real estate',
-      specialties: ['Private Island Estates', 'Celebrity Clients', 'Yacht Docks'],
+      specialties: ['Financial Strategy', 'Portfolio Management', 'Risk Assessment'],
       bio: 'Former international hotelier turned luxury property curator.'
     },
     {
       name: 'Marcus Chen',
       title: 'Head of Global Acquisitions',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      image: 'https://i.ibb.co/tTTpY8cB/image-45.jpg',
       experience: '12+ years in property investment',
       specialties: ['Market Analysis', 'Portfolio Strategy', 'International Law'],
       bio: 'MBA from Wharton with expertise in luxury market trends.'
@@ -26,7 +42,7 @@ function About() {
     {
       name: 'Isabella Rossi',
       title: 'Creative Director & Stylist',
-      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      image: 'https://i.ibb.co/R4DkySyf/image-39.jpg',
       experience: '10+ years in luxury interior design',
       specialties: ['Architectural Styling', 'Art Curation', 'Feng Shui'],
       bio: 'Former Vogue Living editor with an eye for extraordinary spaces.'
@@ -34,7 +50,7 @@ function About() {
     {
       name: 'James Kensington',
       title: 'Concierge Director',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80',
+      image: 'https://i.ibb.co/CsXHy5yV/image-30.jpg',
       experience: '8+ years in premium hospitality',
       specialties: ['VIP Experiences', 'Event Planning', 'Security Protocols'],
       bio: 'Former five-star hotel manager with global connections.'
@@ -105,9 +121,9 @@ function About() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
-      {/* Hero Section - Seamlessly joined with header (no pt-24) */}
-      <section className="relative overflow-hidden min-h-screen flex items-center">
+    <div className="min-h-screen bg-[#0A0A0A] pt-24 pb-20">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
         {/* Background with gradient overlay */}
         <div className="absolute inset-0">
           <div 
@@ -121,7 +137,7 @@ function About() {
           <div className="absolute inset-0 bg-[#F97316]/5"></div>
         </div>
         
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32 md:py-48">
           <div className="bg-black/40 backdrop-blur-xl border border-[#F97316]/20 rounded-3xl p-8 md:p-16 max-w-4xl mx-auto shadow-2xl">
             <div className="text-center">
               <div className="inline-flex items-center gap-2 bg-[#F97316]/10 border border-[#F97316]/20 px-6 py-3 rounded-full text-sm tracking-widest font-sans font-light text-[#F97316] mb-6">
@@ -140,20 +156,10 @@ function About() {
             </div>
           </div>
         </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-xs text-[#A1A1AA] tracking-widest">DISCOVER</span>
-            <div className="w-5 h-9 border-2 border-[#27272A] rounded-full flex justify-center">
-              <div className="w-1 h-2 bg-[#F97316] rounded-full mt-2 animate-scroll"></div>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* Our Story */}
-      <section className="py-16 md:py-24 bg-[#0A0A0A]">
+      <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="bg-[#18181B] border border-[#27272A] rounded-3xl p-8 md:p-12 shadow-xl">
@@ -280,17 +286,17 @@ function About() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {teamMembers.map((member, index) => (
               <div 
                 key={index}
-                className="bg-[#18181B] border border-[#27272A] rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group"
+                className="bg-[#18181B] border border-[#27272A] rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 hover:border-[#F97316]/30 group"
               >
-                <div className="relative h-64 overflow-hidden">
+                <div className="relative h-80 overflow-hidden">
                   <img 
                     src={member.image} 
                     alt={member.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    className="w-full h-full object-cover object-center group-hover:scale-110 transition-transform duration-700"
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -418,17 +424,6 @@ function About() {
           </div>
         </div>
       </section>
-
-      {/* Custom Animations */}
-      <style>{`
-        @keyframes scroll {
-          0%, 100% { transform: translateY(0); opacity: 0.5; }
-          50% { transform: translateY(10px); opacity: 1; }
-        }
-        .animate-scroll {
-          animation: scroll 2s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 }
