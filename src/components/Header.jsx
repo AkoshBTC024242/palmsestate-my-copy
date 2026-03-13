@@ -5,7 +5,7 @@ import {
   Menu, X, User, LogOut, Settings, FileText, 
   Home, Heart, Shield, ChevronDown, Briefcase,
   Users, Target, Sparkles, Crown, Key, Compass,
-  Building2, Phone, Mail, ChevronRight
+  Building2, Phone, Mail, ChevronRight, MapPin
 } from 'lucide-react';
 import PreloadLink from './PreloadLink';
 
@@ -53,14 +53,6 @@ export default function Header() {
   };
 
   const isActive = (path) => location.pathname === path;
-
-  const navigation = [
-    { name: 'Home', path: '/', section: 'main' },
-    { name: 'Properties', path: '/properties', section: 'main' },
-    { name: 'Services', path: '/services', section: 'main' },
-    { name: 'About', path: '/about', section: 'main' },
-    { name: 'Contact', path: '/contact', section: 'main' },
-  ];
 
   const dropdowns = [
     {
