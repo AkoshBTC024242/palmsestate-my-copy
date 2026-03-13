@@ -116,68 +116,24 @@ export default function Header() {
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Left Navigation - Desktop with Dropdowns */}
-          <div className="hidden md:flex items-center gap-1" ref={dropdownRef}>
-            {dropdowns.slice(0, 2).map((dropdown) => (
-              <div key={dropdown.title} className="relative">
-                <button
-                  onClick={() => setActiveDropdown(activeDropdown === dropdown.title ? null : dropdown.title)}
-                  className={`flex items-center gap-1 px-4 py-2 text-sm font-light tracking-wide transition-all duration-300 ${
-                    activeDropdown === dropdown.title
-                      ? 'text-[#F97316]'
-                      : 'text-[#A1A1AA] hover:text-white'
-                  }`}
-                >
-                  {dropdown.icon}
-                  {dropdown.title}
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${
-                    activeDropdown === dropdown.title ? 'rotate-180' : ''
-                  }`} />
-                </button>
-
-                {/* Dropdown Menu */}
-                {activeDropdown === dropdown.title && (
-                  <div className="absolute top-full left-0 mt-2 w-64 bg-[#111111] border border-[#27272A] rounded-xl shadow-2xl overflow-hidden py-2">
-                    {dropdown.items.map((item) => (
-                      <PreloadLink
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setActiveDropdown(null)}
-                        className={`flex items-center gap-3 px-4 py-3 text-sm transition-all duration-300 ${
-                          isActive(item.path)
-                            ? 'text-[#F97316] bg-[#F97316]/5'
-                            : 'text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10'
-                        }`}
-                      >
-                        <span className="text-[#F97316]">{item.icon}</span>
-                        {item.name}
-                        <ChevronRight className="w-3.5 h-3.5 ml-auto text-[#27272A]" />
-                      </PreloadLink>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Centered Logo */}
-          <PreloadLink to="/" className="absolute left-1/2 transform -translate-x-1/2">
-            <div className="flex flex-col items-center">
+          {/* Logo - Left on Desktop, Centered on Mobile */}
+          <PreloadLink to="/" className="md:static md:transform-none absolute left-1/2 transform -translate-x-1/2 md:translate-x-0">
+            <div className="flex flex-col items-center md:items-start">
               <div className="text-2xl md:text-3xl font-light tracking-tight">
                 <span className="text-white font-medium">Palms</span>
                 <span className="text-[#F97316] font-light ml-1">Estate</span>
               </div>
-              <div className="text-[10px] text-[#A1A1AA] tracking-[0.3em] -mt-1">
+              <div className="text-[10px] text-[#A1A1AA] tracking-[0.3em] -mt-1 md:block hidden">
                 REALTY
               </div>
             </div>
           </PreloadLink>
 
-          {/* Right Section with Dropdowns */}
-          <div className="hidden md:flex items-center gap-4">
-            {/* Right Navigation Dropdowns */}
-            <div className="flex items-center gap-1 mr-2">
-              {dropdowns.slice(2).map((dropdown) => (
+          {/* Desktop Navigation - Hidden on Mobile */}
+          <div className="hidden md:flex items-center flex-1 justify-end">
+            {/* Navigation Dropdowns */}
+            <div className="flex items-center gap-1" ref={dropdownRef}>
+              {dropdowns.map((dropdown) => (
                 <div key={dropdown.title} className="relative">
                   <button
                     onClick={() => setActiveDropdown(activeDropdown === dropdown.title ? null : dropdown.title)}
@@ -219,110 +175,113 @@ export default function Header() {
               ))}
             </div>
 
-            {user ? (
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 pl-3 pr-2 py-1.5 bg-[#111111] border border-[#27272A] rounded-full hover:border-[#F97316]/30 transition-all group"
-                >
-                  <div className="w-7 h-7 rounded-full bg-[#F97316]/10 flex items-center justify-center">
-                    <User className="w-3.5 h-3.5 text-[#F97316]" />
-                  </div>
-                  <span className="text-sm text-white max-w-[100px] truncate">
-                    {user.email?.split('@')[0]}
-                  </span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-[#A1A1AA] transition-transform duration-300 ${
-                    showUserMenu ? 'rotate-180' : ''
-                  }`} />
-                </button>
-
-                {/* User Dropdown Menu */}
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-64 bg-[#111111] border border-[#27272A] rounded-xl shadow-2xl overflow-hidden">
-                    <div className="p-4 border-b border-[#27272A]">
-                      <p className="text-sm font-medium text-white">{user.email}</p>
-                      <p className="text-xs text-[#A1A1AA] mt-1">
-                        {isAdmin ? 'Administrator' : 'Member'}
-                      </p>
+            {/* User Section */}
+            <div className="ml-4">
+              {user ? (
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-2 pl-3 pr-2 py-1.5 bg-[#111111] border border-[#27272A] rounded-full hover:border-[#F97316]/30 transition-all group"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-[#F97316]/10 flex items-center justify-center">
+                      <User className="w-3.5 h-3.5 text-[#F97316]" />
                     </div>
+                    <span className="text-sm text-white max-w-[100px] truncate">
+                      {user.email?.split('@')[0]}
+                    </span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-[#A1A1AA] transition-transform duration-300 ${
+                      showUserMenu ? 'rotate-180' : ''
+                    }`} />
+                  </button>
 
-                    <div className="p-2">
-                      <PreloadLink
-                        to="/dashboard"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
-                      >
-                        <Home className="w-4 h-4" />
-                        Dashboard
-                      </PreloadLink>
+                  {/* User Dropdown Menu */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 mt-2 w-64 bg-[#111111] border border-[#27272A] rounded-xl shadow-2xl overflow-hidden">
+                      <div className="p-4 border-b border-[#27272A]">
+                        <p className="text-sm font-medium text-white">{user.email}</p>
+                        <p className="text-xs text-[#A1A1AA] mt-1">
+                          {isAdmin ? 'Administrator' : 'Member'}
+                        </p>
+                      </div>
 
-                      {isAdmin && (
+                      <div className="p-2">
                         <PreloadLink
-                          to="/admin"
+                          to="/dashboard"
                           onClick={() => setShowUserMenu(false)}
-                          className="flex items-center gap-3 px-3 py-2 text-sm text-[#F97316] bg-[#F97316]/5 hover:bg-[#F97316]/10 rounded-lg transition-all"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
                         >
-                          <Shield className="w-4 h-4" />
-                          Admin Dashboard
+                          <Home className="w-4 h-4" />
+                          Dashboard
                         </PreloadLink>
-                      )}
 
-                      <PreloadLink
-                        to="/dashboard/applications"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
-                      >
-                        <FileText className="w-4 h-4" />
-                        Applications
-                      </PreloadLink>
+                        {isAdmin && (
+                          <PreloadLink
+                            to="/admin"
+                            onClick={() => setShowUserMenu(false)}
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-[#F97316] bg-[#F97316]/5 hover:bg-[#F97316]/10 rounded-lg transition-all"
+                          >
+                            <Shield className="w-4 h-4" />
+                            Admin Dashboard
+                          </PreloadLink>
+                        )}
 
-                      <PreloadLink
-                        to="/dashboard/saved"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
-                      >
-                        <Heart className="w-4 h-4" />
-                        Saved
-                      </PreloadLink>
-
-                      <PreloadLink
-                        to="/dashboard/settings"
-                        onClick={() => setShowUserMenu(false)}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
-                      >
-                        <Settings className="w-4 h-4" />
-                        Settings
-                      </PreloadLink>
-
-                      <div className="border-t border-[#27272A] mt-2 pt-2">
-                        <button
-                          onClick={handleSignOut}
-                          className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                        <PreloadLink
+                          to="/dashboard/applications"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
                         >
-                          <LogOut className="w-4 h-4" />
-                          Sign Out
-                        </button>
+                          <FileText className="w-4 h-4" />
+                          Applications
+                        </PreloadLink>
+
+                        <PreloadLink
+                          to="/dashboard/saved"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
+                        >
+                          <Heart className="w-4 h-4" />
+                          Saved
+                        </PreloadLink>
+
+                        <PreloadLink
+                          to="/dashboard/settings"
+                          onClick={() => setShowUserMenu(false)}
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10 rounded-lg transition-all"
+                        >
+                          <Settings className="w-4 h-4" />
+                          Settings
+                        </PreloadLink>
+
+                        <div className="border-t border-[#27272A] mt-2 pt-2">
+                          <button
+                            onClick={handleSignOut}
+                            className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Sign Out
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <PreloadLink
-                  to="/signin"
-                  className="text-sm text-[#A1A1AA] hover:text-white transition-colors"
-                >
-                  Sign In
-                </PreloadLink>
-                <PreloadLink
-                  to="/signup"
-                  className="px-4 py-2 bg-[#F97316] text-white text-sm font-medium rounded-full hover:bg-[#EA580C] transition-all shadow-lg shadow-orange-500/20"
-                >
-                  Get Started
-                </PreloadLink>
-              </div>
-            )}
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <PreloadLink
+                    to="/signin"
+                    className="text-sm text-[#A1A1AA] hover:text-white transition-colors"
+                  >
+                    Sign In
+                  </PreloadLink>
+                  <PreloadLink
+                    to="/signup"
+                    className="px-4 py-2 bg-[#F97316] text-white text-sm font-medium rounded-full hover:bg-[#EA580C] transition-all shadow-lg shadow-orange-500/20"
+                  >
+                    Get Started
+                  </PreloadLink>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -385,6 +344,11 @@ export default function Header() {
                   </div>
                 </div>
               ))}
+
+              {/* Mobile Subtitle - Only shown on mobile */}
+              <div className="text-[10px] text-[#A1A1AA] tracking-[0.3em] text-center py-2 md:hidden">
+                REALTY
+              </div>
 
               {/* User Section for Mobile */}
               {user ? (
