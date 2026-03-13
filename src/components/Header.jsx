@@ -13,6 +13,7 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [mobileExpandedSections, setMobileExpandedSections] = useState({});
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -50,6 +51,13 @@ export default function Header() {
     } catch (error) {
       console.error('Error signing out:', error);
     }
+  };
+
+  const toggleMobileSection = (sectionTitle) => {
+    setMobileExpandedSections(prev => ({
+      ...prev,
+      [sectionTitle]: !prev[sectionTitle]
+    }));
   };
 
   const isActive = (path) => location.pathname === path;
@@ -326,82 +334,108 @@ export default function Header() {
           </button>
         </div>
 
-        {/* Mobile Navigation - Expanded */}
+        {/* Mobile Navigation - Professional Accordion Style */}
         {isOpen && (
           <div className="md:hidden py-4 border-t border-[#27272A] max-h-[80vh] overflow-y-auto">
-            <div className="space-y-2">
-              {/* Mobile Dropdown Sections */}
+            <div className="space-y-2 px-2">
+              {/* Mobile Accordion Sections */}
               {dropdowns.map((dropdown) => (
-                <div key={dropdown.title} className="border-b border-[#27272A] pb-2">
-                  <div className="flex items-center gap-2 px-4 py-2 text-[#F97316] font-medium text-sm">
-                    {dropdown.icon}
-                    {dropdown.title}
-                  </div>
-                  <div className="pl-10 space-y-1">
-                    {dropdown.items.map((item) => (
-                      <PreloadLink
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setIsOpen(false)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${
-                          isActive(item.path)
-                            ? 'text-[#F97316] bg-[#F97316]/5'
-                            : 'text-[#A1A1AA] hover:text-white hover:bg-[#111111]'
-                        }`}
-                      >
-                        <span className="text-[#F97316]">{item.icon}</span>
-                        {item.name}
-                      </PreloadLink>
-                    ))}
+                <div key={dropdown.title} className="bg-[#111111] border border-[#27272A] rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => toggleMobileSection(dropdown.title)}
+                    className="w-full flex items-center justify-between px-4 py-4 text-left transition-colors hover:bg-[#F97316]/5"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-[#F97316]">{dropdown.icon}</span>
+                      <span className="text-white font-medium">{dropdown.title}</span>
+                    </div>
+                    <ChevronDown 
+                      className={`w-5 h-5 text-[#A1A1AA] transition-transform duration-300 ${
+                        mobileExpandedSections[dropdown.title] ? 'rotate-180' : ''
+                      }`} 
+                    />
+                  </button>
+                  
+                  {/* Collapsible Content */}
+                  <div 
+                    className={`transition-all duration-300 ease-in-out ${
+                      mobileExpandedSections[dropdown.title] 
+                        ? 'max-h-96 opacity-100 border-t border-[#27272A]' 
+                        : 'max-h-0 opacity-0 overflow-hidden'
+                    }`}
+                  >
+                    <div className="p-2 bg-black/30">
+                      {dropdown.items.map((item) => (
+                        <PreloadLink
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setIsOpen(false)}
+                          className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all duration-300 ${
+                            isActive(item.path)
+                              ? 'text-[#F97316] bg-[#F97316]/10'
+                              : 'text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/5'
+                          }`}
+                        >
+                          <span className="text-[#F97316]">{item.icon}</span>
+                          {item.name}
+                          <ChevronRight className="w-3.5 h-3.5 ml-auto text-[#27272A]" />
+                        </PreloadLink>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
 
               {/* User Section for Mobile */}
               {user ? (
-                <div className="pt-4 mt-4 border-t border-[#27272A] space-y-1">
-                  <div className="px-4 py-2">
-                    <p className="text-sm text-white">{user.email}</p>
+                <div className="mt-4 bg-[#111111] border border-[#27272A] rounded-xl overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[#27272A]">
+                    <p className="text-sm font-medium text-white">{user.email}</p>
+                    <p className="text-xs text-[#A1A1AA] mt-1">
+                      {isAdmin ? 'Administrator' : 'Member'}
+                    </p>
                   </div>
-                  <PreloadLink
-                    to="/dashboard"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#111111] rounded-lg"
-                  >
-                    <Home className="w-4 h-4" />
-                    Dashboard
-                  </PreloadLink>
-                  {isAdmin && (
+                  <div className="p-2">
                     <PreloadLink
-                      to="/admin"
+                      to="/dashboard"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 text-sm text-[#F97316] bg-[#F97316]/5 rounded-lg"
+                      className="flex items-center gap-3 px-4 py-3 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/5 rounded-lg transition-all"
                     >
-                      <Shield className="w-4 h-4" />
-                      Admin
+                      <Home className="w-4 h-4 text-[#F97316]" />
+                      Dashboard
                     </PreloadLink>
-                  )}
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 rounded-lg"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Sign Out
-                  </button>
+                    {isAdmin && (
+                      <PreloadLink
+                        to="/admin"
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-[#F97316] bg-[#F97316]/5 hover:bg-[#F97316]/10 rounded-lg transition-all mt-1"
+                      >
+                        <Shield className="w-4 h-4" />
+                        Admin Dashboard
+                      </PreloadLink>
+                    )}
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-all mt-1"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="pt-4 mt-4 border-t border-[#27272A] flex gap-3">
+                <div className="mt-4 flex flex-col gap-2">
                   <PreloadLink
                     to="/signin"
                     onClick={() => setIsOpen(false)}
-                    className="flex-1 px-4 py-3 text-sm text-[#A1A1AA] hover:text-white hover:bg-[#111111] rounded-lg text-center"
+                    className="w-full px-4 py-3 bg-[#111111] border border-[#27272A] text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/5 rounded-xl text-center transition-all"
                   >
                     Sign In
                   </PreloadLink>
                   <PreloadLink
                     to="/signup"
                     onClick={() => setIsOpen(false)}
-                    className="flex-1 px-4 py-3 bg-[#F97316] text-white text-sm rounded-lg hover:bg-[#EA580C] text-center"
+                    className="w-full px-4 py-3 bg-[#F97316] text-white rounded-xl hover:bg-[#EA580C] text-center transition-all"
                   >
                     Get Started
                   </PreloadLink>
