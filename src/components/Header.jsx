@@ -123,7 +123,8 @@ export default function Header() {
                 <span className="text-white font-medium">Palms</span>
                 <span className="text-[#F97316] font-light ml-1">Estate</span>
               </div>
-              <div className="text-[10px] text-[#A1A1AA] tracking-[0.3em] -mt-1 md:block hidden">
+              {/* REALTY subtitle - visible on both mobile and desktop */}
+              <div className="text-[10px] text-[#A1A1AA] tracking-[0.3em] -mt-1 md:block">
                 REALTY
               </div>
             </div>
@@ -344,11 +345,6 @@ export default function Header() {
                   </div>
                 </div>
               ))}
-
-              {/* Mobile Subtitle - Only shown on mobile */}
-              <div className="text-[10px] text-[#A1A1AA] tracking-[0.3em] text-center py-2 md:hidden">
-                REALTY
-              </div>
 
               {/* User Section for Mobile */}
               {user ? (
