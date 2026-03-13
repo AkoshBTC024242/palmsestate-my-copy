@@ -22,8 +22,7 @@ function Contact() {
     serviceType: '',
     preferredDate: '',
     message: '',
-    subscribe: true,
-    userId: user?.id || null
+    subscribe: true
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -115,32 +114,58 @@ function Contact() {
     try {
       console.log('Submitting form data:', formData);
 
+      // Prepare submission data - only include columns that exist
+      const submissionData = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        service_type: formData.serviceType,
+        preferred_date: formData.preferredDate || null,
+        message: formData.message,
+        subscribe: formData.subscribe,
+        status: 'new'
+      };
+
+      // Only add user_id and is_authenticated if they exist in the table
+      // We'll handle this by checking if the columns exist or using a separate approach
+      if (user?.id) {
+        submissionData.user_id = user.id;
+      }
+
       // 1. Save to Supabase with user ID if authenticated
       const { data: insertData, error: supabaseError } = await supabase
         .from('contact_submissions')
-        .insert([
-          {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            email: formData.email,
-            phone: formData.phone,
-            service_type: formData.serviceType,
-            preferred_date: formData.preferredDate || null,
-            message: formData.message,
-            subscribe: formData.subscribe,
-            status: 'new',
-            user_id: user?.id || null,
-            is_authenticated: isAuthenticated || false
-          }
-        ])
+        .insert([submissionData])
         .select();
 
       if (supabaseError) {
         console.error('Supabase error:', supabaseError);
-        throw new Error(supabaseError.message);
+        
+        // If error is about missing column, try without the problematic column
+        if (supabaseError.message.includes('is_authenticated')) {
+          console.log('Retrying without is_authenticated column...');
+          delete submissionData.is_authenticated;
+          
+          const { data: retryData, error: retryError } = await supabase
+            .from('contact_submissions')
+            .insert([submissionData])
+            .select();
+            
+          if (retryError) {
+            throw new Error(retryError.message);
+          }
+          
+          insertData = retryData;
+        } else {
+          throw new Error(supabaseError.message);
+        }
       }
 
       console.log('Form saved to Supabase successfully');
+
+      // Generate ticket ID
+      const ticketId = insertData?.[0]?.id || 'PALM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
 
       // Store submitted data for confirmation
       setSubmittedData({
@@ -149,7 +174,7 @@ function Contact() {
         serviceType: formData.serviceType,
         preferredDate: formData.preferredDate,
         message: formData.message,
-        ticketId: insertData[0]?.id || 'PALM-' + Math.random().toString(36).substr(2, 9).toUpperCase()
+        ticketId: ticketId
       });
 
       // 2. Send notification to admin via Edge Function
@@ -169,8 +194,7 @@ function Contact() {
               preferredDate: formData.preferredDate,
               message: formData.message,
               subscribe: formData.subscribe,
-              userId: user?.id || null,
-              isAuthenticated: isAuthenticated || false
+              userId: user?.id || null
             } 
           }),
         });
@@ -196,7 +220,7 @@ function Contact() {
               serviceType: formData.serviceType,
               preferredDate: formData.preferredDate,
               message: formData.message,
-              ticketId: submittedData?.ticketId
+              ticketId: ticketId
             } 
           }),
         });
@@ -244,8 +268,7 @@ function Contact() {
       serviceType: '',
       preferredDate: '',
       message: '',
-      subscribe: true,
-      userId: user?.id || null
+      subscribe: true
     });
   };
 
