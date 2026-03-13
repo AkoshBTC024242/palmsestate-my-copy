@@ -121,9 +121,9 @@ function About() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] pt-24 pb-20">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
+    <div className="min-h-screen bg-[#0A0A0A]">
+      {/* Hero Section - No padding top, starts immediately under header */}
+      <section className="relative overflow-hidden pt-0">
         {/* Background with gradient overlay */}
         <div className="absolute inset-0">
           <div 
