@@ -107,146 +107,126 @@ function Contact() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
+  e.preventDefault();
+  setIsSubmitting(true);
+  setError(null);
 
+  try {
+    console.log('Submitting form data:', formData);
+
+    // Prepare submission data - only include columns that exist
+    const submissionData = {
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      email: formData.email,
+      phone: formData.phone,
+      service_type: formData.serviceType,
+      preferred_date: formData.preferredDate || null,
+      message: formData.message,
+      subscribe: formData.subscribe,
+      status: 'new'
+    };
+
+    // Only add user_id if user is authenticated
+    if (user?.id) {
+      submissionData.user_id = user.id;
+    }
+
+    // IMPORTANT: Remove .select() to avoid needing SELECT permissions
+    const { error: supabaseError } = await supabase
+      .from('contact_submissions')
+      .insert([submissionData]);
+
+    if (supabaseError) {
+      console.error('Supabase error:', supabaseError);
+      throw new Error(supabaseError.message);
+    }
+
+    console.log('Form saved to Supabase successfully');
+
+    // Generate a ticket ID (since we can't get it from the insert)
+    const ticketId = 'PALM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+
+    // Store submitted data for confirmation
+    setSubmittedData({
+      name: `${formData.firstName} ${formData.lastName}`,
+      email: formData.email,
+      serviceType: formData.serviceType,
+      preferredDate: formData.preferredDate,
+      message: formData.message,
+      ticketId: ticketId
+    });
+
+    // 2. Send notification to admin via Edge Function
     try {
-      console.log('Submitting form data:', formData);
-
-      // Prepare submission data - only include columns that exist
-      const submissionData = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        service_type: formData.serviceType,
-        preferred_date: formData.preferredDate || null,
-        message: formData.message,
-        subscribe: formData.subscribe,
-        status: 'new'
-      };
-
-      // Only add user_id and is_authenticated if they exist in the table
-      // We'll handle this by checking if the columns exist or using a separate approach
-      if (user?.id) {
-        submissionData.user_id = user.id;
-      }
-
-      // 1. Save to Supabase with user ID if authenticated
-      const { data: insertData, error: supabaseError } = await supabase
-        .from('contact_submissions')
-        .insert([submissionData])
-        .select();
-
-      if (supabaseError) {
-        console.error('Supabase error:', supabaseError);
-        
-        // If error is about missing column, try without the problematic column
-        if (supabaseError.message.includes('is_authenticated')) {
-          console.log('Retrying without is_authenticated column...');
-          delete submissionData.is_authenticated;
-          
-          const { data: retryData, error: retryError } = await supabase
-            .from('contact_submissions')
-            .insert([submissionData])
-            .select();
-            
-          if (retryError) {
-            throw new Error(retryError.message);
-          }
-          
-          insertData = retryData;
-        } else {
-          throw new Error(supabaseError.message);
-        }
-      }
-
-      console.log('Form saved to Supabase successfully');
-
-      // Generate ticket ID
-      const ticketId = insertData?.[0]?.id || 'PALM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-
-      // Store submitted data for confirmation
-      setSubmittedData({
-        name: `${formData.firstName} ${formData.lastName}`,
-        email: formData.email,
-        serviceType: formData.serviceType,
-        preferredDate: formData.preferredDate,
-        message: formData.message,
-        ticketId: ticketId
+      const emailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-contact-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          formData: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            phone: formData.phone,
+            serviceType: formData.serviceType,
+            preferredDate: formData.preferredDate,
+            message: formData.message,
+            subscribe: formData.subscribe,
+            userId: user?.id || null
+          } 
+        }),
       });
 
-      // 2. Send notification to admin via Edge Function
-      try {
-        const emailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-contact-email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            formData: {
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              email: formData.email,
-              phone: formData.phone,
-              serviceType: formData.serviceType,
-              preferredDate: formData.preferredDate,
-              message: formData.message,
-              subscribe: formData.subscribe,
-              userId: user?.id || null
-            } 
-          }),
-        });
-
-        const emailData = await emailResponse.json();
-        console.log('Admin notification response:', emailData);
-      } catch (emailErr) {
-        console.error('Admin notification failed (form still saved):', emailErr);
-      }
-
-      // 3. Send confirmation email to user
-      try {
-        const userEmailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-user-confirmation', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            userData: {
-              firstName: formData.firstName,
-              lastName: formData.lastName,
-              email: formData.email,
-              serviceType: formData.serviceType,
-              preferredDate: formData.preferredDate,
-              message: formData.message,
-              ticketId: ticketId
-            } 
-          }),
-        });
-
-        const userEmailData = await userEmailResponse.json();
-        console.log('User confirmation email response:', userEmailData);
-      } catch (userEmailErr) {
-        console.error('User confirmation email failed:', userEmailErr);
-      }
-
-      // Success!
-      setIsSubmitted(true);
-      
-      // Auto-hide success message after 10 seconds
-      setTimeout(() => {
-        setIsSubmitted(false);
-        setSubmittedData(null);
-      }, 10000);
-
-    } catch (err) {
-      console.error('Form submission error:', err);
-      setError(`There was an error submitting your form: ${err.message}. Please try again or call us directly.`);
-    } finally {
-      setIsSubmitting(false);
+      const emailData = await emailResponse.json();
+      console.log('Admin notification response:', emailData);
+    } catch (emailErr) {
+      console.error('Admin notification failed (form still saved):', emailErr);
     }
-  };
+
+    // 3. Send confirmation email to user
+    try {
+      const userEmailResponse = await fetch('https://hnruxtddkfxsoulskbyr.supabase.co/functions/v1/send-user-confirmation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          userData: {
+            firstName: formData.firstName,
+            lastName: formData.lastName,
+            email: formData.email,
+            serviceType: formData.serviceType,
+            preferredDate: formData.preferredDate,
+            message: formData.message,
+            ticketId: ticketId
+          } 
+        }),
+      });
+
+      const userEmailData = await userEmailResponse.json();
+      console.log('User confirmation email response:', userEmailData);
+    } catch (userEmailErr) {
+      console.error('User confirmation email failed:', userEmailErr);
+    }
+
+    // Success!
+    setIsSubmitted(true);
+    
+    // Auto-hide success message after 10 seconds
+    setTimeout(() => {
+      setIsSubmitted(false);
+      setSubmittedData(null);
+    }, 10000);
+
+  } catch (err) {
+    console.error('Form submission error:', err);
+    setError(`There was an error submitting your form: ${err.message}. Please try again or call us directly.`);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
