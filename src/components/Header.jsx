@@ -3,18 +3,22 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   Menu, X, User, LogOut, Settings, FileText, 
-  Home, Heart, Shield, ChevronDown 
+  Home, Heart, Shield, ChevronDown, Briefcase,
+  Users, Target, Sparkles, Crown, Key, Compass,
+  Building2, Phone, Mail, ChevronRight
 } from 'lucide-react';
 import PreloadLink from './PreloadLink';
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, isAdmin } = useAuth();
   const userMenuRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,6 +32,9 @@ export default function Header() {
     const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setShowUserMenu(false);
+      }
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setActiveDropdown(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -48,10 +55,55 @@ export default function Header() {
   const isActive = (path) => location.pathname === path;
 
   const navigation = [
-    { name: 'Home', path: '/' },
-    { name: 'Properties', path: '/properties' },
-    { name: 'About', path: '/about' },
-    { name: 'Contact', path: '/contact' },
+    { name: 'Home', path: '/', section: 'main' },
+    { name: 'Properties', path: '/properties', section: 'main' },
+    { name: 'Services', path: '/services', section: 'main' },
+    { name: 'About', path: '/about', section: 'main' },
+    { name: 'Contact', path: '/contact', section: 'main' },
+  ];
+
+  const dropdowns = [
+    {
+      title: 'Company',
+      icon: <Briefcase className="w-4 h-4" />,
+      items: [
+        { name: 'About Us', path: '/about', icon: <Users className="w-4 h-4" /> },
+        { name: 'Careers', path: '/careers', icon: <Briefcase className="w-4 h-4" /> },
+        { name: 'Contact', path: '/contact', icon: <Phone className="w-4 h-4" /> },
+        { name: 'Strategy Call', path: '/strategy', icon: <Target className="w-4 h-4" /> },
+      ]
+    },
+    {
+      title: 'Resources',
+      icon: <Compass className="w-4 h-4" />,
+      items: [
+        { name: 'Buyers', path: '/buyers', icon: <Home className="w-4 h-4" /> },
+        { name: 'Sellers', path: '/sellers', icon: <Building2 className="w-4 h-4" /> },
+        { name: 'Sell Your Home', path: '/sell', icon: <Key className="w-4 h-4" /> },
+        { name: 'Marketing Guide', path: '/marketing', icon: <Target className="w-4 h-4" /> },
+        { name: 'FAQ', path: '/faq', icon: <Users className="w-4 h-4" /> },
+      ]
+    },
+    {
+      title: 'Palms Movement',
+      icon: <Sparkles className="w-4 h-4" />,
+      items: [
+        { name: 'Unlock Potential', path: '/unlock', icon: <Key className="w-4 h-4" /> },
+        { name: 'Data Marketing', path: '/data-marketing', icon: <Target className="w-4 h-4" /> },
+        { name: 'Luxury Experiences', path: '/luxury', icon: <Crown className="w-4 h-4" /> },
+        { name: 'Join the Movement', path: '/join', icon: <Users className="w-4 h-4" /> },
+      ]
+    },
+    {
+      title: 'Properties',
+      icon: <Building2 className="w-4 h-4" />,
+      items: [
+        { name: 'All Properties', path: '/properties', icon: <Home className="w-4 h-4" /> },
+        { name: 'Buffalo Listings', path: '/listings', icon: <MapPin className="w-4 h-4" /> },
+        { name: 'Exclusive Homes', path: '/exclusive', icon: <Crown className="w-4 h-4" /> },
+        { name: 'Services', path: '/services', icon: <Sparkles className="w-4 h-4" /> },
+      ]
+    }
   ];
 
   return (
@@ -64,20 +116,47 @@ export default function Header() {
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          {/* Left Navigation - Desktop */}
-          <div className="hidden md:flex items-center gap-1">
-            {navigation.slice(0, 2).map((item) => (
-              <PreloadLink
-                key={item.name}
-                to={item.path}
-                className={`px-4 py-2 text-sm font-light tracking-wide transition-all duration-300 ${
-                  isActive(item.path)
-                    ? 'text-[#F97316]'
-                    : 'text-[#A1A1AA] hover:text-white'
-                }`}
-              >
-                {item.name}
-              </PreloadLink>
+          {/* Left Navigation - Desktop with Dropdowns */}
+          <div className="hidden md:flex items-center gap-1" ref={dropdownRef}>
+            {dropdowns.slice(0, 2).map((dropdown) => (
+              <div key={dropdown.title} className="relative">
+                <button
+                  onClick={() => setActiveDropdown(activeDropdown === dropdown.title ? null : dropdown.title)}
+                  className={`flex items-center gap-1 px-4 py-2 text-sm font-light tracking-wide transition-all duration-300 ${
+                    activeDropdown === dropdown.title
+                      ? 'text-[#F97316]'
+                      : 'text-[#A1A1AA] hover:text-white'
+                  }`}
+                >
+                  {dropdown.icon}
+                  {dropdown.title}
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${
+                    activeDropdown === dropdown.title ? 'rotate-180' : ''
+                  }`} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {activeDropdown === dropdown.title && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-[#111111] border border-[#27272A] rounded-xl shadow-2xl overflow-hidden py-2">
+                    {dropdown.items.map((item) => (
+                      <PreloadLink
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setActiveDropdown(null)}
+                        className={`flex items-center gap-3 px-4 py-3 text-sm transition-all duration-300 ${
+                          isActive(item.path)
+                            ? 'text-[#F97316] bg-[#F97316]/5'
+                            : 'text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10'
+                        }`}
+                      >
+                        <span className="text-[#F97316]">{item.icon}</span>
+                        {item.name}
+                        <ChevronRight className="w-3.5 h-3.5 ml-auto text-[#27272A]" />
+                      </PreloadLink>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
 
@@ -94,22 +173,49 @@ export default function Header() {
             </div>
           </PreloadLink>
 
-          {/* Right Section */}
+          {/* Right Section with Dropdowns */}
           <div className="hidden md:flex items-center gap-4">
-            {/* Right Navigation */}
+            {/* Right Navigation Dropdowns */}
             <div className="flex items-center gap-1 mr-2">
-              {navigation.slice(2).map((item) => (
-                <PreloadLink
-                  key={item.name}
-                  to={item.path}
-                  className={`px-4 py-2 text-sm font-light tracking-wide transition-all duration-300 ${
-                    isActive(item.path)
-                      ? 'text-[#F97316]'
-                      : 'text-[#A1A1AA] hover:text-white'
-                  }`}
-                >
-                  {item.name}
-                </PreloadLink>
+              {dropdowns.slice(2).map((dropdown) => (
+                <div key={dropdown.title} className="relative">
+                  <button
+                    onClick={() => setActiveDropdown(activeDropdown === dropdown.title ? null : dropdown.title)}
+                    className={`flex items-center gap-1 px-4 py-2 text-sm font-light tracking-wide transition-all duration-300 ${
+                      activeDropdown === dropdown.title
+                        ? 'text-[#F97316]'
+                        : 'text-[#A1A1AA] hover:text-white'
+                    }`}
+                  >
+                    {dropdown.icon}
+                    {dropdown.title}
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${
+                      activeDropdown === dropdown.title ? 'rotate-180' : ''
+                    }`} />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {activeDropdown === dropdown.title && (
+                    <div className="absolute top-full right-0 mt-2 w-64 bg-[#111111] border border-[#27272A] rounded-xl shadow-2xl overflow-hidden py-2">
+                      {dropdown.items.map((item) => (
+                        <PreloadLink
+                          key={item.path}
+                          to={item.path}
+                          onClick={() => setActiveDropdown(null)}
+                          className={`flex items-center gap-3 px-4 py-3 text-sm transition-all duration-300 ${
+                            isActive(item.path)
+                              ? 'text-[#F97316] bg-[#F97316]/5'
+                              : 'text-[#A1A1AA] hover:text-white hover:bg-[#F97316]/10'
+                          }`}
+                        >
+                          <span className="text-[#F97316]">{item.icon}</span>
+                          {item.name}
+                          <ChevronRight className="w-3.5 h-3.5 ml-auto text-[#27272A]" />
+                        </PreloadLink>
+                      ))}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
 
@@ -130,7 +236,7 @@ export default function Header() {
                   }`} />
                 </button>
 
-                {/* Dropdown Menu */}
+                {/* User Dropdown Menu */}
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-64 bg-[#111111] border border-[#27272A] rounded-xl shadow-2xl overflow-hidden">
                     <div className="p-4 border-b border-[#27272A]">
@@ -228,25 +334,38 @@ export default function Header() {
           </button>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation - Expanded */}
         {isOpen && (
-          <div className="md:hidden py-4 border-t border-[#27272A]">
-            <div className="space-y-1">
-              {navigation.map((item) => (
-                <PreloadLink
-                  key={item.name}
-                  to={item.path}
-                  onClick={() => setIsOpen(false)}
-                  className={`block px-4 py-3 rounded-lg text-sm transition-colors ${
-                    isActive(item.path)
-                      ? 'text-[#F97316] bg-[#F97316]/5'
-                      : 'text-[#A1A1AA] hover:text-white hover:bg-[#111111]'
-                  }`}
-                >
-                  {item.name}
-                </PreloadLink>
+          <div className="md:hidden py-4 border-t border-[#27272A] max-h-[80vh] overflow-y-auto">
+            <div className="space-y-2">
+              {/* Mobile Dropdown Sections */}
+              {dropdowns.map((dropdown) => (
+                <div key={dropdown.title} className="border-b border-[#27272A] pb-2">
+                  <div className="flex items-center gap-2 px-4 py-2 text-[#F97316] font-medium text-sm">
+                    {dropdown.icon}
+                    {dropdown.title}
+                  </div>
+                  <div className="pl-10 space-y-1">
+                    {dropdown.items.map((item) => (
+                      <PreloadLink
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsOpen(false)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors ${
+                          isActive(item.path)
+                            ? 'text-[#F97316] bg-[#F97316]/5'
+                            : 'text-[#A1A1AA] hover:text-white hover:bg-[#111111]'
+                        }`}
+                      >
+                        <span className="text-[#F97316]">{item.icon}</span>
+                        {item.name}
+                      </PreloadLink>
+                    ))}
+                  </div>
+                </div>
               ))}
 
+              {/* User Section for Mobile */}
               {user ? (
                 <div className="pt-4 mt-4 border-t border-[#27272A] space-y-1">
                   <div className="px-4 py-2">
