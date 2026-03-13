@@ -3,8 +3,9 @@ import {
   Building2, Key, Ship, Plane, Shield, Star, Users, Globe,
   Heart, Sparkles, Award, Clock, CheckCircle, ArrowRight,
   Home, Wifi, Wine, Coffee, Dumbbell, Waves, Wind, Sun,
-  Camera, Music, Car, Chef, Lock, Zap, Briefcase, Gem,
-  Crown, Compass, Calendar, Phone, Mail, MapPin
+  Camera, Music, Car, Lock, Zap, Briefcase, Gem,
+  Crown, Compass, Calendar, Phone, Mail, MapPin,
+  Utensils, Droplet, Gauge, Thermometer, Fan, Lightbulb
 } from 'lucide-react';
 
 function Services() {
@@ -103,17 +104,17 @@ function Services() {
     { icon: <Camera className="w-5 h-5" />, name: 'Security System' },
     { icon: <Music className="w-5 h-5" />, name: 'Sonos Audio' },
     { icon: <Car className="w-5 h-5" />, name: 'Auto Lift' },
-    { icon: <Chef className="w-5 h-5" />, name: 'Chef\'s Kitchen' },
+    { icon: <Utensils className="w-5 h-5" />, name: 'Chef\'s Kitchen' }, // Replaced Chef with Utensils
     { icon: <Lock className="w-5 h-5" />, name: 'Smart Locks' }
   ];
 
   const destinations = [
-    { city: 'Miami', country: 'USA', properties: 45, image: 'Miami' },
-    { city: 'New York', country: 'USA', properties: 62, image: 'New York' },
-    { city: 'Los Angeles', country: 'USA', properties: 38, image: 'Los Angeles' },
-    { city: 'London', country: 'UK', properties: 41, image: 'London' },
-    { city: 'Paris', country: 'France', properties: 27, image: 'Paris' },
-    { city: 'Dubai', country: 'UAE', properties: 33, image: 'Dubai' }
+    { city: 'Miami', country: 'USA', properties: 45 },
+    { city: 'New York', country: 'USA', properties: 62 },
+    { city: 'Los Angeles', country: 'USA', properties: 38 },
+    { city: 'London', country: 'UK', properties: 41 },
+    { city: 'Paris', country: 'France', properties: 27 },
+    { city: 'Dubai', country: 'UAE', properties: 33 }
   ];
 
   const testimonials = [
