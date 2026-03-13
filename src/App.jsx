@@ -1,4 +1,4 @@
-// src/App.jsx - UPDATED WITH EMAIL CONFIRMATION ROUTES AND DISCLAIMER PAGE
+// src/App.jsx - UPDATED WITH EMAIL CONFIRMATION ROUTES AND DISCLAIMER PAG
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
