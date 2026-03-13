@@ -1,7 +1,8 @@
 import { 
   Award, Shield, Users, Globe, Star, TrendingUp, 
   Heart, Home, Lock, CheckCircle, Quote, Target,
-  MapPin, Calendar, Briefcase, Sparkles
+  MapPin, Calendar, Briefcase, Sparkles, Building2,
+  Key, Phone, Mail, Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -101,29 +102,52 @@ function About() {
 
   const testimonials = [
     {
-      quote: "Palms Estate transformed how we experience luxury travel. Their attention to detail is unparalleled.",
+      quote: "Palms Estate transformed how we experience luxury real estate. Their attention to detail and market expertise is unparalleled.",
       author: "Alexander Sterling",
       role: "Tech Entrepreneur",
       location: "Silicon Valley"
     },
     {
-      quote: "From private islands to penthouses, they consistently deliver beyond expectations.",
+      quote: "From investment properties to our primary residence, they consistently deliver beyond expectations with professionalism.",
       author: "Sophia Chen",
       role: "Art Collector",
       location: "Hong Kong"
     },
     {
-      quote: "The discretion and professionalism are exactly what we need for our family's properties.",
+      quote: "The discretion and professionalism are exactly what we need for our family's multi-million dollar portfolio.",
       author: "The Al-Farsi Family",
       role: "International Investors",
       location: "Dubai"
     }
   ];
 
+  const services = [
+    {
+      icon: <Building2 className="w-6 h-6" />,
+      title: 'Luxury Sales',
+      description: 'Expert representation for buying and selling premium properties.'
+    },
+    {
+      icon: <Key className="w-6 h-6" />,
+      title: 'Premium Rentals',
+      description: 'Exclusive access to the finest rental properties worldwide.'
+    },
+    {
+      icon: <TrendingUp className="w-6 h-6" />,
+      title: 'Investment Advisory',
+      description: 'Strategic guidance for real estate portfolio growth.'
+    },
+    {
+      icon: <Globe className="w-6 h-6" />,
+      title: 'Global Relocation',
+      description: 'Seamless transitions for international clients.'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
-      {/* Hero Section - No padding top, starts immediately under header */}
-      <section className="relative overflow-hidden pt-0">
+      {/* Hero Section - Removed pt-24 to eliminate gap */}
+      <section className="relative overflow-hidden">
         {/* Background with gradient overlay */}
         <div className="absolute inset-0">
           <div 
@@ -142,21 +166,35 @@ function About() {
             <div className="text-center">
               <div className="inline-flex items-center gap-2 bg-[#F97316]/10 border border-[#F97316]/20 px-6 py-3 rounded-full text-sm tracking-widest font-sans font-light text-[#F97316] mb-6">
                 <Sparkles className="w-4 h-4" />
-                <span>ESTABLISHED 2010</span>
+                <span>PREMIER REAL ESTATE SINCE 2010</span>
               </div>
               <h1 className="font-serif text-5xl md:text-7xl lg:text-8xl font-light text-white mb-6">
                 Palms <span className="text-[#F97316] font-medium">Estate</span>
               </h1>
               <div className="h-0.5 w-24 bg-[#F97316] mx-auto mb-8"></div>
               <p className="font-sans text-xl md:text-2xl lg:text-3xl text-[#A1A1AA] font-light leading-relaxed">
-                Curating the World's Most{' '}
-                <span className="text-[#F97316] font-medium">Extraordinary</span>{' '}
-                Living Experiences
+                Where{' '}
+                <span className="text-[#F97316] font-medium">Luxury Living</span>{' '}
+                Meets Uncompromising Service
               </p>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Services Bar - Quick overview of services */}
+      <div className="bg-[#18181B] border-y border-[#27272A] py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12">
+            {services.map((service, index) => (
+              <div key={index} className="flex items-center gap-2 text-[#A1A1AA] hover:text-[#F97316] transition-colors">
+                <span className="text-[#F97316]">{service.icon}</span>
+                <span className="text-sm font-light">{service.title}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* Our Story */}
       <section className="py-16 md:py-24">
@@ -170,33 +208,35 @@ function About() {
                 </span>
               </div>
               <h2 className="font-serif text-3xl md:text-4xl font-light text-white mb-6">
-                Redefining Luxury Living{' '}
-                <span className="text-[#F97316]">Since 2010</span>
+                Redefining{' '}
+                <span className="text-[#F97316]">Luxury Real Estate</span>
               </h2>
               <div className="space-y-4 font-sans text-[#A1A1AA] leading-relaxed">
                 <p>
-                  Founded in the heart of Miami's luxury district, Palms Estate began with a simple vision: 
-                  to create exceptional living experiences that transcend ordinary luxury.
+                  Founded in 2010, Palms Estate emerged from a vision to transform how discerning clients 
+                  experience luxury real estate. What began as a boutique agency in Miami has grown into 
+                  a trusted name in premium property sales, rentals, and investment advisory.
                 </p>
                 <p>
-                  What started as a boutique agency with five exclusive properties has evolved into 
-                  a global network of extraordinary residences, each meticulously selected for architectural 
-                  brilliance, unparalleled privacy, and transformative living experiences.
+                  Today, we serve an international clientele of entrepreneurs, investors, and families 
+                  seeking exceptional properties and white-glove service. Our team combines deep market 
+                  expertise with a commitment to absolute discretion and personalized attention.
                 </p>
                 <p>
-                  Today, we stand as trusted advisors to discerning individuals, families, and corporations 
-                  seeking not just properties, but destinations that inspire and elevate.
+                  Whether you're buying your dream home, selling a prized asset, or building a portfolio, 
+                  Palms Estate delivers unparalleled results through integrity, innovation, and dedication 
+                  to your success.
                 </p>
               </div>
               
               <div className="mt-8 grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-[#0A0A0A] border border-[#27272A] rounded-2xl">
-                  <div className="font-serif text-3xl font-light text-[#F97316] mb-1">14+</div>
-                  <div className="font-sans text-xs text-[#A1A1AA]">Years Excellence</div>
+                  <div className="font-serif text-3xl font-light text-[#F97316] mb-1">$2B+</div>
+                  <div className="font-sans text-xs text-[#A1A1AA]">In Sales</div>
                 </div>
                 <div className="text-center p-4 bg-[#0A0A0A] border border-[#27272A] rounded-2xl">
-                  <div className="font-serif text-3xl font-light text-[#F97316] mb-1">200+</div>
-                  <div className="font-sans text-xs text-[#A1A1AA]">Exclusive Properties</div>
+                  <div className="font-serif text-3xl font-light text-[#F97316] mb-1">500+</div>
+                  <div className="font-sans text-xs text-[#A1A1AA]">Properties Sold</div>
                 </div>
                 <div className="text-center p-4 bg-[#0A0A0A] border border-[#27272A] rounded-2xl">
                   <div className="font-serif text-3xl font-light text-[#F97316] mb-1">50+</div>
@@ -240,11 +280,11 @@ function About() {
               </span>
             </div>
             <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-white mb-6">
-              The Pillars of Our{' '}
-              <span className="text-[#F97316] font-medium">Excellence</span>
+              The Principles That{' '}
+              <span className="text-[#F97316] font-medium">Define Us</span>
             </h2>
             <p className="font-sans text-lg md:text-xl text-[#A1A1AA] max-w-3xl mx-auto">
-              These principles guide every decision we make and every experience we create.
+              Every decision we make is guided by these core beliefs.
             </p>
           </div>
 
@@ -279,10 +319,10 @@ function About() {
             </div>
             <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-white mb-6">
               Meet Our{' '}
-              <span className="text-[#F97316] font-medium">Luxury Advisors</span>
+              <span className="text-[#F97316] font-medium">Leadership</span>
             </h2>
             <p className="font-sans text-lg md:text-xl text-[#A1A1AA] max-w-3xl mx-auto">
-              A collective of industry experts dedicated to delivering unparalleled service.
+              Seasoned professionals dedicated to your success.
             </p>
           </div>
 
@@ -343,7 +383,7 @@ function About() {
             </div>
             <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-white mb-6">
               Trusted by{' '}
-              <span className="text-[#F97316] font-medium">Discerning Clients</span>
+              <span className="text-[#F97316] font-medium">Industry Leaders</span>
             </h2>
           </div>
 
@@ -401,11 +441,11 @@ function About() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-gradient-to-br from-[#F97316] to-[#EA580C] rounded-3xl p-8 md:p-16 text-center shadow-2xl">
             <h2 className="font-serif text-4xl md:text-5xl lg:text-6xl font-light text-white mb-6">
-              Begin Your{' '}
-              <span className="text-white/90 font-medium">Extraordinary Journey</span>
+              Experience the{' '}
+              <span className="text-white/90 font-medium">Palms Estate Difference</span>
             </h2>
             <p className="font-sans text-xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Experience the Palms Estate difference. Let us transform how you live, travel, and invest.
+              Whether you're buying, selling, or renting, our team is ready to assist you with unparalleled expertise and discretion.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
@@ -420,6 +460,22 @@ function About() {
               >
                 Explore Properties
               </Link>
+            </div>
+
+            {/* Contact Bar */}
+            <div className="mt-8 pt-8 border-t border-white/20 flex flex-wrap justify-center gap-8">
+              <div className="flex items-center gap-2 text-white/80">
+                <Phone className="w-4 h-4" />
+                <span className="text-sm">+1 (828) 623-9765</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/80">
+                <Mail className="w-4 h-4" />
+                <span className="text-sm">concierge@palmsestate.org</span>
+              </div>
+              <div className="flex items-center gap-2 text-white/80">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm">24/7 Concierge</span>
+              </div>
             </div>
           </div>
         </div>
