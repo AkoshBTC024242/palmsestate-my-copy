@@ -30,6 +30,7 @@ import ApplicationForm from './pages/ApplicationForm';
 import InitialApplyForm from './pages/InitialApplyForm';
 import PostApprovalForm from './pages/dashboard/PostApprovalForm';
 import NotFound from './pages/NotFound';
+import CaseStudy from './pages/CaseStudy';
 
 // New Pages from Footer
 import Careers from './pages/Careers';
@@ -143,6 +144,16 @@ function App() {
                       <Services />
                     </main>
                     <Footer />
+                  </div>
+                } />
+
+                <Route path="/case-study/:id" element={
+                 <div className="min-h-screen flex flex-col">
+                   <Header />
+                   <main className="flex-grow pt-16 md:pt-20">
+                     <CaseStudy />
+                   </main>
+                   <Footer />
                   </div>
                 } />
 
