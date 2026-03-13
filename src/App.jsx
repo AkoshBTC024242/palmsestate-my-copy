@@ -1,4 +1,4 @@
-// src/App.jsx - UPDATED WITH ALL PAGES
+// src/App.jsx - UPDATED WITH ALL PAGES INCLUDING CASE STUDY
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
@@ -147,13 +147,14 @@ function App() {
                   </div>
                 } />
 
+                {/* ===== CASE STUDY PAGE ===== */}
                 <Route path="/case-study/:id" element={
-                 <div className="min-h-screen flex flex-col">
-                   <Header />
-                   <main className="flex-grow pt-16 md:pt-20">
-                     <CaseStudy />
-                   </main>
-                   <Footer />
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <CaseStudy />
+                    </main>
+                    <Footer />
                   </div>
                 } />
 
