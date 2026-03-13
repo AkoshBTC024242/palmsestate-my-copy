@@ -16,6 +16,7 @@ import Properties from './pages/Properties';
 import PropertyDetails from './pages/PropertyDetails';
 import Contact from './pages/Contact';
 import About from './pages/About';
+import Services from './pages/Services'; // NEW: Import Services page
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import VerificationSent from './pages/VerificationSent';
@@ -25,7 +26,7 @@ import ApplicationForm from './pages/ApplicationForm';
 import InitialApplyForm from './pages/InitialApplyForm';
 import PostApprovalForm from './pages/dashboard/PostApprovalForm';
 import NotFound from './pages/NotFound';
-import Disclaimer from './pages/Disclaimer'; // NEW: Import Disclaimer page
+import Disclaimer from './pages/Disclaimer';
 
 // Dashboard pages
 import Dashboard from './pages/Dashboard';
@@ -118,7 +119,18 @@ function App() {
                   </div>
                 } />
 
-                {/* NEW: Disclaimer route */}
+                {/* NEW: Services route */}
+                <Route path="/services" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Services />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                {/* Disclaimer route */}
                 <Route path="/disclaimer" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
