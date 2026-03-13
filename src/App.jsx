@@ -20,6 +20,7 @@ import Services from './pages/Services';
 import FAQ from './pages/FAQ';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import Disclaimer from './pages/Disclaimer';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import VerificationSent from './pages/VerificationSent';
@@ -29,7 +30,20 @@ import ApplicationForm from './pages/ApplicationForm';
 import InitialApplyForm from './pages/InitialApplyForm';
 import PostApprovalForm from './pages/dashboard/PostApprovalForm';
 import NotFound from './pages/NotFound';
-import Disclaimer from './pages/Disclaimer';
+
+// New Pages from Footer
+import Careers from './pages/Careers';
+import Buyers from './pages/Buyers';
+import Sellers from './pages/Sellers';
+import Sell from './pages/Sell';
+import Marketing from './pages/Marketing';
+import Unlock from './pages/Unlock';
+import DataMarketing from './pages/DataMarketing';
+import Luxury from './pages/Luxury';
+import Join from './pages/Join';
+import Listings from './pages/Listings';
+import Exclusive from './pages/Exclusive';
+import Strategy from './pages/Strategy';
 
 // Dashboard pages
 import Dashboard from './pages/Dashboard';
@@ -132,7 +146,132 @@ function App() {
                   </div>
                 } />
 
-                {/* NEW: FAQ route */}
+                {/* ===== NEW PAGES FROM FOOTER ===== */}
+                {/* Company Section */}
+                <Route path="/careers" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Careers />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                {/* Resources / Services Section */}
+                <Route path="/buyers" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Buyers />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                <Route path="/sellers" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Sellers />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                <Route path="/sell" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Sell />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                <Route path="/marketing" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Marketing />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                {/* Palms Movement Section */}
+                <Route path="/unlock" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Unlock />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                <Route path="/data-marketing" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <DataMarketing />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                <Route path="/luxury" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Luxury />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                <Route path="/join" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Join />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                {/* Palms Estate Section */}
+                <Route path="/listings" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Listings />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                <Route path="/exclusive" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Exclusive />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                <Route path="/strategy" element={
+                  <div className="min-h-screen flex flex-col">
+                    <Header />
+                    <main className="flex-grow pt-16 md:pt-20">
+                      <Strategy />
+                    </main>
+                    <Footer />
+                  </div>
+                } />
+
+                {/* Legal Pages */}
                 <Route path="/faq" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -143,7 +282,6 @@ function App() {
                   </div>
                 } />
 
-                {/* NEW: Privacy Policy route */}
                 <Route path="/privacy" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -154,7 +292,6 @@ function App() {
                   </div>
                 } />
 
-                {/* NEW: Terms of Service route */}
                 <Route path="/terms" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -175,6 +312,7 @@ function App() {
                   </div>
                 } />
 
+                {/* Auth Routes */}
                 <Route path="/signin" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
