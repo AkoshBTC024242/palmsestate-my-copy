@@ -53,6 +53,7 @@ import SavedProperties from './pages/dashboard/SavedProperties';
 import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
 import PaymentPage from './pages/dashboard/PaymentPage';
+import DashboardProperties from './pages/dashboard/Properties';
 
 
 // Admin pages
