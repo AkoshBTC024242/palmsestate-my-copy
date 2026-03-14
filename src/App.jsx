@@ -1,4 +1,4 @@
-// src/App.jsx - UPDATED WITH ALL PAGES INCLUDING CASE STUDY
+// src/App.jsx - COMPLETE UPDATED VERSION WITH ALL ROUTES
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
@@ -10,7 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 
-// Import all pages
+// Import all frontend pages
 import Home from './pages/Home';
 import Properties from './pages/Properties';
 import PropertyDetails from './pages/PropertyDetails';
@@ -29,10 +29,9 @@ import VerificationSuccess from './pages/VerificationSuccess';
 import ApplicationForm from './pages/ApplicationForm';
 import InitialApplyForm from './pages/InitialApplyForm';
 import PostApprovalForm from './pages/dashboard/PostApprovalForm';
-import CaseStudy from './pages/CaseStudy';
 import NotFound from './pages/NotFound';
 
-// New Pages from Footer
+// Frontend Footer Pages
 import Careers from './pages/Careers';
 import Buyers from './pages/Buyers';
 import Sellers from './pages/Sellers';
@@ -46,7 +45,7 @@ import Listings from './pages/Listings';
 import Exclusive from './pages/Exclusive';
 import Strategy from './pages/Strategy';
 
-// Dashboard pages
+// Dashboard Pages
 import Dashboard from './pages/Dashboard';
 import Applications from './pages/dashboard/Applications';
 import ApplicationDetail from './pages/dashboard/ApplicationDetail';
@@ -54,6 +53,8 @@ import SavedProperties from './pages/dashboard/SavedProperties';
 import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
 import PaymentPage from './pages/dashboard/PaymentPage';
+
+// NEW Dashboard Pages
 import LiveChat from './pages/dashboard/LiveChat';
 import DashboardProperties from './pages/dashboard/Properties';
 import DashboardBuyers from './pages/dashboard/Buyers';
@@ -158,19 +159,7 @@ function App() {
                   </div>
                 } />
 
-                {/* ===== CASE STUDY PAGE ===== */}
-                <Route path="/case-study/:id" element={
-                  <div className="min-h-screen flex flex-col">
-                    <Header />
-                    <main className="flex-grow pt-16 md:pt-20">
-                      <CaseStudy />
-                    </main>
-                    <Footer />
-                  </div>
-                } />
-
-                {/* ===== NEW PAGES FROM FOOTER ===== */}
-                {/* Company Section */}
+                {/* Frontend Footer Pages */}
                 <Route path="/careers" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -181,7 +170,6 @@ function App() {
                   </div>
                 } />
 
-                {/* Resources / Services Section */}
                 <Route path="/buyers" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -222,7 +210,6 @@ function App() {
                   </div>
                 } />
 
-                {/* Palms Movement Section */}
                 <Route path="/unlock" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -263,7 +250,6 @@ function App() {
                   </div>
                 } />
 
-                {/* Palms Estate Section */}
                 <Route path="/listings" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -356,7 +342,7 @@ function App() {
                   </div>
                 } />
 
-                {/* EMAIL VERIFICATION FLOW ROUTES */}
+                {/* Email Verification Routes */}
                 <Route path="/verification-sent" element={
                   <div className="min-h-screen flex flex-col">
                     <Header />
@@ -387,7 +373,8 @@ function App() {
                   </div>
                 } />
 
-                {/* ===== USER DASHBOARD ROUTES ===== */}
+                {/* ===== USER DASHBOARD ROUTES (PROTECTED) ===== */}
+                {/* Main Dashboard */}
                 <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <DashboardLayout>
@@ -396,6 +383,7 @@ function App() {
                   </ProtectedRoute>
                 } />
 
+                {/* Core Dashboard Pages */}
                 <Route path="/dashboard/applications" element={
                   <ProtectedRoute>
                     <DashboardLayout>
@@ -452,142 +440,98 @@ function App() {
                   </ProtectedRoute>
                 } />
 
-                <Route path="/dashboard" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <Dashboard />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                {/* NEW Dashboard Pages - Live Chat */}
+                <Route path="/dashboard/chat" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <LiveChat />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-<Route path="/dashboard/applications" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <Applications />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                {/* NEW Dashboard Pages - Properties */}
+                <Route path="/dashboard/properties" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardProperties />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-<Route path="/dashboard/applications/:id" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <ApplicationDetail />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                {/* NEW Dashboard Pages - Resources */}
+                <Route path="/dashboard/buyers" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardBuyers />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-<Route path="/dashboard/saved" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <SavedProperties />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                <Route path="/dashboard/sellers" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardSellers />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-<Route path="/dashboard/profile" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <Profile />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                <Route path="/dashboard/marketing" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardMarketing />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-<Route path="/dashboard/settings" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <Settings />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                {/* NEW Dashboard Pages - Palms Movement */}
+                <Route path="/dashboard/unlock" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardUnlock />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-{/* NEW Dashboard Routes */}
-<Route path="/dashboard/chat" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <LiveChat />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                <Route path="/dashboard/luxury" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardLuxury />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-<Route path="/dashboard/properties" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardProperties />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                <Route path="/dashboard/join" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardJoin />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-<Route path="/dashboard/buyers" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardBuyers />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                {/* NEW Dashboard Pages - Exclusive */}
+                <Route path="/dashboard/exclusive" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardExclusive />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-<Route path="/dashboard/sellers" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardSellers />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                <Route path="/dashboard/strategy" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardStrategy />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
-<Route path="/dashboard/marketing" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardMarketing />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
-
-<Route path="/dashboard/unlock" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardUnlock />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
-
-<Route path="/dashboard/luxury" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardLuxury />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
-
-<Route path="/dashboard/join" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardJoin />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
-
-<Route path="/dashboard/exclusive" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardExclusive />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
-
-<Route path="/dashboard/strategy" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardStrategy />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
-
-<Route path="/dashboard/faq" element={
-  <ProtectedRoute>
-    <DashboardLayout>
-      <DashboardFAQ />
-    </DashboardLayout>
-  </ProtectedRoute>
-} />
+                <Route path="/dashboard/faq" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardFAQ />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
 
                 {/* ===== ADMIN DASHBOARD ROUTES ===== */}
                 <Route path="/admin" element={
