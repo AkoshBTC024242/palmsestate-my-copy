@@ -6,6 +6,7 @@ import {
   BedDouble, Bath, Square, ArrowRight, Loader2
 } from 'lucide-react';
 
+
 function DashboardProperties() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
