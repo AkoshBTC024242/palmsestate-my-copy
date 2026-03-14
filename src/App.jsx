@@ -31,7 +31,7 @@ import InitialApplyForm from './pages/InitialApplyForm';
 import PostApprovalForm from './pages/dashboard/PostApprovalForm';
 import NotFound from './pages/NotFound';
 
-// Frontend Footer Pages
+// Frontend Footer Pages (will be reused in dashboard)
 import Careers from './pages/Careers';
 import Buyers from './pages/Buyers';
 import Sellers from './pages/Sellers';
@@ -45,7 +45,7 @@ import Listings from './pages/Listings';
 import Exclusive from './pages/Exclusive';
 import Strategy from './pages/Strategy';
 
-// Dashboard Pages
+// Dashboard Pages (unique dashboard-specific pages)
 import Dashboard from './pages/Dashboard';
 import Applications from './pages/dashboard/Applications';
 import ApplicationDetail from './pages/dashboard/ApplicationDetail';
@@ -53,6 +53,12 @@ import SavedProperties from './pages/dashboard/SavedProperties';
 import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
 import PaymentPage from './pages/dashboard/PaymentPage';
+import LiveChat from './pages/dashboard/LiveChat';
+import DashboardProperties from './pages/dashboard/Properties';
+import DashboardDocuments from './pages/dashboard/Documents';
+import DashboardPayments from './pages/dashboard/Payments';
+import DashboardNotifications from './pages/dashboard/Notifications';
+import DashboardAnalytics from './pages/dashboard/Analytics';
 
 // Admin pages
 import AdminDashboard from './pages/AdminDashboard';
@@ -64,97 +70,6 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminPayments from './pages/admin/AdminPayments';
 import AdminAnalytics from './pages/admin/AdminAnalytics';
 import AdminSettings from './pages/admin/AdminSettings';
-
-// ===== TEMPORARY PLACEHOLDERS FOR MISSING DASHBOARD PAGES =====
-// Create these files in src/pages/dashboard/ to remove the placeholders
-
-// Placeholder for LiveChat
-const LiveChat = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Live Chat Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardProperties
-const DashboardProperties = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Properties Dashboard Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardBuyers
-const DashboardBuyers = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Buyers Guide Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardSellers
-const DashboardSellers = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Sellers Guide Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardMarketing
-const DashboardMarketing = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Marketing Resources Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardUnlock
-const DashboardUnlock = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Unlock Potential Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardLuxury
-const DashboardLuxury = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Luxury Experiences Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardJoin
-const DashboardJoin = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Join Movement Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardExclusive
-const DashboardExclusive = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Exclusive Homes Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardStrategy
-const DashboardStrategy = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">Strategy Call Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
-
-// Placeholder for DashboardFAQ
-const DashboardFAQ = () => (
-  <div className="p-8 text-center">
-    <h2 className="text-2xl text-white">FAQ Coming Soon</h2>
-    <p className="text-[#A1A1AA] mt-2">This feature is under development.</p>
-  </div>
-);
 
 function App() {
   return (
@@ -536,19 +451,56 @@ function App() {
                   </ProtectedRoute>
                 } />
 
-                {/* NEW Dashboard Pages - Resources */}
-                <Route path="/dashboard/buyers" element={
+                {/* NEW Dashboard Pages - Documents */}
+                <Route path="/dashboard/documents" element={
                   <ProtectedRoute>
                     <DashboardLayout>
-                      <DashboardBuyers />
+                      <DashboardDocuments />
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
 
-                <Route path="/dashboard/sellers" element={
+                {/* NEW Dashboard Pages - Payments */}
+                <Route path="/dashboard/payments" element={
                   <ProtectedRoute>
                     <DashboardLayout>
-                      <DashboardSellers />
+                      <DashboardPayments />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                {/* NEW Dashboard Pages - Notifications */}
+                <Route path="/dashboard/notifications" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardNotifications />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                {/* NEW Dashboard Pages - Analytics */}
+                <Route path="/dashboard/analytics" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <DashboardAnalytics />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                {/* ===== DASHBOARD ROUTES REUSING FRONTEND PAGES ===== */}
+                {/* Resources */}
+                <Route path="/dashboard/buyers-guide" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Buyers />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/dashboard/sellers-guide" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Sellers />
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
@@ -556,49 +508,7 @@ function App() {
                 <Route path="/dashboard/marketing" element={
                   <ProtectedRoute>
                     <DashboardLayout>
-                      <DashboardMarketing />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
-
-                {/* NEW Dashboard Pages - Palms Movement */}
-                <Route path="/dashboard/unlock" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <DashboardUnlock />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/dashboard/luxury" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <DashboardLuxury />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/dashboard/join" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <DashboardJoin />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
-
-                {/* NEW Dashboard Pages - Exclusive */}
-                <Route path="/dashboard/exclusive" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <DashboardExclusive />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                } />
-
-                <Route path="/dashboard/strategy" element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      <DashboardStrategy />
+                      <Marketing />
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
@@ -606,7 +516,65 @@ function App() {
                 <Route path="/dashboard/faq" element={
                   <ProtectedRoute>
                     <DashboardLayout>
-                      <DashboardFAQ />
+                      <FAQ />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                {/* Palms Movement */}
+                <Route path="/dashboard/movement" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Unlock />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/dashboard/luxury" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Luxury />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/dashboard/exclusive" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Exclusive />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/dashboard/strategy" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Strategy />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/dashboard/community" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Join />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                {/* Local */}
+                <Route path="/dashboard/listings" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Listings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="/dashboard/careers" element={
+                  <ProtectedRoute>
+                    <DashboardLayout>
+                      <Careers />
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
