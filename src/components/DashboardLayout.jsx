@@ -9,7 +9,7 @@ import {
   Briefcase, Target, Sparkles, Globe, Users,
   BarChart, Download, Calendar, Clock, Award,
   Star, Compass, Crown, Gem, Key, MapPin,
-  Phone, Mail, Copy, Check
+  Phone, Mail, Copy, Check, DollarSign
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
@@ -54,24 +54,26 @@ export default function DashboardLayout({ children }) {
   ];
 
   useEffect(() => {
-    fetchNotifications();
-    
-    // Subscribe to real-time notifications
-    const subscription = supabase
-      .channel('notifications')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'notifications',
-        filter: `user_id=eq.${user?.id}`
-      }, (payload) => {
-        handleNewNotification(payload.new);
-      })
-      .subscribe();
+    if (user) {
+      fetchNotifications();
+      
+      // Subscribe to real-time notifications
+      const subscription = supabase
+        .channel('notifications')
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'notifications',
+          filter: `user_id=eq.${user?.id}`
+        }, (payload) => {
+          handleNewNotification(payload.new);
+        })
+        .subscribe();
 
-    return () => {
-      subscription.unsubscribe();
-    };
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, [user?.id]);
 
   const fetchNotifications = async () => {
@@ -363,7 +365,7 @@ export default function DashboardLayout({ children }) {
                     isActive(item.path)
                       ? 'bg-[#F97316]/10 text-[#F97316] border-l-2 border-[#F97316]'
                       : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
-                  }`}
+                }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="text-sm">{item.name}</span>
