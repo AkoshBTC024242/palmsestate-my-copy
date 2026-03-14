@@ -32,8 +32,8 @@ import {
   Search, Filter, Plus, MoreVertical, CheckCircle,
   AlertCircle, XCircle, Info, ExternalLink,
   
-  // Social Icons
-  Facebook, Twitter, Instagram, Linkedin, Youtube
+  // Map Icons
+  MapPin, Compass, Navigation
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
@@ -43,18 +43,19 @@ export default function DashboardLayout({ children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [copied, setCopied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
   
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, isAdmin } = useAuth();
 
-  // Organized navigation by category
+  // Complete navigation with all dashboard routes
   const navigation = [
     {
       category: 'Overview',
       items: [
         { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+        { name: 'Analytics', path: '/dashboard/analytics', icon: BarChart },
+        { name: 'Notifications', path: '/dashboard/notifications', icon: Bell },
       ]
     },
     {
@@ -71,14 +72,12 @@ export default function DashboardLayout({ children }) {
       items: [
         { name: 'Payments', path: '/dashboard/payments', icon: DollarSign },
         { name: 'Invoices', path: '/dashboard/invoices', icon: Receipt },
-        { name: 'Analytics', path: '/dashboard/analytics', icon: BarChart },
       ]
     },
     {
       category: 'Communication',
       items: [
         { name: 'Live Chat', path: '/dashboard/chat', icon: MessageSquare },
-        { name: 'Notifications', path: '/dashboard/notifications', icon: Bell },
         { name: 'Support Tickets', path: '/dashboard/support', icon: Headphones },
       ]
     },
@@ -87,18 +86,25 @@ export default function DashboardLayout({ children }) {
       items: [
         { name: 'Buyers Guide', path: '/dashboard/buyers-guide', icon: Target },
         { name: 'Sellers Guide', path: '/dashboard/sellers-guide', icon: Briefcase },
+        { name: 'Marketing', path: '/dashboard/marketing', icon: TrendingUp },
         { name: 'FAQ', path: '/dashboard/faq', icon: HelpCircle },
-        { name: 'Blog', path: '/dashboard/blog', icon: BookOpen },
       ]
     },
     {
       category: 'Palms Experience',
       items: [
         { name: 'Movement', path: '/dashboard/movement', icon: Sparkles },
-        { name: 'Luxury Experiences', path: '/dashboard/luxury', icon: Crown },
-        { name: 'Exclusive Homes', path: '/dashboard/exclusive', icon: Gem },
-        { name: 'Strategy Call', path: '/dashboard/strategy', icon: Calendar },
-        { name: 'Join Community', path: '/dashboard/join', icon: Users },
+        { name: 'Luxury', path: '/dashboard/luxury', icon: Crown },
+        { name: 'Exclusive', path: '/dashboard/exclusive', icon: Gem },
+        { name: 'Strategy', path: '/dashboard/strategy', icon: Calendar },
+        { name: 'Community', path: '/dashboard/community', icon: Users },
+      ]
+    },
+    {
+      category: 'Local',
+      items: [
+        { name: 'Buffalo Listings', path: '/dashboard/listings', icon: MapPin },
+        { name: 'Careers', path: '/dashboard/careers', icon: Briefcase },
       ]
     },
     {
@@ -156,7 +162,7 @@ export default function DashboardLayout({ children }) {
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(5);
 
       if (!error && data) {
         setNotifications(data);
@@ -205,7 +211,11 @@ export default function DashboardLayout({ children }) {
     }
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isActive = (path) => {
+    if (path === '/dashboard' && location.pathname === '/dashboard') return true;
+    if (path !== '/dashboard' && location.pathname.startsWith(path)) return true;
+    return false;
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -366,11 +376,6 @@ export default function DashboardLayout({ children }) {
                         >
                           <Icon className="w-5 h-5" />
                           <span className="text-sm">{item.name}</span>
-                          {item.badge && (
-                            <span className="ml-auto text-xs bg-[#F97316] text-white px-2 py-0.5 rounded-full">
-                              {item.badge}
-                            </span>
-                          )}
                         </Link>
                       );
                     })}
@@ -492,24 +497,21 @@ export default function DashboardLayout({ children }) {
                   <div className="space-y-1">
                     {category.items.map((item) => {
                       const Icon = item.icon;
+                      const active = isActive(item.path);
+                      
                       return (
                         <Link
                           key={item.name}
                           to={item.path}
                           className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group ${
-                            isActive(item.path)
+                            active
                               ? 'bg-[#F97316]/10 text-[#F97316]'
                               : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
                           }`}
                         >
                           <Icon className="w-5 h-5" />
                           <span className="text-sm">{item.name}</span>
-                          {item.badge && (
-                            <span className="ml-auto text-xs bg-[#F97316] text-white px-2 py-0.5 rounded-full">
-                              {item.badge}
-                            </span>
-                          )}
-                          {isActive(item.path) && (
+                          {active && (
                             <ChevronRight className="w-4 h-4 ml-auto text-[#F97316]" />
                           )}
                         </Link>
@@ -530,19 +532,21 @@ export default function DashboardLayout({ children }) {
                       <div className="space-y-1">
                         {category.items.map((item) => {
                           const Icon = item.icon;
+                          const active = isActive(item.path);
+                          
                           return (
                             <Link
                               key={item.name}
                               to={item.path}
                               className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
-                                isActive(item.path)
+                                active
                                   ? 'bg-[#F97316]/10 text-[#F97316]'
                                   : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
                               }`}
                             >
                               <Icon className="w-5 h-5" />
                               <span className="text-sm">{item.name}</span>
-                              {isActive(item.path) && (
+                              {active && (
                                 <ChevronRight className="w-4 h-4 ml-auto text-[#F97316]" />
                               )}
                             </Link>
