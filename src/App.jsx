@@ -54,18 +54,6 @@ import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
 import PaymentPage from './pages/dashboard/PaymentPage';
 
-// NEW Dashboard Pages
-import LiveChat from './pages/dashboard/LiveChat';
-import DashboardProperties from './pages/dashboard/Properties';
-import DashboardBuyers from './pages/dashboard/Buyers';
-import DashboardSellers from './pages/dashboard/Sellers';
-import DashboardMarketing from './pages/dashboard/Marketing';
-import DashboardUnlock from './pages/dashboard/Unlock';
-import DashboardLuxury from './pages/dashboard/Luxury';
-import DashboardJoin from './pages/dashboard/Join';
-import DashboardExclusive from './pages/dashboard/Exclusive';
-import DashboardStrategy from './pages/dashboard/Strategy';
-import DashboardFAQ from './pages/dashboard/FAQ';
 
 // Admin pages
 import AdminDashboard from './pages/AdminDashboard';
