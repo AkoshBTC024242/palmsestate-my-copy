@@ -3,13 +3,37 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import {
-  LayoutDashboard, FileText, Heart, User, Settings,
-  LogOut, Menu, X, Home, Bell, ChevronRight,
-  Building2, MessageSquare, HelpCircle, Shield,
-  Briefcase, Target, Sparkles, Globe, Users,
-  BarChart, Download, Calendar, Clock, Award,
-  Star, Compass, Crown, Gem, Key, MapPin,
-  Phone, Mail, Copy, Check, DollarSign
+  // Layout & Navigation
+  LayoutDashboard, Menu, X, Home, Bell, ChevronRight,
+  LogOut, Settings, User, HelpCircle, Shield,
+  
+  // Property Icons
+  Building2, FileText, Heart, Target, Briefcase,
+  
+  // Communication Icons
+  MessageSquare, Headphones, Mail, Phone, Copy, Check,
+  
+  // Financial Icons
+  DollarSign, CreditCard, Receipt, TrendingUp,
+  
+  // Resource Icons
+  BookOpen, GraduationCap, Award, Star,
+  
+  // Brand Icons
+  Sparkles, Crown, Gem, Calendar, Users, Globe,
+  
+  // Document Icons
+  File, Download, Upload, FolderOpen,
+  
+  // Analytics Icons
+  BarChart, PieChart, Activity, Clock,
+  
+  // Utility Icons
+  Search, Filter, Plus, MoreVertical, CheckCircle,
+  AlertCircle, XCircle, Info, ExternalLink,
+  
+  // Social Icons
+  Facebook, Twitter, Instagram, Linkedin, Youtube
 } from 'lucide-react';
 
 export default function DashboardLayout({ children }) {
@@ -18,39 +42,88 @@ export default function DashboardLayout({ children }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut, isAdmin } = useAuth();
 
-  // All dashboard pages from our frontend
+  // Organized navigation by category
   const navigation = [
-    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Applications', path: '/dashboard/applications', icon: FileText },
-    { name: 'Saved Properties', path: '/dashboard/saved', icon: Heart },
-    { name: 'Live Chat', path: '/dashboard/chat', icon: MessageSquare },
-    { name: 'Properties', path: '/dashboard/properties', icon: Building2 },
-    { name: 'Buyers Guide', path: '/dashboard/buyers', icon: Target },
-    { name: 'Sellers Guide', path: '/dashboard/sellers', icon: Briefcase },
-    { name: 'Marketing', path: '/dashboard/marketing', icon: BarChart },
-    { name: 'Unlock Potential', path: '/dashboard/unlock', icon: Sparkles },
-    { name: 'Luxury Experiences', path: '/dashboard/luxury', icon: Crown },
-    { name: 'Join Movement', path: '/dashboard/join', icon: Users },
-    { name: 'Exclusive Homes', path: '/dashboard/exclusive', icon: Gem },
-    { name: 'Strategy Call', path: '/dashboard/strategy', icon: Calendar },
-    { name: 'Profile', path: '/dashboard/profile', icon: User },
-    { name: 'Settings', path: '/dashboard/settings', icon: Settings },
-    { name: 'FAQ', path: '/dashboard/faq', icon: HelpCircle },
+    {
+      category: 'Overview',
+      items: [
+        { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      ]
+    },
+    {
+      category: 'Property Management',
+      items: [
+        { name: 'Properties', path: '/dashboard/properties', icon: Building2 },
+        { name: 'Applications', path: '/dashboard/applications', icon: FileText },
+        { name: 'Saved Properties', path: '/dashboard/saved', icon: Heart },
+        { name: 'Documents', path: '/dashboard/documents', icon: FolderOpen },
+      ]
+    },
+    {
+      category: 'Financial',
+      items: [
+        { name: 'Payments', path: '/dashboard/payments', icon: DollarSign },
+        { name: 'Invoices', path: '/dashboard/invoices', icon: Receipt },
+        { name: 'Analytics', path: '/dashboard/analytics', icon: BarChart },
+      ]
+    },
+    {
+      category: 'Communication',
+      items: [
+        { name: 'Live Chat', path: '/dashboard/chat', icon: MessageSquare },
+        { name: 'Notifications', path: '/dashboard/notifications', icon: Bell },
+        { name: 'Support Tickets', path: '/dashboard/support', icon: Headphones },
+      ]
+    },
+    {
+      category: 'Resources',
+      items: [
+        { name: 'Buyers Guide', path: '/dashboard/buyers-guide', icon: Target },
+        { name: 'Sellers Guide', path: '/dashboard/sellers-guide', icon: Briefcase },
+        { name: 'FAQ', path: '/dashboard/faq', icon: HelpCircle },
+        { name: 'Blog', path: '/dashboard/blog', icon: BookOpen },
+      ]
+    },
+    {
+      category: 'Palms Experience',
+      items: [
+        { name: 'Movement', path: '/dashboard/movement', icon: Sparkles },
+        { name: 'Luxury Experiences', path: '/dashboard/luxury', icon: Crown },
+        { name: 'Exclusive Homes', path: '/dashboard/exclusive', icon: Gem },
+        { name: 'Strategy Call', path: '/dashboard/strategy', icon: Calendar },
+        { name: 'Join Community', path: '/dashboard/join', icon: Users },
+      ]
+    },
+    {
+      category: 'Account',
+      items: [
+        { name: 'Profile', path: '/dashboard/profile', icon: User },
+        { name: 'Settings', path: '/dashboard/settings', icon: Settings },
+      ]
+    }
   ];
 
-  // Separate admin section
+  // Admin navigation
   const adminNavigation = [
-    { name: 'Admin Dashboard', path: '/admin', icon: Shield },
-    { name: 'Manage Properties', path: '/admin/properties', icon: Building2 },
-    { name: 'Applications', path: '/admin/applications', icon: FileText },
-    { name: 'Users', path: '/admin/users', icon: Users },
-    { name: 'Payments', path: '/admin/payments', icon: DollarSign },
-    { name: 'Analytics', path: '/admin/analytics', icon: BarChart },
-    { name: 'Settings', path: '/admin/settings', icon: Settings },
+    {
+      category: 'Administration',
+      items: [
+        { name: 'Admin Dashboard', path: '/admin', icon: Shield },
+        { name: 'Manage Properties', path: '/admin/properties', icon: Building2 },
+        { name: 'Applications', path: '/admin/applications', icon: FileText },
+        { name: 'Users', path: '/admin/users', icon: Users },
+        { name: 'Payments', path: '/admin/payments', icon: DollarSign },
+        { name: 'Analytics', path: '/admin/analytics', icon: BarChart },
+        { name: 'Settings', path: '/admin/settings', icon: Settings },
+      ]
+    }
   ];
 
   useEffect(() => {
@@ -145,6 +218,13 @@ export default function DashboardLayout({ children }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const filteredNavigation = navigation.map(category => ({
+    ...category,
+    items: category.items.filter(item =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })).filter(category => category.items.length > 0);
+
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
       {/* Mobile Header */}
@@ -236,6 +316,20 @@ export default function DashboardLayout({ children }) {
               </button>
             </div>
 
+            {/* Search Bar */}
+            <div className="p-4 border-b border-[#27272A]">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" />
+                <input
+                  type="text"
+                  placeholder="Search menu..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-[#0A0A0A] border border-[#27272A] rounded-lg text-white text-sm placeholder-[#A1A1AA] focus:outline-none focus:border-[#F97316]/50"
+                />
+              </div>
+            </div>
+
             {/* User Info */}
             <div className="p-4 border-b border-[#27272A]">
               <div className="flex items-center gap-3">
@@ -250,56 +344,77 @@ export default function DashboardLayout({ children }) {
             </div>
 
             {/* Navigation */}
-            <nav className="p-4 space-y-1">
-              {navigation.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                      isActive(item.path)
-                        ? 'bg-[#F97316]/10 text-[#F97316] border-l-2 border-[#F97316]'
-                        : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="text-sm">{item.name}</span>
-                  </Link>
-                );
-              })}
+            <nav className="p-4 space-y-6">
+              {filteredNavigation.map((category) => (
+                <div key={category.category}>
+                  <h3 className="px-4 text-xs font-light text-[#A1A1AA] uppercase tracking-wider mb-2">
+                    {category.category}
+                  </h3>
+                  <div className="space-y-1">
+                    {category.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.path}
+                          onClick={() => setSidebarOpen(false)}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                            isActive(item.path)
+                              ? 'bg-[#F97316]/10 text-[#F97316]'
+                              : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5" />
+                          <span className="text-sm">{item.name}</span>
+                          {item.badge && (
+                            <span className="ml-auto text-xs bg-[#F97316] text-white px-2 py-0.5 rounded-full">
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
 
               {isAdmin && (
                 <>
-                  <div className="pt-4 mt-4 border-t border-[#27272A]">
-                    <p className="px-4 text-xs text-[#A1A1AA] uppercase tracking-wider">Admin</p>
-                  </div>
-                  {adminNavigation.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.name}
-                        to={item.path}
-                        onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                          isActive(item.path)
-                            ? 'bg-[#F97316]/10 text-[#F97316] border-l-2 border-[#F97316]'
-                            : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
-                        }`}
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span className="text-sm">{item.name}</span>
-                      </Link>
-                    );
-                  })}
+                  <div className="pt-4 border-t border-[#27272A]" />
+                  {adminNavigation.map((category) => (
+                    <div key={category.category}>
+                      <h3 className="px-4 text-xs font-light text-[#A1A1AA] uppercase tracking-wider mb-2">
+                        {category.category}
+                      </h3>
+                      <div className="space-y-1">
+                        {category.items.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.name}
+                              to={item.path}
+                              onClick={() => setSidebarOpen(false)}
+                              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                                isActive(item.path)
+                                  ? 'bg-[#F97316]/10 text-[#F97316]'
+                                  : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
+                              }`}
+                            >
+                              <Icon className="w-5 h-5" />
+                              <span className="text-sm">{item.name}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </>
               )}
 
-              <div className="pt-4 mt-4 border-t border-[#27272A]">
+              <div className="pt-4 border-t border-[#27272A]">
                 <button
                   onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
                 >
                   <LogOut className="w-5 h-5" />
                   <span className="text-sm">Sign Out</span>
@@ -309,15 +424,18 @@ export default function DashboardLayout({ children }) {
 
             {/* Support Info */}
             <div className="p-4 border-t border-[#27272A]">
-              <p className="text-[#A1A1AA] text-xs mb-3">24/7 Support</p>
-              <a href="tel:+18286239765" className="flex items-center gap-2 text-white text-sm mb-2">
+              <p className="text-[#A1A1AA] text-xs mb-3">24/7 Concierge</p>
+              <a href="tel:+18286239765" className="flex items-center gap-2 text-white text-sm mb-2 hover:text-[#F97316] transition-colors">
                 <Phone className="w-4 h-4 text-[#F97316]" />
                 +1 (828) 623-9765
               </a>
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-[#F97316]" />
                 <span className="text-white text-sm flex-1">support@palmsestate.org</span>
-                <button onClick={handleCopyEmail}>
+                <button 
+                  onClick={handleCopyEmail}
+                  className="p-1 hover:bg-[#18181B] rounded transition-colors"
+                >
                   {copied ? (
                     <Check className="w-4 h-4 text-green-400" />
                   ) : (
@@ -331,17 +449,27 @@ export default function DashboardLayout({ children }) {
       )}
 
       {/* Desktop Sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-80 lg:flex-col">
         <div className="flex flex-col flex-1 min-h-0 bg-[#0A0A0A] border-r border-[#27272A]">
-          {/* Logo */}
-          <div className="flex items-center h-20 px-6 border-b border-[#27272A]">
-            <Link to="/dashboard" className="text-2xl font-light text-white">
+          {/* Logo & Search */}
+          <div className="flex-shrink-0 p-6 border-b border-[#27272A]">
+            <Link to="/dashboard" className="text-2xl font-light text-white mb-4 block">
               Palms<span className="text-[#F97316]">Estate</span>
             </Link>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[#A1A1AA]" />
+              <input
+                type="text"
+                placeholder="Search menu..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-[#0A0A0A] border border-[#27272A] rounded-lg text-white text-sm placeholder-[#A1A1AA] focus:outline-none focus:border-[#F97316]/50"
+              />
+            </div>
           </div>
 
           {/* User Info */}
-          <div className="p-6 border-b border-[#27272A]">
+          <div className="flex-shrink-0 p-6 border-b border-[#27272A]">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-[#F97316] to-[#EA580C] rounded-xl flex items-center justify-center">
                 <User className="w-6 h-6 text-white" />
@@ -353,67 +481,118 @@ export default function DashboardLayout({ children }) {
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                    isActive(item.path)
-                      ? 'bg-[#F97316]/10 text-[#F97316] border-l-2 border-[#F97316]'
-                      : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
-                }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="text-sm">{item.name}</span>
-                </Link>
-              );
-            })}
-
-            {isAdmin && (
-              <>
-                <div className="pt-6 mt-6 border-t border-[#27272A]">
-                  <p className="px-4 text-xs text-[#A1A1AA] uppercase tracking-wider">Administration</p>
+          {/* Navigation - Scrollable */}
+          <nav className="flex-1 px-4 py-6 overflow-y-auto">
+            <div className="space-y-6">
+              {filteredNavigation.map((category) => (
+                <div key={category.category}>
+                  <h3 className="px-4 text-xs font-light text-[#A1A1AA] uppercase tracking-wider mb-2">
+                    {category.category}
+                  </h3>
+                  <div className="space-y-1">
+                    {category.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.name}
+                          to={item.path}
+                          className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all group ${
+                            isActive(item.path)
+                              ? 'bg-[#F97316]/10 text-[#F97316]'
+                              : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5" />
+                          <span className="text-sm">{item.name}</span>
+                          {item.badge && (
+                            <span className="ml-auto text-xs bg-[#F97316] text-white px-2 py-0.5 rounded-full">
+                              {item.badge}
+                            </span>
+                          )}
+                          {isActive(item.path) && (
+                            <ChevronRight className="w-4 h-4 ml-auto text-[#F97316]" />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
-                {adminNavigation.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      to={item.path}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                        isActive(item.path)
-                          ? 'bg-[#F97316]/10 text-[#F97316] border-l-2 border-[#F97316]'
-                          : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-sm">{item.name}</span>
-                    </Link>
-                  );
-                })}
-              </>
-            )}
+              ))}
+
+              {isAdmin && (
+                <>
+                  <div className="pt-4 border-t border-[#27272A]" />
+                  {adminNavigation.map((category) => (
+                    <div key={category.category}>
+                      <h3 className="px-4 text-xs font-light text-[#A1A1AA] uppercase tracking-wider mb-2">
+                        {category.category}
+                      </h3>
+                      <div className="space-y-1">
+                        {category.items.map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <Link
+                              key={item.name}
+                              to={item.path}
+                              className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all ${
+                                isActive(item.path)
+                                  ? 'bg-[#F97316]/10 text-[#F97316]'
+                                  : 'text-[#A1A1AA] hover:text-white hover:bg-[#18181B]'
+                              }`}
+                            >
+                              <Icon className="w-5 h-5" />
+                              <span className="text-sm">{item.name}</span>
+                              {isActive(item.path) && (
+                                <ChevronRight className="w-4 h-4 ml-auto text-[#F97316]" />
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
           </nav>
 
-          {/* Sign Out */}
-          <div className="p-4 border-t border-[#27272A]">
+          {/* Sign Out & Support */}
+          <div className="flex-shrink-0 p-4 border-t border-[#27272A] space-y-3">
             <button
               onClick={handleSignOut}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
             >
               <LogOut className="w-5 h-5" />
               <span className="text-sm">Sign Out</span>
             </button>
+
+            <div className="pt-2">
+              <p className="text-[#A1A1AA] text-xs mb-2">24/7 Concierge</p>
+              <a href="tel:+18286239765" className="flex items-center gap-2 text-white text-sm mb-2 hover:text-[#F97316] transition-colors">
+                <Phone className="w-4 h-4 text-[#F97316]" />
+                +1 (828) 623-9765
+              </a>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-[#F97316]" />
+                <span className="text-white text-sm flex-1">support@palmsestate.org</span>
+                <button 
+                  onClick={handleCopyEmail}
+                  className="p-1 hover:bg-[#18181B] rounded transition-colors"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <Copy className="w-4 h-4 text-[#A1A1AA]" />
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="lg:pl-72">
+      <div className="lg:pl-80">
         <main className="min-h-screen pt-16 lg:pt-0">
           {children}
         </main>
