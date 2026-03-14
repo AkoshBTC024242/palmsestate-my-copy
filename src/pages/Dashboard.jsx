@@ -45,40 +45,8 @@ function Dashboard() {
       fetchDashboardData();
     }
 
-    // Subscribe to real-time updates if user exists
-    let applicationsSubscription;
-    let savedSubscription;
-
-    if (user) {
-      applicationsSubscription = supabase
-        .channel('applications-channel')
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
-          table: 'applications',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          handleApplicationUpdate(payload);
-        })
-        .subscribe();
-
-      savedSubscription = supabase
-        .channel('saved-channel')
-        .on('postgres_changes', { 
-          event: '*', 
-          schema: 'public', 
-          table: 'saved_properties',
-          filter: `user_id=eq.${user.id}`
-        }, (payload) => {
-          handleSavedUpdate(payload);
-        })
-        .subscribe();
-    }
-
     return () => {
       clearInterval(timer);
-      if (applicationsSubscription) applicationsSubscription.unsubscribe();
-      if (savedSubscription) savedSubscription.unsubscribe();
     };
   }, [user]);
 
@@ -87,34 +55,27 @@ function Dashboard() {
     
     setLoading(true);
     try {
-      // Fetch applications
+      // Fetch applications - SIMPLIFIED: directly from applications table
       const { data: appsData, error: appsError } = await supabase
         .from('applications')
-        .select(`
-          *,
-          property:properties (
-            id,
-            title,
-            location,
-            price,
-            images
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(5);
 
       if (appsError) throw appsError;
 
+      console.log('Applications data:', appsData); // Debug log
+
       if (appsData) {
         setApplications(appsData);
         
-        // Calculate stats
+        // Calculate stats based on status field
         const total = appsData.length;
         const pending = appsData.filter(a => 
-          ['submitted', 'payment_pending', 'pre_approved', 'paid_under_review'].includes(a.status)
+          ['submitted', 'pending', 'payment_pending', 'pre_approved', 'paid_under_review'].includes(a.status?.toLowerCase())
         ).length;
-        const approved = appsData.filter(a => a.status === 'approved').length;
+        const approved = appsData.filter(a => a.status?.toLowerCase() === 'approved').length;
 
         setStats(prev => ({
           ...prev,
@@ -124,35 +85,37 @@ function Dashboard() {
         }));
       }
 
-      // Fetch saved properties count and data
-      const { count, error: savedError } = await supabase
-        .from('saved_properties')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      if (!savedError) {
-        setStats(prev => ({ ...prev, savedProperties: count || 0 }));
-      }
-
-      // Fetch saved properties for display with property details
-      const { data: savedData, error: savedDataError } = await supabase
+      // Fetch saved properties with property details
+      const { data: savedData, error: savedError } = await supabase
         .from('saved_properties')
         .select(`
-          *,
-          property:properties (
-            id,
-            title,
-            location,
-            price,
-            images
-          )
+          id,
+          user_id,
+          property_id,
+          created_at,
+          properties!saved_properties_property_id_fkey (*)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(3);
 
-      if (!savedDataError && savedData) {
+      if (savedError) {
+        console.error('Saved properties error:', savedError);
+        // Fallback: try without join
+        const { data: savedSimple, error: simpleError } = await supabase
+          .from('saved_properties')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(3);
+
+        if (!simpleError && savedSimple) {
+          setSavedProperties(savedSimple);
+          setStats(prev => ({ ...prev, savedProperties: savedSimple.length }));
+        }
+      } else if (savedData) {
         setSavedProperties(savedData);
+        setStats(prev => ({ ...prev, savedProperties: savedData.length }));
       }
 
       // Fetch total available properties count
@@ -165,32 +128,18 @@ function Dashboard() {
         setStats(prev => ({ ...prev, totalProperties: propertiesCount || 0 }));
       }
 
-      // Generate recent activity
+      // Generate recent activity from applications
       const activity = [];
       
-      // Add application activities
-      appsData?.slice(0, 3).forEach(app => {
+      appsData?.slice(0, 5).forEach(app => {
         activity.push({
           id: `app-${app.id}`,
           type: 'application',
           action: getStatusAction(app.status),
-          property: app.property?.title || 'Property',
+          property: app.property_title || 'Property Application',
           time: formatRelativeTime(app.created_at),
           status: app.status,
           created_at: app.created_at
-        });
-      });
-
-      // Add saved property activities
-      savedData?.slice(0, 2).forEach(saved => {
-        activity.push({
-          id: `saved-${saved.id}`,
-          type: 'saved',
-          action: 'Property saved to favorites',
-          property: saved.property?.title || 'Property',
-          time: formatRelativeTime(saved.created_at),
-          status: 'completed',
-          created_at: saved.created_at
         });
       });
 
@@ -210,176 +159,34 @@ function Dashboard() {
   };
 
   const getStatusAction = (status) => {
+    const statusLower = status?.toLowerCase() || '';
     const actions = {
-      submitted: 'Application submitted',
-      payment_pending: 'Payment pending',
-      pre_approved: 'Pre-approved',
-      paid_under_review: 'Under review',
-      approved: 'Application approved',
-      rejected: 'Application rejected'
+      'submitted': 'Application submitted',
+      'pending': 'Application pending',
+      'payment_pending': 'Payment pending',
+      'pre_approved': 'Pre-approved',
+      'paid_under_review': 'Under review',
+      'approved': 'Application approved',
+      'rejected': 'Application rejected'
     };
-    return actions[status] || 'Application updated';
-  };
-
-  const handleApplicationUpdate = (payload) => {
-    if (payload.eventType === 'INSERT') {
-      // Fetch the full application with property details
-      supabase
-        .from('applications')
-        .select(`
-          *,
-          property:properties (
-            id,
-            title,
-            location,
-            price,
-            images
-          )
-        `)
-        .eq('id', payload.new.id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setApplications(prev => [data, ...prev].slice(0, 5));
-            
-            setStats(prev => ({
-              ...prev,
-              totalApplications: prev.totalApplications + 1,
-              pendingApplications: prev.pendingApplications + 1
-            }));
-            
-            // Add to recent activity
-            setRecentActivity(prev => [{
-              id: `app-${data.id}`,
-              type: 'application',
-              action: 'New application submitted',
-              property: data.property?.title || 'Property',
-              time: 'Just now',
-              status: data.status,
-              created_at: new Date().toISOString()
-            }, ...prev].slice(0, 5));
-          }
-        });
-
-    } else if (payload.eventType === 'UPDATE') {
-      // Update the application in state
-      setApplications(prev => 
-        prev.map(app => app.id === payload.new.id ? { ...app, ...payload.new } : app)
-      );
-      
-      // Recalculate stats
-      supabase
-        .from('applications')
-        .select('*')
-        .eq('user_id', user?.id)
-        .then(({ data }) => {
-          if (data) {
-            const pending = data.filter(a => 
-              ['submitted', 'payment_pending', 'pre_approved', 'paid_under_review'].includes(a.status)
-            ).length;
-            const approved = data.filter(a => a.status === 'approved').length;
-
-            setStats(prev => ({
-              ...prev,
-              pendingApplications: pending,
-              approvedApplications: approved
-            }));
-          }
-        });
-
-      // Add to recent activity
-      setRecentActivity(prev => [{
-        id: `app-update-${payload.new.id}`,
-        type: 'application',
-        action: `Application ${getStatusAction(payload.new.status).toLowerCase()}`,
-        property: 'Property',
-        time: 'Just now',
-        status: payload.new.status,
-        created_at: new Date().toISOString()
-      }, ...prev].slice(0, 5));
-    }
-  };
-
-  const handleSavedUpdate = (payload) => {
-    if (payload.eventType === 'INSERT') {
-      setStats(prev => ({
-        ...prev,
-        savedProperties: prev.savedProperties + 1
-      }));
-      
-      // Fetch the property details
-      supabase
-        .from('properties')
-        .select('*')
-        .eq('id', payload.new.property_id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            const newSaved = {
-              ...payload.new,
-              property: data
-            };
-            setSavedProperties(prev => [newSaved, ...prev].slice(0, 3));
-
-            setRecentActivity(prev => [{
-              id: `saved-${payload.new.id}`,
-              type: 'saved',
-              action: 'Property saved to favorites',
-              property: data.title,
-              time: 'Just now',
-              status: 'completed',
-              created_at: new Date().toISOString()
-            }, ...prev].slice(0, 5));
-          }
-        });
-
-    } else if (payload.eventType === 'DELETE') {
-      setStats(prev => ({
-        ...prev,
-        savedProperties: Math.max(0, prev.savedProperties - 1)
-      }));
-      setSavedProperties(prev => 
-        prev.filter(s => s.id !== payload.old.id)
-      );
-    }
-  };
-
-  const formatRelativeTime = (dateString) => {
-    if (!dateString) return 'Just now';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch (e) {
-      return 'Invalid date';
-    }
+    return actions[statusLower] || 'Application updated';
   };
 
   const getStatusConfig = (status) => {
+    const statusLower = status?.toLowerCase() || '';
+    
     const configs = {
       submitted: { 
         color: 'bg-[#F97316]/10 text-[#F97316] border-[#F97316]/20',
         icon: <Clock className="w-3.5 h-3.5" />,
         label: 'Submitted',
         progress: 25
+      },
+      pending: { 
+        color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+        icon: <Clock className="w-3.5 h-3.5" />,
+        label: 'Pending',
+        progress: 30
       },
       payment_pending: {
         color: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
@@ -412,7 +219,37 @@ function Dashboard() {
         progress: 0
       }
     };
-    return configs[status] || configs.submitted;
+    
+    return configs[statusLower] || configs.submitted;
+  };
+
+  const formatRelativeTime = (dateString) => {
+    if (!dateString) return 'Just now';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (e) {
+      return 'Invalid date';
+    }
   };
 
   const handleCopyEmail = () => {
@@ -602,7 +439,7 @@ function Dashboard() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1.5">
                             <h3 className="text-white text-sm font-medium group-hover:text-[#F97316] transition-colors">
-                              {application.property?.title || 'Property Application'}
+                              {application.property_title || `Application #${application.id}`}
                             </h3>
                             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${status.color}`}>
                               {status.icon}
@@ -615,12 +452,12 @@ function Dashboard() {
                               <CalendarDays className="w-3.5 h-3.5 text-[#F97316]" />
                               {formatDate(application.created_at)}
                             </span>
-                            {application.property?.location && (
+                            {application.full_name && (
                               <>
                                 <span className="w-0.5 h-0.5 rounded-full bg-[#27272A]"></span>
                                 <span className="flex items-center gap-1">
-                                  <MapPin className="w-3.5 h-3.5 text-[#F97316]" />
-                                  <span className="truncate max-w-[150px]">{application.property.location}</span>
+                                  <User className="w-3.5 h-3.5 text-[#F97316]" />
+                                  <span className="truncate max-w-[150px]">{application.full_name}</span>
                                 </span>
                               </>
                             )}
@@ -730,25 +567,31 @@ function Dashboard() {
 
             {savedProperties.length > 0 ? (
               <div className="space-y-3">
-                {savedProperties.map((saved) => (
-                  <div key={saved.id} className="flex items-center gap-3 group hover:bg-[#0A0A0A] p-2 rounded-lg transition-colors">
-                    <div className="w-10 h-10 bg-[#F97316]/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Home className="w-5 h-5 text-[#F97316]" />
+                {savedProperties.map((saved) => {
+                  // Handle both joined data and simple data
+                  const property = saved.properties || { title: 'Property', location: 'Location' };
+                  const propertyId = saved.property_id;
+                  
+                  return (
+                    <div key={saved.id} className="flex items-center gap-3 group hover:bg-[#0A0A0A] p-2 rounded-lg transition-colors">
+                      <div className="w-10 h-10 bg-[#F97316]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Home className="w-5 h-5 text-[#F97316]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm truncate group-hover:text-[#F97316] transition-colors">
+                          {property.title || 'Property'}
+                        </p>
+                        <p className="text-[#A1A1AA] text-xs truncate">{property.location || 'Location'}</p>
+                      </div>
+                      <button 
+                        onClick={() => navigate(`/properties/${propertyId}`)}
+                        className="text-[#A1A1AA] hover:text-[#F97316] transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm truncate group-hover:text-[#F97316] transition-colors">
-                        {saved.property?.title || 'Property'}
-                      </p>
-                      <p className="text-[#A1A1AA] text-xs truncate">{saved.property?.location || 'Location'}</p>
-                    </div>
-                    <button 
-                      onClick={() => navigate(`/properties/${saved.property_id}`)}
-                      className="text-[#A1A1AA] hover:text-[#F97316] transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8">
