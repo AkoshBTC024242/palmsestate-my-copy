@@ -54,6 +54,17 @@ import SavedProperties from './pages/dashboard/SavedProperties';
 import Profile from './pages/dashboard/Profile';
 import Settings from './pages/dashboard/Settings';
 import PaymentPage from './pages/dashboard/PaymentPage';
+import LiveChat from './pages/dashboard/LiveChat';
+import DashboardProperties from './pages/dashboard/Properties';
+import DashboardBuyers from './pages/dashboard/Buyers';
+import DashboardSellers from './pages/dashboard/Sellers';
+import DashboardMarketing from './pages/dashboard/Marketing';
+import DashboardUnlock from './pages/dashboard/Unlock';
+import DashboardLuxury from './pages/dashboard/Luxury';
+import DashboardJoin from './pages/dashboard/Join';
+import DashboardExclusive from './pages/dashboard/Exclusive';
+import DashboardStrategy from './pages/dashboard/Strategy';
+import DashboardFAQ from './pages/dashboard/FAQ';
 
 // Admin pages
 import AdminDashboard from './pages/AdminDashboard';
@@ -440,6 +451,143 @@ function App() {
                     </DashboardLayout>
                   </ProtectedRoute>
                 } />
+
+                <Route path="/dashboard" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <Dashboard />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/applications" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <Applications />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/applications/:id" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <ApplicationDetail />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/saved" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <SavedProperties />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/profile" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <Profile />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/settings" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <Settings />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+{/* NEW Dashboard Routes */}
+<Route path="/dashboard/chat" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <LiveChat />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/properties" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardProperties />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/buyers" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardBuyers />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/sellers" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardSellers />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/marketing" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardMarketing />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/unlock" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardUnlock />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/luxury" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardLuxury />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/join" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardJoin />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/exclusive" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardExclusive />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/strategy" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardStrategy />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
+
+<Route path="/dashboard/faq" element={
+  <ProtectedRoute>
+    <DashboardLayout>
+      <DashboardFAQ />
+    </DashboardLayout>
+  </ProtectedRoute>
+} />
 
                 {/* ===== ADMIN DASHBOARD ROUTES ===== */}
                 <Route path="/admin" element={
